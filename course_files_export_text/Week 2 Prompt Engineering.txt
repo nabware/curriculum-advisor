@@ -1,0 +1,562 @@
+Prompt Engineering
+  - Can’t train AI models?
+Then you can train yourself!
+Prompt Engineering
+• The prompt does not require a specific format.
+• With today's language model capabilities, you just need to
+  clearly describe the task.
+
+ Think of large language models as
+ NEW online personal assistants.
+
+
+know nothing about   Understand and
+you personally       know a lot of
+                     general stuff
+Methods for strengthening language models without training
+ 1                            2
+            Language                             Language
+              Model                                Model
+
+
+
+ 3
+                   Language             Language
+                     Model                Model
+
+
+
+ 4                                5
+     Language                         Language              Language
+       Model                            Model                 Model
+               1. magic spells!
+                           Language
+                             Model
+
+
+
+
+Disclaimer: Magic spells may not be applicable to all models or tasks.
+  Chain of Thought (CoT) Tell the model to think!
+
+                                                 InstructGPT (text-davinci-002)
+
+
+
+
+https://arxiv.org/abs/2205.11916
+
+
+
+
+              https://arxiv.org/abs/2211.01910
+Ask the model to explain its answer
+                              https://arxiv.org/abs/2305.01937
+                              https://arxiv.org/abs/2310.05657
+          https://arxiv.org/abs/2305.01937
+          https://arxiv.org/abs/2310.05657
+
+
+
+
+                                   Give
+                                   answer
+GPT 3.5                            directly
+
+                                   Explain
+                                   then give
+                                   answer
+Emotional blackmail
+
+
+
+
+                      https://arxiv.org/abs/2307.11760
+                                    Principled Instructions Are All You Need for
+More magic spells                   Questioning LLaMA-1/2, GPT-3.5/4
+                                    https://arxiv.org/abs/2312.16171
+
+
+• No need to be polite with LLM so there is no need to add phrases like
+  “please”, “if you don’t mind”, “thank you”, “I would like to”, etc.,
+• Employ affirmative directives such as ‘do,’ while steering clear of
+  negative language like ‘don’t’.
+• Add “I’m going to tip $xxx for a better solution!”
+• Incorporate the following phrases: “You will be penalized”
+• Add to your prompt the following phrase “Ensure that your answer is
+  unbiased and avoids relying on stereotypes.”
+• ……
+                                             https://arxiv.org/abs/2206.03931
+
+Use AI to find magic spells
+• Reinforcement Learning, RL
+
+                      reward
+                                                      Evaluate the
+                                                      result
+
+
+                                  Language
+                                    model
+
+         Another
+     language model
+
+• Ask language models directly!
+The magic spells are not universal
+• Ask the model to think
+                     6/2023       2/2024        8/2025
+                   Old GPT 3.5 Newer GPT 3.5 GPT 4 & GPT 5
+No magic spells       72%          85%       No difference
+ “Let’s think step    88%          89%
+     by step”
+
+• Ask the model to explain its answer
+  • GPT-3 (or older models): not helpful   https://arxiv.org/abs/2205.03401
+Methods for strengthening language models without training
+ 1                            2
+            Language                             Language
+              Model                                Model
+
+
+
+ 3
+                   Language             Language
+                     Model                Model
+
+
+
+ 4                                5
+     Language                         Language              Language
+       Model                            Model                 Model
+2. Provide extra context
+    Extra context
+
+                    Language
+                      model
+Provide clear context
+           Provide information that is unknown to GenAI
+
+Model (release)                     Parameter count Training data sources (high level)                   Training data size / amount (what’s publicly documented)
+
+                  117M (commonly reported; OpenAI
+                                                                                                         GPT-1 paper: “over 7,000” books (does not give
+                  used the same “117M” config as the BooksCorpus (unpublished/self-published books;
+GPT-1 (2018)                                                                                             tokens/GB) . BookCorpus documentation commonly cites
+                    smallest model later shown in the long contiguous text)
+                                                                                                         ~985M words (Wikipedia).
+                           GPT-2 paper) (OpenAI CDN)
+                                                      WebText (scraped from outbound Reddit links
+                    Up to 1.5B (largest “GPT-2” model                                                    ~8M documents totaling ~40GB of text (as stated in the
+GPT-2 (2019)                                          meeting a karma threshold; Wikipedia removed)
+                       listed as 1542M) (OpenAI CDN)                                                     GPT-2 paper) (OpenAI CDN)
+                                                      (OpenAI CDN)
+
+                                                                                                         Trained for 300B tokens total (ar5iv). Dataset pool includes
+                                                                                                         (token counts): Common Crawl (filtered) 410B, WebText2
+                                                        Mixture of filtered Common Crawl, WebText2,
+GPT-3 (2020)                             175B (ar5iv)                                                    19B, Books1 12B, Books2 55B, Wikipedia 3B (ar5iv). The
+                                                        Books1, Books2, Wikipedia (ar5iv)
+                                                                                                         paper also notes Common Crawl was ~45TB compressed
+                                                                                                         plaintext pre-filtering and ~570GB after filtering (ar5iv).
+
+                                                      Broadly described in OpenAI docs/system cards, but
+                                                                                                         Not disclosed (OpenAI explicitly withholds
+GPT-4 (2023)          Not disclosed by OpenAI (arXiv) detailed dataset construction is not disclosed
+                                                                                                         architecture/model size and dataset details) (arXiv)
+                                                      (arXiv)
+                    Not disclosed by OpenAI (OpenAI OpenAI states GPT-5 is trained on public internet
+                                                                                                         No public token/GB count in the GPT-5 system card; only
+GPT-5 (2025)      has not published parameter counts data, partner/licensed third-party data, and data
+                                                                                                         the high-level source categories above
+                            for GPT-5) (The Guardian) from users / human trainers & researchers
+Provide information that is unknown to GenAI
+
+• (if you have) upload an internal OpenAI research paper, a
+  confidential technical report, or slides from a private briefing
+
+
+                   Extra context
+
+                                   Language
+                                     model
+  Provide examples
+                                                    Language
+Do sentiment analysis I’m so happy                                            Positive
+                                                      Model
+
+                                            Task: sentiment analysis
+             The weather is great today, Positive
+
+             I’m having bad luck today, Negative        In-context learning
+Give some
+examples This flower is beautiful, Positive               https://arxiv.org/abs/2005.14165
+
+                                                   Note: no training on the model
+             I’m tired, Negative
+                                          Really learn from examples?
+In-class exercise – ChatGPT, Gemini, Gork…
+round 1 input: News is divided into the following categories:
+• Politics: Reports on industry and economic-related news, e.g., corporations, investment, finance, stock and
+  currency markets.
+• Society: Reports on societal events, such as traffic accidents, natural disasters, crime, or human interest.
+• Finance: Reports on domestic political news, such as government departments, political parties, elections,
+  policies.
+• Lifestyle & Consumption: Reports on daily life matters, such as shopping, weather, transportation,
+  healthcare.
+• Entertainment: Reports on the entertainment industry, such as dramas, performances, shows, awards.
+• Sports: Reports on domestic and international sports events, such as competitions, games, professional
+  sports, and athletes.
+• International: Reports on major international events, such as wars, elections, diplomatic negotiations, trade.
+
+round 2 input : I will give you a piece of news. Tell me which category it falls under—just give me the category.
+round 3 input :
+ AI-related topics continue to lead headlines. Chipmaker AMD’s stock price has surged nearly 50% this year,
+ closing at $721.28 on Tuesday (13th), with a market cap of $1.78 trillion—officially surpassing global EV giant
+ Tesla’s market cap of $1.75 trillion—making it the 4th largest U.S. company.
+Try another (in the same chat and in a new chat, separately):
+round 4 input :
+Tell me which category it falls under—just give me the category.
+“On August 3, 2025, the U.S. Office of Special Counsel initiated an
+investigation into former Special Counsel Jack Smith for alleged
+violations of the Hatch Act, following accusations by Republican
+Senator Tom Cotton that Smith improperly used his previous DOJ role
+to influence Donald Trump’s 2024 campaign and legal proceedings.”
+Methods for strengthening language models without training
+ 1                            2
+                                  Extra context
+
+            Language                              Language
+              Model                                 Model
+
+
+
+ 3
+                   Language               Language
+                     Model                  Model
+
+
+
+ 4                                5
+     Language                          Language              Language
+       Model                             Model                 Model
+3. Task decomposition
+   Language    Language
+     Model       Model
+ Task decomposition
+                    complex task
+
+
+ task
+                                            output
+input
+
+
+
+
+ task
+           Step 1      Step 2      Step 3   output
+input
+ Task decomposition
+ Write a report   Outline
+ about GenAI
+                  • importance
+                                   summary
+                  • Types
+
+                  • Technologies
+
+
+“list the outline” • ……
+                                    Also explains why CoT is less useful for GPT-3.5 or
+Task decomposition                  newer models. They write out the equations first,
+                                    automatically.
+
+• Why telling the model to think (Chain of Thought, CoT) or explain helps?
+
+                     Math problem                            equations     answer
+                                          Language
+                                            Model
+
+              =
+                     Math problem                             equations
+                                           Language
+                                             Model
+
+                       equations                            answer
+                                           Language
+                                             Model
+     Self-reflection
+
+     task        Language            task            Language          output after
+    input                           output             Model             review
+                   Model
+
+•    It's like when you finish an exam and then check it again to find mistakes.
+•    Finding the answer is hard, but checking whether an answer is correct is
+     much easier.
+
+     Language models can reflect on themselves!
+   Self-consistency
+
+                           … answer is 3
+
+
+                Language                         answer is 3
+Input: a math              … answer is 5
+                  Model
+  problem
+
+                           … answer is 3
+
+
+
+                                    https://arxiv.org/abs/2203.11171
+Task decomposition
+
+       task
+                         Step 1     Step 2      Step3    output
+      input
+
+
+
+Self-reflection
+
+        task          Language                Language   output after
+                                   output
+       input            Model                   Model      review
+
+
+
+Self-consistency
+
+                                   Language
+        What is a large language
+                                     Model
+                model?
+        Combo Move
+        Tree of Thoughts (ToT)
+                                                                            Language Model
+                                                                             Self-reflection
+                                          Step 2
+
+
+ Task
+input       Step 1
+                                                                       Step 3
+
+                                          Step 2
+
+
+                       self-consistency                              https://arxiv.org/abs/2305.10601
+
+                                                   self-reflection
+  Algorithm of Thoughts                Graph of Thoughts
+https://arxiv.org/abs/2308.10379   https://arxiv.org/abs/2308.09687
+Methods for strengthening language models without training
+ 1                            2
+                                  Extra context
+
+            Language                              Language
+              Model                                 Model
+
+
+
+ 3
+                   Language               Language
+                     Model                  Model
+
+
+
+ 4                                5
+     Language                          Language              Language
+       Model                             Model                 Model
+Use tools
+                                                    Humans don’t have sharp claws
+LLM also have things they are not good at                    or fangs
+(e.g., math).
+
+
+
+
+                                  134,023,057,035
+
+   GPT 3.5
+
+
+             Can LLM use tools?                       but we invented tools
+    Use tools – search engine
+              search   professional
+                        question
+Internet
+  or a                                    Language
+                                            Model
+ private                  extra info
+database
+
+
+
+
+                         Retrieval Augmented Generation (RAG)
+Use tools – write programs
+Use tools – Text-to-image generation
+(DALL-E)
+• Call DALL-E to generate images
+        Combine the tools
+
+
+
+
+https://arxiv.org/abs/2402.04253
+Methods for strengthening language models without training
+ 1                            2
+                                  Extra context
+
+            Language                              Language
+              Model                                 Model
+
+
+
+ 3
+                   Language               Language
+                     Model                  Model
+
+
+
+ 4                                5
+     Language                          Language              Language
+       Model                             Model                 Model
+ Let the right model do the right thing
+                                                   task         Language                task
+              Language
+            model or other.                       input          Model A               output
+
+   task       controller         decides to                     Language
+  input        model             use Model A
+                                                                 Model B
+              decides to
+              use which                                         Language
+               model                                             Model C
+It is not necessarily the same model that             different abilities, different cost
+serves you on some demo platform.
+  FrugalGPT    https://arxiv.org/abs/2305.05176
+ Different models discuss with each other
+Reflection
+      task                Language              task        Language             output after
+     input                                     output
+                            Model                             Model                review
+
+Discussion
+      task              Language                Language              Language          task
+     input               Model A                 Model A               Model A         output
+
+
+
+
+ https://arxiv.org/abs/2303.17071   Language               Language
+                                     Model B                Model B
+ https://arxiv.org/abs/2305.19118
+Different models discuss with each other
+
+
+
+
+https://arxiv.org/abs/2305.19118
+                                              Exchange-of-Thought
+
+Multiple Models Discussion
+                                            https://arxiv.org/abs/2312.01823
+
+
+
+
+            different tasks may need different discussion formats
+When the              Language           I think …
+discussion is over?    Modl A
+                                        I don’t agree …   Language
+                                                           Modl B
+
+          referee                No consensus reached,
+                                  discussion continues
+           model
+
+                                        Well, I think…
+                      Language
+                       Modl A
+                                                          Language
+                                       good point …
+                                                           Modl B
+
+          referee                consensus reached, the
+                                    conclusion is ……
+           model
+The discussion never ends?   https://arxiv.org/abs/2305.19118
+
+
+
+
+ oppose on purpose
+                             https://arxiv.org/abs/2305.14325
+                                                       one person could work
+Using different models                                   like an entire team
+   https://arxiv.org/abs/2303.17760    Complete a project
+                                                                 CEO
+
+                AI project            First, do A, then
+                 manager              do B, then C ……
+                                                                   AI
+                                          write code               programmer
+                                                                   (Code Llama)
+                                            try …
+                       AI user        give suggestions
+
+create different roles:                add XX function             AI project
+• models have specialties                                          manager
+• say “you are a project
+  manager“                                     ……
+                                                                    (Disclaimer: Academic papers, are
+ Dynamic LLM Agent Network                                          currently tested on relatively simple tasks.)
+ https://arxiv.org/abs/2310.02170
+
+                     AI project                    First, do A, then
+                      manager                      do B, then C ……
+                                                                                            AI
+                                                          write code                        programmer
+
+                                                          try …
+                            AI user                 give suggestions
+
+Performance evaluator                                       Programmer: 10,
+                                                            User: 8 …
+        CEO
+                    rate the others based on
+                                                            Project manager: 7,
+                        the conversation
+                                                            User: 9 …
+                                Those with low scores       Project manager: 7,
+                                will not participate in     Programmer: 10 …
+                                next round
+Methods for strengthening language models without training
+ 1                            2
+                                  Extra context
+
+            Language                              Language
+              Model                                 Model
+
+
+
+ 3
+                   Language               Language
+                     Model                  Model
+
+
+
+ 4                                5
+     Language                          Language              Language
+       Model                             Model                 Model
+Break
+Colab/Kaggle Tutorial,
+  PyTorch Tutorial,
+  & In-class exercise
+ Please refer to Canvas for links
+

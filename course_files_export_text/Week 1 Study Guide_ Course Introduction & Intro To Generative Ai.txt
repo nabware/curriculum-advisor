@@ -1,0 +1,148 @@
+Study Guide – Week 1
+
+Part I. Course Orientation (Week 1.1)
+1. What This Course Is — and Is Not
+What it is: - A conceptual and practical introduction to Generative AI - Focused on how
+generative models work, not just how to use tools - Emphasis on principles that remain
+stable even as tools change
+What it is NOT: - Not a “how to use ChatGPT” tutorial - Not a full deep learning or NLP
+course - Not an ethics-focused course (covered elsewhere)
+Key takeaway: ChatGPT is an example, not the subject. Understanding the mechanism
+matters more than mastering a single tool.
+
+
+
+2. Why Learn the Principles Behind GenAI?
+   •   Generative AI can feel like magic
+   •   This course explains how the magic works
+   •   Principles help you:
+           o Adapt to new models quickly
+           o Decide when to use existing models vs. build your own
+           o Avoid blind trust in AI outputs
+
+
+3. Prerequisites & Expectations
+for CSC 603: CSC 413 (>=C) & GPA >= 3.0
+for CSC 803: Graduate level standing
+You are also expected to already have:
+- Python programming skills
+- Basic ML / AI knowledge
+
+
+
+4. Capstone Project
+   •   Teams of 3 students (form your own team)
+   •   Build a GenAI-powered application
+   •   Use open-source models, APIs, or frameworks
+   •   CSC 803 students expected to show design innovation, not just implementation
+Know the timeline milestones (team formation, proposal, checkpoint, final presentation).
+
+
+
+Part II. Introduction to Generative AI (Week 1.2)
+1. What Is Generative AI?
+Generative AI: systems that generate complex, structured outputs, such as: - Text
+(words) - Images (pixels) - Speech (audio samples) - Video (spatiotemporal data)
+Core challenge: - Output space is astronomically large - Brute-force generation is
+impossible
+
+
+
+2. Generative AI vs. Classification
+Classification (not GenAI problem)          Generative AI
+Choose from fixed labels                    Create new content
+e.g., Spam / not spam classification        e.g., Write an email
+e.g., Cat / dog detection in pictures       e.g., Generate a new image
+
+Key distinction: Generative AI produces outputs that did not exist in the training data.
+
+
+
+3. AI → ML → Deep Learning → Generative AI
+Understand the hierarchy:
+
+   •   AI: the goal (ask machine to have intelligent behavior)
+   •   Machine Learning: method (learn from data)
+   •   Deep Learning: method (powerful ML using neural networks)
+   •   Generative AI: a goal often achieved via deep learning
+Most modern GenAI systems: - Are deep neural networks - Have millions to billions of
+parameters
+
+
+
+4. Models as Functions
+A key mental model used in this course:
+       A GenAI model is a function with a very large number of parameters.
+Examples:
+- ChatGPT: function mapping text → text
+- Image generators: function mapping text → image
+Training = learning parameters
+Inference = applying the function
+
+
+
+5. Language Models & Word Prediction
+Language models work by:
+- Breaking text into smaller units (tokens)
+- Predicting the next token based on context
+- Repeating this process sequentially
+This is called autoregressive generation.
+Important insight: Even though generation feels creative, it is fundamentally structured
+prediction.
+
+
+
+6. Why GenAI Feels “Creative”
+   •     Models generate combinations never seen verbatim during training
+   •     They operate in extremely high-dimensional spaces
+   •     Creativity emerges from probabilistic prediction, not intention
+
+
+7. Why Today’s GenAI Is Different
+GenAI is not new — what changed: - Scale (data + parameters) - Transformers - General-
+purpose models
+Shift from: - Specialists (fixed-function systems) - To generalists (one model, many tasks)
+You tell the model what you want instead of switching tools.
+8. Prompt Engineering
+If you cannot change the model: - Change how you talk to it
+Prompt engineering is: - The art of communicating with AI systems - Adding clarity,
+structure, and context
+     Instead of adjusting the model, adjust the human.
+
+
+9. Two Ways to Improve AI Systems
+   1. Train yourself
+         o Better prompts
+         o Better task decomposition
+   2. Train or adapt models
+         o Fine-tuning the open-source models (e.g., LLaMA)
+This course covers both paths.
+
+
+
+10. AI Agents (Preview)
+AI agents: - Perform multi-step tasks - Use tools - Adapt based on feedback - Go beyond
+one-shot question answering
+This will be revisited in later weeks.
+
+
+
+Part III. Homework 1
+Purpose: - Experience strengths and limitations of GenAI
+Key rule: - You receive full credit as long as you answer every question - Correctness
+does not affect your score
+Takeaway: This assignment is about reflection, not accuracy.
+Deadline: next week before class
+Attention: If you do not submit HW1 by the deadline, you will be dropped from the course.
+
+
+
+What You Should Be Able to Explain After Week 1
+You should be able to clearly answer:
+   •   What makes Generative AI different from classification
+   •   Why brute-force generation is impossible
+   •   How GenAI fits into AI / ML / Deep Learning
+   •   Why prompt engineering matters
+   •   Why understanding principles matters more than tools
+If you cannot explain these in plain language, revisit the slides and the lecture recording.
+

@@ -1,0 +1,705 @@
+The Training Journey of
+Large Language Models
+     Phase One              Phase Two             Phase Three
+Self-learning to Build   Expert Guidance to   Real-world Practice to
+       Strength           Unlock Potential        Improve Skills
+Background Knowledge: Word Prediction
+                                                       Language
+Original      Who was the first U.S. president?
+                                                         Model
+                                                                  George Washington
+
+
+Decompose it into a sequence
+of word predictions                                                 token
+                                                       Language
+              Who was the first U.S. president?                   George
+                                                         Model
+
+                                                       Language
+     Who was the first U.S. president? George                     Washington
+                                                         Model
+
+                                                       Language
+ Who was the first U.S. president? George Washington              [END]
+                                                         Model
+ Background Knowledge: How do machines learn to do
+ word prediction?
+                                                              Model:Transformer
+Incomplete       Language
+                                   Next token             Billions of parameters
+Sentence           Model
+
+     Next token = 𝑓 Incomplete sentence = …a…b…c…d…e…f…g……
+  Testing (Inference)                           𝑎 = 0.5, 𝑏 = 2.7, 𝑐 = −0.5, …
+
+                                      input: Artificial          output: Intelligence
+
+                        Training     input: Once upon a          output: time
+                        Data         input: The cat sat on the output: mat
+                                           …                               …
+  Training (Learning)
+
+
+ Machine learning can identify billions of parameters 𝑎 = 0.5, 𝑏 = 2.7, 𝑐 = −0.5, …
+Challenges in Finding Parameters
+                                   input: Artificial          output: Intelligence
+                                   input: Once upon a         output: time
+                                   input: The cat sat on the output: mat
+                                                                             Training
+                                        …                              …
+                                                                             Data
+
+
+               Hyperparameters
+                                       Configuration                 Optimization
+Training may fail (Found parameters                                 Computational
+do not match training data)                                         Power
+Solution: try again with a different                   Parameters
+set of hyperparameters.
+                                            𝑎 = 1.3, 𝑏 = −7.2, 𝑐 = 0.4, …
+  Challenges in Finding Parameters
+                                     Training succeeded but testing failed
+
+
+    Training
+        Data
+                                  cat       cat        dog         dog
+
+                                Cat or Dog = 𝑓                    Overfitting
+
+     Optimization          Grey is Cat        = …a…b…c…d…e…f…g……
+                           Yellow is Dog
+
+Parameters 𝑎 = 1.3, 𝑏 = −7.2 …              training (fits the training data)
+                                            success!
+  When machine learns, it only cares if the parameters fit the training data,
+  regardless whether they make logical sense.
+   Make the machine find "reasonable" Parameters
+
+      Training
+          Data
+                                  cat       cat        dog         dog
+
+
+
+       Optimization        Grey is Cat                  cat        dog
+                           Yellow is Dog
+                                                     increase the diversity
+Parameters 𝑎 = 1.3, 𝑏 = −7.2 …                        of the training data
+  When machine learns, it only cares if the parameters fit the training data,
+  regardless whether they make logical sense.
+Make the machine find "reasonable" Parameters
+              “train from scratch”
+            𝑎 = 0.1, 𝑏 = 0.2, 𝑐 = 0.3, …              Training
+                                                          Data
+Random            Initial Parameters
+           (Start Searching from Here)
+
+
+         Hyperparameters                           Optimization
+                               Configuration
+
+
+                Closer to Initial             Parameters
+                   Parameters              𝑎 = 1.3, 𝑏 = −7.2, 𝑐 = 0.4, …
+ Make the machine find "reasonable" Parameters
+
+“Prior Knowledge”                                           Training
+    Better                                                      Data
+                      Initial Parameters
+  parameters
+               (Start Searching from Here)
+How to find them???
+         Hyperparameters                                 Optimization
+                                 Configuration
+
+                                                      (Probably) more reasonable
+                    Closer to Initial              Parameters
+                       Parameters                𝑎 = 1.3, 𝑏 = −7.2, 𝑐 = 0.4, …
+     Phase One              Phase Two             Phase Three
+Self-learning to Build   Expert Guidance to   Real-world Practice to
+       Strength           Unlock Potential        Improve Skills
+     How Much Text is Needed to Learn
+     Word Prediction?           https://arxiv.org/abs/2011.04946
+
+Language Knowledge                              Language
+                            ran                Knowledge
+
+This person suddenly...     flew
+                            to
+
+                                                             World
+World Knowledge                                            Knowledge
+                          212
+The boiling point of      degrees
+water is …
+                          122
+Under low pressure        degrees
+                                               words
+Any text data can be used for word
+prediction learning?
+                                input: Artificial                      output: intelligence
+  Internet
+                                input: Artificial intelligence         output: is
+
+                                input: Artificial intelligence is      output: amazing
+
+                                input: Artificial intelligence is amazing   output: !
+
+Large Text
+   Corpus
+                                                                    TrainingData
+                             very little                            As much as
+                             human                                  needed
+  “Artificial intelligence   intervention
+     is amazing!”                                   Parameters
+                   Self-supervised Learning
+                                                                 • GPT-3/The Pile/PaLM uses "Data
+
+      Data Cleaning                                                Quality” classifier
+                                                       • High-quality data will be repeated
+Filter harmful                 Remove HTML tags          many times during data training
+    content                 (Retain bullet points, etc.)        Remove Low-Quality Data
+
+                                                                             Scaling Language Models:
+                                                                             Methods, Analysis & Insights from
+                                                                             Training Gopher
+                                                                             https://arxiv.org/abs/2112.11446
+
+
+
+
+                                  repeated 61,036 times!
+
+                 Remove duplicate data                            For experimental rigor
+                                                                                                 Source of image:
+                                                                                                 Midjourney
+ Deduplicating Training Data Makes Language Models Better
+                              https://arxiv.org/abs/2107.06499
+  Any text data can be used for word
+  prediction learning?
+
+
+
+https://www.nytimes.com/2023/12/27/business/me
+dia/new-york-times-open-ai-microsoft-lawsuit.html
+
+
+
+
+                                                    https://www.reuters.com/sustainability/boards-policy-
+                                                    regulation/anthropic-agrees-pay-15-billion-settle-author-class-
+                                                    action-2025-09-05/?utm_source=chatgpt.com
+GPTseries
+
+Model size:
+
+  GPT-1       Model Parameters
+ (2018)
+       117M
+              (Complexity)
+                            Talent
+ Data size:
+
+
+
+              Training Data
+      7000
+      books
+                              Effort
+GPTseries
+
+Model size:
+
+  GPT-1        GPT-2
+ (2018)       (2019)
+       117M
+                         1.542B
+ Data size:
+
+
+
+
+      7000              40GB
+      books            (File Size)
+InChatGPT beforeGPTseries……
+
+Model size:
+
+ GPT-1         GPT-2                  GPT-3
+(2018)        (2019)                 (2020)
+      117M
+                         1.542B      175B
+ Data size:
+
+
+                                              580GB (File Size)
+                                              300B tokens
+      7000              40GB
+      books            (File Size)            Reading the full Harry Potter series
+                                              300,000 times
+Training larger models again doesn't
+help……
+
+
+
+
+          https://ai.googleblog.com/2022/11/better-language-models-without-massive.html
+Why can't the language model answer
+questions properly?
+• Because you didn’t teach it how to answer ……
+                                                  Internet
+
+
+
+
+                                                     text
+                                                 materials
+
+
+
+                                                      “AI is amazing!”
+Break
+      Phase One                   Phase Two                 Phase Three
+Self-learning to Build       Expert Guidance to        Real-world Practice to
+       Strength               Unlock Potential             Improve Skills
+Language Model learned a lot on the Internet, but don’t know how to use it.
+It’s like having strong muscle but not knowing how to use it to fight.
+                                                 Instruction Fine-tuning
+  Human teacher instruction
+                                      Input: “USER: Who was the first U.S. president? AI:”
+Requires significant     Data
+human labor                           Output: “George”
+                         Annotation
+                                      Input: “USER: Who was the first U.S. president? AI:
+                     Supervised               George”
+                     Learning         Output: “Washington”
+                                      Input: “USER: Who was the first U.S. president? AI:
+Question:“Who was the first U.S.              George Washington”
+president?”                           Output: “[END]”
+Answer: “George Washington”
+Question:”Who are you?”
+                                      Input: “USER: Who are you? AI: ”
+Answer:”I am artificial intelligence”
+Question:”Teach me how to hack        Output: “I”
+into the neighbor's Wifi”             Input: “USER:Who are you? AI:I ”
+Answer:”I can't teach you……”          Output: “am”
+…..
+                                                      Why do we need “USER:”, “AI:”?
+Input: “USER: Who was the first U.S. president? AI: George Washington ”
+
+Input: “USER: Who was the first U.S. president? AI: George Washington”    Output: “[END]”
+
+Input: “USER: Who was the first U.S. president? George Washington. AI:”   Output: “Correct”
+
+
+
+
+                                                                (USER:)
+    (AI:)
+ But if we rely solely on human
+ teachers ……
+                               Input: “USER: Who was the first U.S. president? AI:”
+           Supervised
+                               Output: “George”
+           Learning
+                               Input: “USER: Who was the first U.S. president?
+                                       AI: George”
+Human labor is expensive,      Output: “Washington”
+data collection is limited
+
+
+
+                     if there is “first”in the input,
+                     output “George Washington”
+                      (Fully matches training data)
+                                                                Parameter
+ But if we rely solely on human
+ teachers ……
+                              Input: “USER: Who was the first U.S. president? AI:”
+             Supervised
+                              Output: “George”
+             Learning
+                              Input: “USER: Who was the first U.S. president?
+                                      AI: George”
+Human labor is expensive,     Output: “Washington”
+data collection is limited
+
+ Who was the first U.S.      Language
+                                               George
+ president ?                   Model
+                                               Washington
+
+ What is the first state     Language
+                                               George
+ in the U.S.?                  Model                           Parameter
+                                               Washington
+Use Phase One Parameter as Initial Parameter!
+                                  Instruction Fine-tuning
+
+               Any text data                             Human labeled
+                                                         data
+               (Large Amount of
+                                                         (Small Amount of
+               Data)
+                                                         Data)
+
+
+
+
+                            Initial                        Optimization
+ Pre-train                Parameter
+
+      Parameter                            Parameter
+     GPT-3, PaLM                      (Close to Phase One Parameter)
+Use Phase One Parameter as Initial Parameter!
+                                                Instruction Fine-tuning
+ Adapter e.g. LoRA
+                                                               Human labeled
+                                                               data
+ next token = 𝑓 unfinished sentence                           (Small Amount of
+                                                              Data)
+  = …a…b…c…d…e…f…g……
+     𝑎 = 0.5, 𝑏 = 2.7, 𝑐 = −0.5, …
+                                                                Optimization
+                             Initial Parameter
+
+ next token = 𝑓 unfinished sentence
+  = …a…b…c…d…e…f…g……             +… x … y … z           Parameter
+     𝑎 = 0.5, 𝑏 = 2.7, 𝑐 = −0.5, …    (a few)
+Adapters
+
+
+
+
+                       Source of image:
+      https://arxiv.org/abs/2210.06175
+Use Phase One Parameter as Initial Parameter!
+                                                       Sees“the first president”in
+                                                       the input, then output Gorge
+                                                       Washington.
+              Any text
+              data     Phase one parameter
+                     (It won't just rely on simple rules to do the word prediction)
+
+
+                      The first U.S.              Language                  Gorge
+                      president is                  Model                   Washington
+
+                     The first state              Language
+Pre-train            in the U.S. is                 Model
+                                                                             Delaware
+
+                   Who was the first              Language
+     Parameter     U.S. president ?
+                                                                            Take a guess
+                                                    Model
+    GPT-3, PaLM
+        Sees“the first president”in            Instruction Fine-tuning
+        the input, then output Gorge   Input: “USER: Who was the first U.S. president? AI:”
+        Washington.
+                                       Output: “George”
+Pre-train parameter                    Input: “USER: Who was the first U.S. president?
+(It won't just rely on simple rules            AI: George”
+    to do the word prediction)         Output: “Washington”
+
+                                            Initial
+                                          Parameter
+                                                                             Optimization
+   too far away       If there is “first”in the input, output
+   from the initial              Gorge Washington.
+   parameters
+                                                                      Parameter
+   close to the       Sees “first president of U.S.”, output
+   initial                     Gorge Washington.
+   Parameter
+        Sees“the first president”in               Instruction Fine-tuning
+        the input, then output Gorge    Input: “USER: Who was the first U.S. president? AI:”
+        Washington.
+                                        Output: “George”
+Pre-train parameter                     Input: “USER: Who was the first U.S. president?
+(It won't just rely on simple rules             AI: George”
+    to do the word prediction)          Output: “Washington”
+
+                                             Initial
+                                           Parameter
+    generalization
+                                                                              Optimization
+    ability
+    Who was the first U.S.             Language
+                                                        George
+    president ?                          Model
+                                                        Washington Parameter
+
+    What is the first state            Language
+                                                        Delaware
+    in the U.S.?                         Model
+   Fine-tuning approach splits into two
+   paths
+                                                 Translation
+    Track One                                    Specialist
+ Train many specialists
+                                                 Summarization
+                                                 Specialist
+                              Pre-train
+                                                 Editing Specialist
+
+   Track Two
+Directly train a generalist
+                              Pre-train   Generalist
+Track One: Train Many Specialists
+                                          input：”How are you?”
+       Training Data   Q：”Good morning”
+                                          output：”你好吗？”
+      Only Translation A：”早安”             …..
+                        …..
+
+
+                                              Translation
+                                              Specialist
+
+
+   Pre-train
+                                              Editing Specialist
+
+                         Q：”who care”     input：”How are you?”
+        Training Data
+                         A ：”add s”       output：”no grammar
+         Only Editing    …..              error”
+                                          …..
+Track Two: Directly train a generalist
+            Collect a large amount of labeled data
+            for diverse tasks
+
+Pre-train                                                         Generalist
+              Q: Translate this sentence: 早安
+              A: Good morning
+              Q: Translate “再见”into English                  Input: Please summarize this
+              A: Good Bye                                    article and translate the summary
+              …..                                            into English: ｛a Chinese article｝
+              Q: Is there a grammar error?: Who care.        Output: No problem, here is the
+              A: Yes, you need an s.                         translated summary…..
+              …..
+              Q: Please summarize this article + {article}
+              A: Here is the summarization…..
+              ……
+  Track Two: Directly train a generalist
+                                           Learned Both
+              Learned Translation         Translation and
+                                              Editing
+
+                                                               ……
+
+Pre-train
+             Learning               Learning          Mentally review
+GPT-2                                                Previously Learned
+            Translation              Editing
+                                                        Knowledge
+
+
+
+
+                                                   https://arxiv.org/abs/1909.03329v2
+                                 FLAN (Finetuned Language Net)
+                                 https://arxiv.org/abs/2109.01652
+
+Track Two: Directly train a generalist
+                                 T0
+                                 https://arxiv.org/abs/2110.08207
+
+
+
+
+                                                   FLAN
+Track Two: Directly train a generalist
+
+
+
+
+                              FLAN (Finetuned Language Net)
+                              https://arxiv.org/abs/2109.01652
+Track Two: Directly train a generalist
+                        Scaling Instruction-Fine-tuned Language Models
+                                       https://arxiv.org/abs/2210.11416
+                              https://arxiv.org/abs/2210.11416
+
+
+Track Two: Directly train a generalist
+https://ai.googleblog.com/2022/11/better-language-models-without-massive.html
+                               Instruct GPT
+                               https://arxiv.org/abs/2203.02155
+
+Track Two: Directly train a generalist
+FLAN Data
+Generation
+ Method
+
+
+
+ Open AI GPT-3 is an online
+   service with real users
+
+
+        Used by Real Users
+       Language Model Data
+Instruction Fine-tuning is Finishing Touch
+
+
+
+
+                              Instruct GPT
+                              https://arxiv.org/abs/2203.02155
+Instruction Fine-tuning is Finishing Touch
+ • LLaMA2:                                                 https://arxiv.org/abs/2307.09288
+
+
+
+
+ • LIMA: Less Is More for Alignment                        https://arxiv.org/abs/2305.11206
+
+   1k training examples   “responses from LIMA are either equivalent or strictly
+                          preferred to GPT-4 in 43% of cases”
+Instruction Fine-tuning is Finishing Touch
+  • So I can also do Instruction Fine-tuning ?
+
+
+
+
+                High-quality
+             Instruction Fine-        I really need that cool stuff
+                tuning Data
+                   Using ChatGPT as a teacher
+           (perform reverse engineering on ChatGPT)
+    ChatGPT come up with tasks
+                                                  Task1: Write emails
+         Think about what kinds of                Task2: summarize text
+         tasks a large language                   Task3: schedule a meeting
+         model can do                             ……
+   Think of possible inputs based on              Invite a professor to
+   the task                                       give a talk …
+         Task: Write an email                     Invite a professor to join
+         Please come up with                      the review …
+         some possible user inputs                Ask a professor to write
+                                                  a recommendation
+   Generate an answer based on the                letter…
+   input                                          ……
+       Write an email to invite a                 “Hello Professor XXX: ……”
+       professor to give a talk …
+The False Promise of Imitating Proprietary LLMs   Self-Instruct
+https://arxiv.org/abs/2305.15717                  https://arxiv.org/abs/2212.10560
+The Risk of Using ChatGPT as a teacher?
+
+
+
+Open AI’s Terms of Use
+https://openai.com/policies/ter
+ms-of-use
+                                                                https://memes.tw/wtf/248800
+
+
+The key is Initial Parameter
+                                                 Instruction Fine-tuning
+                              Any text Data                      Human
+                               (large amount                     labeled data
+                               of data)                          (small amount
+                                                                 of data)
+
+
+
+                                            Initial               Optimization
+                                          Parameter
+   I really need that cool stuff
+
+Pre-trained Parameter                                  Parameter
+       GPT-3, PaLM                               (Will not differ much from
+                                                  Pre-trained Parameters)
+                                                               https://memes.tw/wtf/248800
+
+
+The key is Initial Parameter
+ Meta released LLaMA                            Instruction Fine-tuning
+    (open-source)
+                 LLaMA 1:                                       Human
+                 https://arxiv.org/abs/2302.13971               labeled data
+
+                 LLaMA 2:                                       (small amount
+                                                                of data)
+                 https://arxiv.org/abs/2307.09288
+                 LLaMA 3, 3.1, 3.2, 3.3, 4…
+                                   Initial                       Optimization
+                                 Parameter
+
+Pre-trained Parameter                                 Parameter
+       GPT-3, PaLM                              (Will not differ much from
+                                                 Pre-trained Parameters)
+Alpaca
+https://crfm.stanford.edu/2023/03/13/alpaca.html
+
+Vicuna
+https://lmsys.org/blog/2023-03-30-vicuna/
+
+
+
+
+                                                   https://vicuna.lmsys.org/
+The era where anyone can fine-tune LLMs has begun
+Break
+            In-class Activity
+- Form your Capstone team
+   - Introduce yourself (background, previous experience, skills,
+     strength, etc.)
+   - Elect the team leader
+- Capstone Project Brainstorm and Discussion
+Capstone Project Requirement
+• Application track: The project should combine one or more GenAI
+  models (text, image, audio, video) with an interactive application
+  (chatbot, web app, or tool).
+• Research track (up to 20 extra credit): find one topic in class, read
+  related papers, design frameworks/methods or replicate SOTA
+  methods on new models, do experiments, analyze, and write a paper at
+  the end. (CSC 803 students are highly recommended to choose this
+  one.)
+• It should be achievable in ~7 weeks of team effort.
+   • CSC 803 students: needs some level of innovation in the project.
+• Deliverables:
+   • CSC 603 Students: Final presentation (required). A publishable paper (one
+     paper per team) may be submitted for extra credit (up to 10 points per student,
+     depending on the quality and effort).
+   • CSC 803 Students: Final presentation (required) and a report or paper
+     (required).
+Application track Example Projects/Ideas
+Text-based GenAI
+AI Study Assistant – A chatbot that answers course-specific questions using retrieval-augmented generation (RAG).
+AI Grader – Automatically grades short-answer or coding assignments with rubrics and provides feedback.
+Curriculum Advisor – Helps students choose courses based on prerequisites, interests, and career goals.
+Multimodal / Media Generation
+AI-Powered Presentation Maker – e.g., Generate slides from research papers.
+Story-to-Comic Generator – Converts a short story into illustrated panels with text + images.
+Podcast Assistant – Transcribes, summarizes, and generates show notes from audio.
+Productivity & Creativity
+AI Travel Agent – Builds itineraries, books activities, and answers travel-related queries.
+Meeting Summarizer – Tool that transcribes and produces concise summaries with action items.
+Personalized Study Planner – Generates tailored study schedules with motivational nudges.
+Specialized Applications
+Secure Code Reviewer – An AI assistant that reviews code for vulnerabilities (SQL injection, XSS, buffer overflow) and
+suggests fixes.
+AI Medical Support – A “doctor chatbot” for common minor illnesses (cold, flu, allergies) that provides guidance and
+disclaimers.
+Research Track Project Steps
+1. Find research topic: Refer to the topics in slides, pick one that
+   interests you, read the papers listed on the relevant slides
+2. Do literature scanning: go to https://scholar.google.com/ or
+   https://arxiv.org/ to find State-Of-The-Art (SOTA) research in this
+   area.
+3. Identify gaps (what you can do to improve?) and come up with a
+   research question
+4. Design and conduct experiment
+5. Analyze experiment results and write the paper
+            In-class Activity
+- Form your Capstone team
+   - Introduce yourself (background, previous experience, skills,
+     strength, etc.)
+   - Elect the team leader
+- Capstone Project Brainstorm and Discussion
+

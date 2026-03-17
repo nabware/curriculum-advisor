@@ -1,0 +1,151 @@
+  CSC 603/803
+  Generative AI:
+  Fundamentals
+  and Applications
+Xuhui (Tracy) Chen, Ph.D.
+tracychen@sfsu.edu
+Office hours:
+W 10am-12pm (TH 910) or
+by appointment
+                                            Building your own model matters, but know
+World is Changing
+https://wiktenauer.com/wiki/Michael_Hundt   when to use existing AI instead.
+
+
+
+                                   ChatGPT, Gemini …
+
+
+
+                                              AI models
+                                              developed by
+                                              yourself
+Course Focus
+          Is this course about teaching me how
+                      to use ChatGPT?
+
+
+
+                 No!
+
+
+       • ChatGPT is just one example of generative AI.
+       • ChatGPT is very easy to use, you don't need a whole
+         semester to learn it.
+       • ChatGPT has tons of learning resources.
+Course Focus
+• Target Audience: already tried out ChatGPT or other generative
+  AI tools, and curious about what's actually going on behind the
+  scenes
+    • GenAI is changing fast, we'll focus more on the concepts and
+      principles behind it.
+Why is it important to know the principle?
+Generative AI is like magic. This course reveals the
+techniques behind the magic so you can truly
+understand how it works.
+Pre-req:
+   for CSC 603: CSC 413 (>=C) & GPA >= 3.0
+   for CSC 803: Graduate level standing
+   for both: Python coding skills & ML/AI basic knowledge
+                                         Most reference papers are from arXiv
+Course Focus                               https://arxiv.org/abs/2205.10643
+
+• Relationship with other AI/ML courses
+                                                            2022     May
+   • No overlap with:
+      • CSC 665/865 Artificial Intelligence
+      • CSC 671/CSC871 Deep Learning
+      • CSC 872 Pattern Analysis and Machine Intelligence
+      • CSC 620/820 Natural Language Technologies
+• What won’t you learn in this course?
+   • This course is an introduction course
+   • Can’t cover all techniques; For deeper study, see the papers cited in the
+     slides
+   • Not too much ethics topics, CSC 659/859 AI Explainability and Ethics
+                      Topics and Schedule
+1. Introduction to Generative AI
+   a. Overview: Definition and key characteristics of Generative AI. (w1)
+   b. Prompt Engineering: understand how GenAI model work and know how to
+      interreact with them effectively (W2)
+   c. AI Agent (W3&4)
+   d. How a model is trained (W5&6)
+   e. Post-training and forgetting (W7)
+   f. Inside Large Language Model (LLM) and its evolutions. (W8&11, no class on
+      W9&10)
+   g. How to evaluate the performance of an LLM (W12)
+   h. Ethics and security issues (W12)
+   i. Image, audio, and video Generative AI Models (W13&14)
+2. GenAI in Software Development: AI-driven tools for
+   developers. (W15)
+3. Team-based Capstone Project (Building GenAI-powered applications
+   with open-source models, APIs, frameworks, etc.): Final presentation
+   and Q&A. (W16)
+Capstone Project
+• Team
+  • 3 students/team
+  • 1 team leader (TL, responsibility: project management, task allocation &
+    coordination, communication & meetings, etc.) – up to 10 extra credits
+  • Form your own team. fill out a form (will be published on Canvas) by the 4th
+    week (2/20), Students who do not form a team on their own by the deadline
+    will be manually assigned to a team from the remaining students.
+• Timeline
+  • W1-5 form teams by 2/20 (Friday)
+  • W8 TL submit proposal (I will provide template on W5) due W8 before class
+  • W11 checkpoint: TL submit progress report, due W11 before class
+  • W16 (second week of Dec.) presentation and peer evaluation
+                           Assignments and Grading
+Attendance (10%): 2 attendance quiz per class, 10 times in total.
+In-class exercise (20%): In-class tutorials and exercises.
+Homework (30%) (Likely to change):                                                FINAL   PERCENTAGE
+           HW1-The power of GenAI                                                 GRADE
+              HW2- RAG-based Agentic System                                       A       ≥ 90%
+              HW3- AI Agent (prompt engineering)
+              HW4- Fine-tuning
+                                                                                  B+      ≥ 86.5 and < 90%
+                o CSC603: quiz questions on LLM fine-tuning                       B       ≥ 80.0 and < 86.5%
+                o CSC803: Fine tune a LLM (hands-on coding)
+                                                                                  C+      ≥ 76.5 and < 80%
+              HW5-Transformers
+Capstone project (100points) (40%):                                               C       ≥ 70.0 and <76.5%
+(CSC803: must have innovations in the design instead of simple implementation.)
+                                                                                  D       ≥ 60.0 and <70%
+      • Project proposal (20 points)
+      • Checkpoint progress report (20 points)                                    F       < 60.0%
+      • Final presentation & demo (60 points (CSC603), or 40 points (CSC803))
+              o Presentation grading: Instructor (50%) + peer evaluation (50%)
+     • Final report (20 points) (CSC803)
+Late Policy
+• Attendance & In-class activities
+   • not allowed (unless emergency situation – email the instructor)
+• Homework
+   • within 48 hours of the deadline: 75% of what you earned
+   • 48 hours – 7 days: 50% of what you earned
+• Capstone Project
+   • proposal & checkpoint report: same as homework
+   • Final presentation: Non-negotiable
+If You Have Any Questions
+●   You can ask via
+     ○   Email
+          ■   Instructor: Prof. Chen (tracychen@sfsu.edu)
+          ■   TA: Nipun Taneja (ntaneja@sfsu.edu)
+     ○   Office hour
+          ■   Time: Every Wednesday 10am-12pm or by appointment (tracychen@sfsu.edu)
+          ■   Location: TH 910
+     ○   TA hour
+          ■   Time: every class last 30 minutes, or by appointment (ntaneja@sfsu.edu)
+          ■   Location: classroom
+CT-GAITAE : Certificate in Generative Artificial
+Intelligence (GenAI) for Computer Scientists
+
+
+
+     CSC 603/803   Generative AI: Fundamentals and Applications
+                     Syllabus
+https://sfsu.instructure.com/courses/69370/files/8511927?module
+                          _item_id=3832686
+
+
+                       Canvas
+           https://sfsu.instructure.com/courses/69370
+Break
+

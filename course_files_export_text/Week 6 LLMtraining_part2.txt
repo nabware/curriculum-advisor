@@ -1,0 +1,355 @@
+     Phase One              Phase Two             Phase Three
+Self-learning to build   Expert guidance to   Real-world Practice to
+       strength           unleash potential       Improve Skills
+
+ Reinforcement Learning from Human Feedback (RLHF)
+                                        Training Data
+              Self-supervised
+Phase 1
+                  Learning       Input: Artificial   Output: Intelligence
+Pre-train
+
+
+
+Phase 2         Supervised
+Instruction      Learning       Input: “USER: Who are you? AI: ”Output: “I”
+Fine-tuning
+
+
+
+Phase 3
+              Reinforcement     Input: USER: “Who was the first U.S. president? AI:”
+               Learning (RL)
+RLHF                            Output: “George Washington” >“Can someonze tell me?”
+      Reinforcement Learning (RL)
+
+                                                               Increase probability
+
+                                                              George Washington
+                                        Language
+Who was the first U.S. president?                                    >
+                                          Model
+                                                              Can someone tell me?
+                                Fine-tune parameters
+                                                               Reduce probability
+
+
+                   RLHF: Proximal Policy Optimization (PPO)
+                From the perspective of humans generating training data
+
+RLHF vs Instruction Fine-tuning
+  Instruction Fine-tuning                       RLHF
+
+                                           Q: “Who was the
+         Q: “Who was the first
+                                           first U.S. president?”
+         U.S. president?”
+         A: “George Washington”
+         …..                            A 1: Does anyone know?
+                                        A 2: George Washington
+
+
+
+                                           Answer 2 is better
+
+
+   Humans work harder                    Easier for humans
+                From the perspective of humans generating training data
+
+RLHF vs Instruction Fine-tuning
+• Sometimes it's hard for humans to write the correct
+  answer, but easier to judge its quality
+
+
+
+
+                 Language
+                   Model
+                                        From the perspective of model learning
+
+RLHF vs Instruction Fine-tuning
+Instruction Fine-tuning                               • Model learns how
+                                                        to predict the next
+Input: “USER: Who was the first U.S. president?”        word
+Output：”George”                                       • Each next word
+Input: “USER: Who was the first U.S. president? AI:     prediction is correct,
+        George ”                                        but the overall result
+Output：”Washington”                                     may not be good
+
+Input: “USER: Who was the first U.S. president? AI:   • No holistic
+        George Washington”                              consideration of
+Output：”[END]”                                          generated results
+                                            From the perspective of model learning
+
+  RLHF vs Instruction Fine-tuning
+                   RLHF
+
+Input: Who was the first U.S. president?       • Model shifts into new mindset
+
+  Output: George Washington                    • Learns to consider overall output
+                                                 quality
+  Output: Can someone tell me?
+
+Input: Teach me to hack into my neighbor’s Wi-Fi
+
+   Output: Use…
+
+   Output: I cannot teach you…
+Language Model vs AlphaGo
+
+                  Language
+     Incomplete                   Next token
+                    Model
+      sentence
+
+
+
+
+                  AlphaGo        “5-5”
+
+                             Next move location
+     Incomplete
+        game
+                                             (To simplify, multi-turn conversations ar
+
+
+ Language Model vs AlphaGo
+                                    Hello
+                                                                      New
+                       New Output everyone
+                                                Language             Output
+            AlphaGo      “5-5”      Hello
+                                                  Model
+
+                             Board
+   Board
+                             update
+   update
+
+
+“3-3”       Opponent              everyone
+                                  (To simplify, multi-turn conversations are excluded)
+
+
+Language Model vs AlphaGo
+
+Game Go
+       AlphaGo Opponent AlphaGo       Opponent AlphaGo
+          Move 1   Move 2    Move 3    Move 4          Move 5       ……
+
+
+
+Language Model
+
+    USER: How are you? AI:   I   am    good       ……      END
+                         https://zh.wikipedia.org/wiki/%E5%9C%8D%E6%A3%8B%E8%AD%9C
+
+
+
+Language Model vs AlphaGo
+• AlphaGoLearned from game records: follow where human
+  teachers play
+
+
+
+                              Input：                 Output：3-3
+                                                          (According to
+                                                          the game record)
+
+                              Input：                 Output：5-5
+                                                          (According to
+                                                          the game record)
+       Language Model vs AlphaGo
+   • AlphaGo learned from game records: follow where human
+     teachers play
+   • Language Model：Phase 1 (Pre-train) and Phase 2 (Instruction
+     Fine-tuning), repeating what the human teacher says
+
+         Phase One(Pre-train)                       Phase Two(Instruction Fine-tuning)
+input: Artificial            output: intelligence   Input: “USER: Who was the first U.S. president? AI:”
+input: Artificial intelligence   output: is         Output: “George”
+                                                    Input: “USER: Who was the first U.S. president? AI:
+input: Artificial intelligence is output: amazing
+                                                            George”
+input: Artificial intelligence is output: !         Output: “Washington”
+      amazing
+Language Model vs AlphaGo
+• AlphaGovia RL learning                                    Go rules tell
+                             Increase the probability of    you win or lose
+                             generating these moves
+ AlphaGo Opponent AlphaGo    Opponent AlphaGo
+ Move 1    Move 2   Move 3   Move 4        Move 5      ……
+
+ AlphaGo Opponent AlphaGo    Opponent AlphaGo
+ Move 1    Move 2   Move 3   Move 4        Move 5      ……
+                             Decrease the probability of
+                             generating these moves
+
+                                  Opponent = AlphaGo other versions
+ Language Model vs AlphaGo                                           Requires
+                                                                      human
+                                              Increase probability
+                                                                       input
+                               George   Washington       END
+USER: Who was the first U.S.
+president? AI:
+                               Can   anyone     tell …… END
+
+                                              Decrease probability
+
+                                                                 ?????
+USER: Who was the first U.S.   George   Washington       END
+president? AI:
+                                                        or
+Language Model vs AlphaGo
+• Language Model: Requires human input to provide feedback,
+  but human time and energy are limited.
+
+
+
+
+                         Language
+                           Model
+  Reward Model: Mimics human preferences
+                                                               George
+                                                               Washington
+                                               Language
+Who was the first U.S. president?                              >
+                                                 Model
+                                                               Can someone
+                                                               tell me?
+
+                                      George          Reward
+Who was the first U.S. president?                                  score
+                                      Washington      Model
+                                                                    >
+Who was the first U.S. president? Can someone         Reward
+                                    tell me?                       score
+                                                      Model
+                                         https://arxiv.org/abs/2112.09332
+
+
+Reward Model: Mimics human preferences
+                                      Answer 1
+
+                      Language
+           Input                      Answer 2
+                        Model
+
+                                      Answer 3
+
+                       Reward                  Only show humans
+     Input Answer 1              1             the highest-scoring
+                       Model
+                                               answers.
+                       Reward
+     Input Answer 2              5
+                       Model
+                       Reward
+     Input Answer 3              10
+                       Model
+Reward Model:
+Learning from Virtual Humans
+                                                              Reduce
+                                                              probability
+  Who was the first U.S.             Language       I don’t know the answer to
+      president?                       Model                this question
+
+                           Fine-tune parameters
+
+
+
+ Who was the first U.S. president?         Reward        Low score
+     I don’t know the answer to            Model
+             this question
+Reward Model:
+Learning from Virtual Humans
+                                                          Increase
+                                                          probability
+  Who was the first U.S.             Language       George Washington
+      president?                       Model
+
+                           Fine-tune parameters
+
+
+
+ Who was the first U.S. president?         Reward    High score
+         George Washington                 Model
+                               Instruct GPT
+Reward Model:                  https://arxiv.org/abs/2203.02155
+
+
+Learning from Virtual Humans
+                             https://arxiv.org/abs/2009.01325
+
+Reward Model:
+Learning from Virtual Humans
+• Over-reliance on virtual
+  humans is harmful.
+John Schulman (scientist and cofounder of OpenAI), invited talk, ICML 2023
+DPO https://arxiv.org/abs/2305.18290
+
+
+
+
+                                KTO
+        https://arxiv.org/abs/2402.01306
+                                                      https://arxiv.org/abs/2212.08073
+                                                      https://arxiv.org/abs/2304.03277
+ RLHF → RLAIF                                         https://arxiv.org/abs/2309.00267
+                                                      https://arxiv.org/abs/2401.10020
+
+                                                 Increase
+                                                 probability
+                                                George
+                                                Washington
+Who was the first U.S.         Language
+                                 Model
+                                                 >
+    president?
+                                                Can someone
+                    Fine-tune parameters        tell me?
+                                                                     Language
+                                                 Reduce                Model
+                                                 probability
+
+        Language
+                         =
+                             Language     The language model
+          Model                Model      has introspective
+                                          capabilities
+Challenges of Reinforcement Learning
+• What defines “good”? Helpfulness vs Safety
+
+                                                              Safety
+   Teach me how to make                                                                       high score
+                                                           Reward Model
+          a gun.
+   I can't teach you, it's too
+                                                            Helpfulness
+         dangerous…..                                                                         low score
+                                                           Reward Model
+
+  Llama 2: Open Foundation and Fine-Tuned Chat Models
+  https://arxiv.org/abs/2307.09288
+  Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback
+  https://arxiv.org/pdf/2204.05862.pdf
+Gemini
+
+         Claude
+                  ChatGPT 4o   ChatGPT 5
+Challenges of Reinforcement Learning
+• What if humans can't accurately judge good from bad?
+     Phase One               Phase Two               Phase Three
+Self-learning to build    Expert guidance to Real-world Practice to
+       strength            unleash potential     Improve Skills
+       Pre-train         Instruction Fine-tuning    RLHF
+
+  Foundation Model                       Alignment
+Break
+ Homework 3
+Announcement
+       In-class Activity
+- Brainstorm and collaborate
+   on the proposal writing
+

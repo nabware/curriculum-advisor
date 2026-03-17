@@ -1,0 +1,443 @@
+CSC 603/803 Generative AI:
+Fundamentals and Applications
+Course Overview
+What is Generative AI?
+Artificial Intelligence (AI)
+
+ "Artificial Intelligence is the study of agents that receive percepts
+ from the environment and take actions."
+ (Russell & Norvig, "Artificial Intelligence: A Modern Approach," 4th
+ Edition, 2021)
+ “AI is the science and engineering of making intelligent machines.”
+ (John McCarthy, Dartmouth Proposal, 1956)
+ “AI encompasses computational techniques that perform tasks
+ traditionally requiring human intelligence.”
+ (NIST (U.S. National Institute of Standards and Technology))
+Generative AI:
+Machines generate complex and structured things
+
+
+
+
+      text            image               speech
+   composed of   composed of pixels   composed of sound
+      words                             sampling points
+Generative AI:
+Machines generate complex and structured things
+                                                              Cannot brute-
+                Write an article with 100 words with the      force
+                   title “AI is changing the world”
+
+
+  What is the possibility of generating a 100-word article?
+  3000 commonly used English words
+  3000 x 3000 x 3000 x 3000 …… = 3000100 ≈ 10348
+  Estimation of the total number of atoms in the universe 1080
+         Find the appropriate combination from the
+                  nearly infinite possibilities
+Generative AI:
+Machines generate complex and structured things
+• Classification: Pick from a fixed set of options (not
+  generation, not GenAI)
+
+
+
+
+         Email spam filter          Cat or Dog classifier
+Generative AI
+AI (goal)
+            Generative AI (one of the goals)
+Machine Learning ≈ automatically find a
+function from data
+                          Parameter
+
+    A function   𝑦 = 𝑓 𝑥 = 𝑎𝑥 + 𝑏     If 𝑥 = 1, y =?
+                 Given 𝑥 = 4, y = 5
+
+                      𝑥 = 2, y = −1
+
+        What are 𝑎 and 𝑏 ?    𝑎 = 3, 𝑏 = −7
+
+        In middle school, you solve it by hand,
+       ML can find the parameters automatically
+Teach a machine to recognize cat or dog                       Model
+                   testing (inference)      Millions/thousands of parameters
+
+
+A function cat or dog = 𝑓                = …a…b…c…d…e…f…g……
+                                           𝑎 = 1.3, 𝑏 = −7.2, 𝑐 = 0.4, …
+
+                                                     Training Data
+  Input:          Input:          Input:              Input:
+
+ Output: cat     Output: dog     Output: cat        Output: dog
+
+ ML can find out thousands of parameters     training (learning)
+                                 𝑎 = 1.3, 𝑏 = −7.2, 𝑐 = 0.4, …
+Teach a machine to recognize cat or dog                     Model
+                                          Millions/thousands of parameters
+
+
+A function cat or dog = 𝑓              = …a…b…c…d…e…f…g……
+
+
+                                                 ……
+
+    Deep Learning                                ……
+    (a type of ML)
+                            ……   ……        ……                ……
+                                                 ……
+
+                                      Neural Network
+Generative AI
+AI (goal)           Generative AI   (one of the goals)
+
+   Machine Learning (method)
+
+            Deep Learning (more powerful method)
+Generative AI
+AI (goal)
+
+   Machine Learning (method)
+
+            Deep Learning (more powerful method)
+
+               Generative AI (goal)
+                          (Now is usually achieved through deep learning)
+ChatGPT is also a function                            Model
+                                       Billions of parameters
+
+              =𝑓                  = …a…b…c…d…e…f…g……
+
+
+
+
+                         Transformer
+             (A type of neural network)
+ChatGPT is also a function                           Model
+                                      Billions of parameters
+
+                 =𝑓                 = …a…b…c…d…e…f…g……
+
+
+     input: what is AI?               output: AI is…
+     input: tell a story about AI     output: once upon a time…
+     input: write a poem              output: Two roads diverged in a
+                                      wood…
+
+
+
+                 Machine learning has to find out
+                     billions of parameters
+AI drawing is also a function
+(Stable Diffusion, Midjourney, DALL·E)                                Model
+                                                       Billions of parameters
+
+                          =𝑓                      = …a…b…c…d…e…f…g……
+
+
+
+          A colorful                A running cat              A black dog on
+          cartoon cat                                               the beach
+
+
+      A black cat under                   An indoor             A dog among
+      the moonlight                      Persian cat                  flowers
+
+
+
+                          Machine learning has to find out
+                              billions of parameters
+Machine needs to be able to generate things it has never seen during training.
+It needs “creativity”
+                                               Billions of parameters
+
+                        =𝑓                   = …a…b…c…d…e…f…g……
+
+
+             input: what is AI?                  output: AI is…
+ Training    input: tell a story about AI        output: once upon a time…
+     Data
+             input: write a poem                 output: Two roads diverged
+                                                 in a wood…
+
+                                                          Input: write an essay about
+                 Needs to                                 tariff war in 2025
+Testing …                               =𝑓
+             generate new
+                sentences
+   Word Chaining                                                        Infinite possible
+                                                                        answers
+
+Original Who was the first U.S. president?                function       George Washington
+
+
+Decompose it into a sequence Classification                             Answer is
+of word predictions          problem                                    limited!
+              Who was the first U.S. president?           function        George
+
+
+     Who was the first U.S. president? George             function       Washington
+
+
+ Who was the first U.S. president? George Washington      function       [END]
+
+                                                       Language Model
+Generative AI
+AI (goal)
+
+   Machine Learning (method)
+
+            Deep Learning (more powerful method)
+
+               Generative AI
+                               Language Model
+Generation Strategy
+      complex object              smaller unit
+
+          Article         word word word word word
+
+      composed of text
+                          generate a sequence of smaller units in order
+
+
+
+
+          Image
+
+
+
+     composed of pixels
+                             Autoregressive Generation
+Generation Strategy
+ Image GPT
+
+
+
+
+                      https://openai.com/blog/image-gpt/
+GenAI is not new…
+
+
+
+
+                                             (Google Translate)
+
+               What makes today’s GenAI particularly remarkable?
+What makes today’s GenAI particularly remarkable?
+specialists      In this class, we are going to
+                                                                          这堂课我们要
+  tool           talk about how to master
+                 large language models…                                   讲……
+                                                       translation
+
+                                    Tell it what you want
+generalists
+              Translate the following into Chinese:
+ assistant       In this class, we are going to                           这堂课我们要
+                 talk about how to master                                 讲……
+                 large language models…               No fixed-function
+  GenAI -Towards Generalist
+                                   Microsoft Copilot
+
+
+
+
+OpenAI ChatGPT
+
+
+
+                                                       XAI Grok
+
+
+                 Google Gemini   Anthropic Claude
+Break
+Generative AI
+AI (goal)
+
+   Machine Learning (method)
+
+            Deep Learning (more powerful method)
+
+               Generative AI
+                               Language Model      ChatGPT
+Model Evaluation is not Easy
+                                                                 Just assess whether the
+                                                                 translation is done well or not
+specialists      In this class, we are going to
+                 talk about how to master
+                                                                              这堂课我们要
+                 large language models…                                       讲……
+                                                       translation
+
+                                                                  How should we evaluate its
+generalists                                                       ability?
+              Translate the following into Chinese:
+
+                 In this class, we are going to                               这堂课我们要
+                 talk about how to master                                     讲……
+                 large language models…               No fixed-function
+What should I do to
+improve such powerful AI
+models?
+Approach #1: If I can't train the model,
+then I'll train myself.
+                       Give clearer instructions and
+                       add extra context.
+
+                  =𝑓
+
+            Fixed-function
+               (e.g., ChatGPT)
+
+
+          Instead of adjusting the model,
+                adjust the people.
+Approach #1: If I can't train the model,
+then I'll train myself.
+Prompt Engineering: art of communication between humans
+and AI
+
+
+
+           Language                      Language
+             Model                         Model
+Prompt                         Better
+                               Prompt
+Approach #2: Train my own model
+
+        =𝑓               = 𝑓′
+
+
+    Open-source           adjust
+     model (e.g.,        function
+      LLaMA)
+
+
+
+
+                           https://arxiv.org/abs/2401.03129
+AI agent
+• The way we use AI today
+
+
+                            one question
+
+
+
+
+                                       one answer
+
+
+                                           Many tasks often cannot be
+                                           accomplished in one step
+Let's go out for dinner on Friday
+              night
+
+                  What do you want to eat?
+
+   How about restaurant A?
+
+                  Call restaurant A to make
+                          reservation
+
+The restaurant is fully booked.
+
+                        Search online
+
+       Find restaurant B
+
+              Shall we change to restaurant B?
+
+             Sure!
+
+                   Call restaurant B to make
+                           reservation
+Let's go out for dinner on Friday
+              night
+planning          What do you want to eat?
+ ability
+   How about restaurant A?
+
+                  Call restaurant A to make
+                          reservation
+                                                 AI Agent
+The restaurant is fully booked.
+
+use tool                Search online              Do not book
+                                                   restaurant A
+       Find restaurant B
+                                                   learn from
+planning      Shall we change to restaurant B?     experience
+ ability
+             Sure!
+
+                   Call restaurant B to make
+                           reservation
+Applications
+• Exercise (API, customized GPT)
+• Use GenAI tools in programming
+  • AI-driven tools
+     • Codex, Cursor, etc.
+  • Strength and Weakness
+  • Hands-on!
+Ethical Topics
+
+It can make mistakes (e.g., Hallucination)
+
+Could there be inherent bias?
+
+Plagiarize (Is it generated by AI models?)
+
+Prompt Hacking (Make it say something it shouldn’t)
+Homework #1
+Objectives
+●   Experience the power (and the limitations) of generative AI
+
+    Language model,                                         Image-generation
+        chatbot
+Tasks
+HW1: https://sfsu.instructure.com/courses/69370/quizzes/245812
+
+Determine whether the provided material is generated by AI
+ ●   Covered modality: speech, singing voice, text, image, and video
+ ●   40 questions in total here
+Examples
+
+           Liao et al.
+
+
+
+
+           Rombach et al.
+Grading
+●   10 points in total (homework is 30% of your final grade)
+●   The purpose of HW1 is to let you experience the power/limitation of
+    these generative AI models
+     ○   You’ll get full point for a question as long as you answer it (i.e. choose any
+         option for it)
+     ○   !!!!!! Even when your choice is incorrect !!!!!!
+     ○   Make sure you answer all the questions to get full marks
+Submission & Deadline
+●   Through Canvas
+      https://sfsu.instructure.com/courses/69370/quizzes/245812
+●   Deadline: before next class (by 4pm)
+●   No late submission is allowed (different from the late policy)
+●   You might be dropped if you don‘t submit your homework by the
+    deadline
+
+Grading Release Date
+●   The grading for HW 1, along with the ground truth answers, will be
+    released next Thursday
+If You Have Any Questions
+●   You can ask via
+     ○   Email
+          ■   Instructor: Prof. Chen (tracychen@sfsu.edu)
+          ■   TA: Nipun Taneja (ntaneja@sfsu.edu)
+     ○   Office hour
+          ■   Time: Every Wednesday 10am-12pm or by appointment (tracychen@sfsu.edu)
+          ■   Location: TH 910
+     ○   TA hour
+          ■   Time: every class last 30 minutes, or by appointment (ntaneja@sfsu.edu)
+          ■   Location: classroom
+

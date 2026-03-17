@@ -1,0 +1,133 @@
+Study Guide – Week 7: Post-Training & Forgetting
+The week is focusing on post-training (continual learning), catastrophic forgetting, safety
+degradation, and mitigation strategies such as replay and self-rehearsal.
+
+
+
+
+1. What Is Post-Training?
+Post-training refers to further training after:
+- Pre-training (foundation model, after phase 1)
+- Alignment (SFT(phase 2) + RLHF(phase 3))
+Goal: > Improve performance on a target task or domain.
+Examples: - Teach Spanish - Improve programming - Add speech understanding
+Post-training can use:
+- Pre-train style (methods in phase 1 training, training data: e.g., articles, books, etc.)
+- SFT style (methods in phase 2 training, training data: question and answer pairs )
+- RL style (methods in phase 3 training, training data: Q&A pairs and human feedback)
+depending on the training dataset you have.
+
+
+
+
+2. Post-Training: Foundation Model → Fine-Tuned Model
+Pipeline: Foundation Model → Alignment → Fine-Tuned Model
+Important: Post-training enhances target capability, but may degrade previous capabilities
+Trade-off is unavoidable.
+
+
+
+
+3. Case Study: Teaching LLaMA-2-Chat Spanish
+Observation: - Continued pre-training on Spanish - Model learns Spanish responses - But
+alignment/safety behavior may degrade
+Key insight: > Post-training can override alignment.
+Safety loss is real.
+
+
+
+
+4. Post-Training Can Break Safety
+Research shows: - Fine-tuning aligned models may compromise safety - Even if user intent
+is not malicious
+Alignment is fragile.
+
+
+
+
+5. Case study: Speech + Multimodal Extension
+Example: Teaching LLaMA to understand speech:
+- Add speech encoder + adapter
+- Fine-tune on speech tasks
+Observation: - Original text formatting abilities (e.g., JSON output) may persist - But careful
+training required
+
+
+
+
+6. Catastrophic Forgetting
+Definition: > Model loses performance on previous tasks after learning new ones.
+Analogy from lecture: “The surgery succeeded, but the patient died.”
+Post-training is like brain surgery.
+
+
+
+
+7. Scaling Does NOT Solve Forgetting
+Empirical findings: - Larger models (1B–7B) still forget - Forgetting severity does not vanish
+with scale
+Bigger ≠ immune.
+8. LoRA Learns Less and Forgets Less
+LoRA (adapter-based tuning): - Updates small number of parameters - Preserves more
+original knowledge
+Trade-off: - Less capacity shift - Less forgetting
+
+
+
+
+9. Old Continual Learning Solutions: Experience Replay
+   •   Mix small portion of old data, even 5% can help
+Experience replay is highly effective — IF old data is available.
+
+
+
+
+10. Problem: No Access to Old Training Data
+In practice: - We do not have original pretraining data - Cannot store massive internet
+corpus - Cannot access proprietary alignment data
+So classic replay is difficult.
+
+
+       • Solution #1: Self-Generated Experience Replay
+       Solution idea: - Use the model to regenerate old-style data - Replay synthetic
+       samples
+       Process: 1. Generate training examples 2. Mix with new task data 3. Fine-tune
+       Called: - Self-generated replay - Pseudo experience replay
+
+
+       • Solution #2: Paraphrasing & Self-Rehearsal
+       Advanced approach: - Ask model to rephrase previous outputs - Keep only correct
+       outputs - Selectively rehearse
+       Selective Self-Rehearsal: - Use AI-generated outputs carefully - Avoid reinforcing
+       errors
+       • Another mitigation of forgetting: Limit difficult token
+         training (learn less and forget less)
+       Example: “Long time no see”
+       Early tokens: - Hard to predict full phrase - Sequence-level knowledge matters
+       Continual learning must preserve: - Phrase-level knowledge - Long-range
+       dependencies
+
+
+
+
+11. Core Trade-Off of Post-Training
+Post-training: - Improves target performance - Risks catastrophic forgetting - Risks
+alignment degradation
+Mitigation: - Replay - Regularization - Adapter-based tuning - Self-rehearsal
+No perfect solution.
+
+
+
+
+What You Should Be Able to Explain After Week 7
+You should be able to:
+
+   •   Define post-training
+   •   Explain catastrophic forgetting
+   •   Explain safety degradation during post-training
+   •   Explian why LoRA can help with forgetting issue (learn less and forget less)
+   •   Explain experience replay
+   •   Explain self-generated replay
+If you cannot explain why post-training may break safety, revisit this week’s slides and
+lecture recording.
+

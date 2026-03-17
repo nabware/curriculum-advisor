@@ -1,0 +1,154 @@
+Study Guide – Week 2: Prompt Engineering
+
+1. Core Idea: If You Can’t Train the Model, Train Yourself
+Prompt engineering exists because:
+- Most users cannot retrain or fine-tune large models
+- Modern LLMs are already extremely capable
+- Performance differences often come from how tasks are framed, not model changes
+Mental model: A large language model is a powerful but amnesic assistant: it knows a lot,
+but knows nothing about you unless you tell it.
+
+
+
+2. What a Prompt Really Is
+   •   A prompt does not require a rigid format
+   •   With modern LLMs, clear task description is usually sufficient
+   •   The model:
+          o Has broad world knowledge
+          o Has no personal or situational context
+Your job is to: - Define the task - Provide constraints - Supply missing information
+
+
+
+3. Five Ways to Strengthen LLMs Without Training
+The lecture organizes prompt engineering techniques into five core strategies.
+
+
+
+4. Strategy 1: “Magic Spells” (Instructional Prompts)
+These are instruction patterns that influence how the model reasons.
+
+4.1 Asking the Model to Think _ Chain-of-Thought (CoT)
+Examples: - “Think step by step.”
+Key insight: - CoT helps models externalize intermediate reasoning - Especially useful for
+logic and math problems
+Important limitation: - CoT is not universal - newer models may not benefit because
+newer models often perform internal reasoning automatically
+
+
+
+4.2 Asking the Model to Explain
+   •     Asking for explanations can:
+            o Improve correctness
+            o Make errors easier to detect
+
+
+4.3 “Emotional Blackmail” and Prompt Myths
+Examples seen online: - Threats (“You will be penalized”) - Bribes (“I will tip $xxx”) -
+Politeness hacks
+Reality check: - Effects vary by model and task
+Takeaway: There is no universal magic spell.
+
+
+
+4.4 Using AI to Discover Prompts
+   •     One LLM can be used to:
+           o Generate candidate prompts
+           o Evaluate responses
+           o Iterate via reinforcement-style feedback
+This mimics reinforcement learning, but without changing model weights.
+You can just ask the model itself directly for prompts and try them out.
+
+
+
+5. Strategy 2: Provide Extra Context
+LLMs fail most often due to missing information, not lack of intelligence.
+
+5.1 Supplying Unknown Information
+You can provide: - Internal/private documents - Domain-specific rules
+       If the model has never seen the information, it cannot hallucinate it correctly.
+5.2 Providing Examples (In-Context Learning)
+Instead of training, models can learn from examples in the prompt.
+This is called in-context learning: - No parameter updates - Behavior changes only within
+the prompt
+Example use cases: - Classification - Formatting - Style control
+
+
+
+5.3 Do Models Really Learn from Examples?
+Historical findings: - Early models often pattern-matched poorly - Some followed
+incorrect example logic
+Modern understanding: - Large models can abstract rules - Smaller models often imitate
+surface patterns
+
+
+
+6. Strategy 3: Task Decomposition
+Complex tasks overwhelm models when given as a single instruction.
+
+6.1 Break Tasks into Steps
+Instead of: - “Write a report on GenAI”
+Use: 1. Generate an outline 2. Expand each section 3. Revise the full draft
+
+
+
+6.2 Why Decomposition Works
+   •   Reduces cognitive load
+   •   Makes intermediate outputs inspectable
+   •   Aligns with how models generate text sequentially
+This also explains why CoT sometimes helps.
+
+
+
+6.3 Self-Reflection
+Models can: - Review their own output - Detect inconsistencies - Revise answers
+Insight: Checking the answer is easier than generating one.
+6.4 Self-Consistency
+Approach: - Generate multiple solutions - Select the most frequent or consistent answer
+Often improves reliability.
+
+
+
+6.5. Combining Strategies
+Advanced prompting combines: - Task decomposition - Self-reflection - Self-consistency
+Examples: - Tree of Thoughts (ToT) - Graph of Thoughts - Algorithm of Thoughts
+These extend simple prompting into structured reasoning workflows.
+
+
+
+7. Strategy 4: Using Tools
+LLMs are weak at: - Precise arithmetic - Up-to-date information
+
+7.1 Tool Use
+Models can call tools such as: - Search engines - Calculators - Code interpreters - Image
+generators
+
+
+
+7.2 Retrieval-Augmented Generation (RAG)
+RAG combines: - External data retrieval - Text generation
+This reduces hallucinations and improves factual accuracy.
+
+
+
+8. Strategy 5: Let the models cooperate with each other
+Not all tasks need the same cooperation model.
+Strategies: - Controller model chooses specialists - Multiple models review each other -
+Referee models decide consensus
+This leads to: - Model collaboration - Role-based prompting - Multi-agent systems
+
+
+
+8.1. Multi-Model and Role-Based Prompting
+Examples: - “You are a project manager” - “You are a programmer” - “You are a reviewer”
+Benefits: - One user can simulate an entire team - Encourages diverse reasoning paths
+Limitation: - Most results are from small-scale academic tasks
+
+
+
+What You Should Be Able to Do After Week 2
+You should be able to: - Explain why prompt engineering works - Identify when prompts fail
+due to missing context - Decompose complex tasks effectively - Use examples
+intentionally - Decide when tools or multiple models are necessary
+If you only remember prompt tricks, you missed the point.
+

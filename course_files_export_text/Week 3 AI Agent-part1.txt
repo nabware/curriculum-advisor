@@ -1,0 +1,409 @@
+Quiz on Prompt Engineering
+      No submission needed
+Quiz #1 Why does prompt engineering play a
+critical role when using large language models
+in practice?
+A. Because modern models are poorly trained
+B. Because users usually cannot retrain or fine-tune deployed models
+C. Because prompts permanently change model parameters
+D. Because prompts replace the need for training data
+Quiz #2 What is the main reason Chain-of-
+Thought (CoT) prompting can improve
+performance on reasoning tasks?
+A. It forces the model to slow down computation
+B. It exposes intermediate reasoning steps during generation
+C. It changes the model’s internal parameters
+D. It guarantees correct answers
+Quiz #3 Which statement best describes so-
+called “magic spell” prompting techniques
+(e.g., threats, bribes)?
+A. They consistently improve accuracy across models
+B. They are required for ethical AI usage
+C. Their effects are unreliable and model-dependent
+D. They permanently bias the model
+Quiz #4 What is in-context learning?
+
+
+A. Updating model weights using a small dataset
+B. Fine-tuning a model during inference
+C. Reinforcement learning with human feedback
+D. Learning from examples provided directly in the prompt without
+training
+Quiz #5 What is the primary goal of Retrieval-
+Augmented Generation (RAG)?
+
+A. Speeding up text generation
+B. Reducing model size
+C. Improving factual accuracy by grounding responses in external data
+D. Eliminating the need for prompts
+AI Agent_Part 1
+
+disclaimer: The term “AI Agent” is widely used, so the AI Agent discussed in
+this course may not necessarily align with definitions found elsewhere.
+How we use           Translate “Intelligence”
+AI today
+Human gives a
+clear command               智力, 才智
+AI: one command,
+one action
+
+                         (solve a research
+AI Agent                     problem)
+
+Human gives a goal       hypothesis …
+AI figures out how    experiment… analysis
+to reach that goal   Requires a multi-step,
+                     flexible plan
+AI Agent
+           Observation
+
+
+
+   Goal
+
+
+
+
+             Action
+   AI Agent (AlphaGo)
+                        Observation
+
+
+
+       Goal
+win the game
+
+
+
+                          “5-5”
+                          Action
+
+                Reinforcement Learning (RL)
+                                                        (RL: Reinforcement Learning)
+
+   How to get an AI Agent? RL?
+                                   Observation
+
+
+
+        Goal
+win the game
+                                    Reward
+
+   RL: Learn to
+                                     “5-5”
+   Maximize Reward
+                                     Action
+
+                limitation: needs to train a model for each task
+    How to get an AI Agent? LLM!
+               describe using text
+                                     Observation
+               (option)
+
+
+        Goal
+“win the game”
+
+
+
+        LLM
+                                     “go 5-5”
+                                                      translated into
+                                       Action
+                                                    executable actions
+    LLMs embody humanity's desire for agents       what we can do?
+  What agent needs to solve from the
+  perspective of LLMs
+
+
+goal         obs 1     action 1   obs 2        action 2    obs 3     action 3
+
+
+
+
+             LLM                  LLM                      LLM
+
+       play chaining all along            AI agents rely on the existing
+                                              capabilities of LLMs.
+Notice:
+no models are being
+trained
+AI agents haven't just recently become
+popular
+• It went viral once in the spring of 2023.
+  • AutoGPT, AgentGPT, BabyAGI, Godmode …
+LLM Agent - Advantages
+
+             Typical
+                       limited set of predefined actions
+             Agent
+                       choosing from
+             AlphaGo   19*19 positions
+
+
+
+               LLM
+                       almost unlimited
+              Agent
+                       can use tools
+LLM Agent - Advantages
+                                       Compile Error
+Typical Agent
+                         Reward = -1
+         AI programmer   why -1???
+
+
+LLM Agent                              Compile Error
+
+
+        AI programmer
+                         more info.
+                              https://arxiv.org/abs/2304.03442
+
+AI Agent examples: virtual village
+                              Observation
+
+
+
+            Goal
+organize a
+Valentine’s Day party,
+study for an exam, …
+
+                         "getting ready for bed“
+                                 Action
+AI Agent examples: AI NPC in Minecraft
+
+
+
+
+                       https://www.youtube.com/watch?v=2tbaCn0Kl90
+AI Agent
+examples:
+Computer-
+using Agents
+
+
+Operator/AI agent
+in ChatGPT
+Computer Use,
+AI Agent examples: Computer-using Agents
+
+
+
+
+              https://www.youtube.com/watch?v=ssYt09bCgUY
+
+          Another tutorial: https://www.youtube.com/watch?v=a63dUwXUgDo
+  AI Agent examples: Computer-using Agents
+                     Observation
+
+
+
+        Goal
+order pizza,
+      book
+reservation
+          …
+
+                       Action
+AI Agent examples: Computer-using Agents
+• World of Bits: An Open-Domain Platform for
+  Web-Based Agents (ICML, 2017)
+    AI Agent examples: Computer-using Agents
+
+Mind2Web
+https://arxiv.org/abs/2306.06070
+
+
+
+
+ WebArena         https://arxiv.org/abs/2307.13854   VisualWebArena https://arxiv.org/abs/2401.13649
+    AI Agent examples: Computer-using Agents
+
+past the
+baseline
+  goal        obs 1       action 1       obs 2       action 2          obs 3            action 3
+
+
+
+
+              LLM                        LLM                           LLM
+ AIDE: The Machine Learning Engineer Agent https://arxiv.org/abs/2502.13138
+ AutoKaggle: A Multi-Agent Framework for Autonomous Data Science Competitions
+                                                           https://arxiv.org/abs/2410.20424
+AI Agent examples: Conduct research
+with AI
+
+
+
+
+   https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/
+   Toward More Authentic Interactive
+   Scenarios
+turn-based style
+
+   goal        obs 1         action 1           obs 2   action 2    obs 3      action
+
+Real-time Interaction
+
+             obs 1                      obs 2
+   goal                                                       e.g., conversation
+                        action 1          action 2
+
+                         adapt immediately
+Toward More Authentic Interactive
+Scenarios
+            obs 1                               obs 2                            obs 3
+       tell me   a   story                       ok               stop I don’t    like the story
+
+
+
+User
+
+                             Once upon a time     in a small village             Sorry ……
+
+
+
+                                            action 1                                   action 2
+AI Agent’s Key Capabilities
+
+  How does AI learn from experience?
+
+         How does AI use tools?
+
+          Can AI make plans?
+AI Agent’s Key Capabilities
+
+  How does AI learn from experience?
+
+         How does AI use tools?
+
+          Can AI make plans?
+Adjust behavior based on experience
+                                     Feedback   Update
+
+You’re a
+programmer…   write a …
+    goal        obs 1     action 1      obs 2   action 2   ……
+
+
+
+
+                LLM              Update
+                               Parameters
+                              (Not Today)
+Adjust behavior based on experience
+                                     Feedback   Update
+
+You’re a
+programmer…   write a …
+    goal        obs 1     action 1     obs 2    action 2   ……
+
+
+
+
+                LLM
+Adjust behavior based on experience
+  goal      obs 1     action 1   ……     obs 10000   ?????
+
+
+
+
+            LLM
+
+   keep recalling the whole life experience… 
+Adjust behavior based on experience
+                      Relevant Experience            obs 10000     ?????
+
+
+
+                 Retrieval     Read
+                                             Query
+   This is RAG
+   (own experience vs.
+    other’s experience)                     Database
+  goal        obs 1          action 1       ……       obs 9999    action 9999
+
+                             Agent’s Memory
+Adjust behavior …
+         Relevant Experience              obs 10000   action 10000    obs 10001
+
+
+
+
+                                                       store?
+
+
+
+
+  goal           obs 1         action 1        ……      obs 9999      action 9999
+
+                    Agent’s Memory          (filled with tons of trivial details)
+Adjust behavior …
+         Relevant Experience              obs 10000   action 10000    obs 10001
+
+
+                   Is this important enough
+                          to remember?
+                                                                  Write
+
+
+
+
+  goal           obs 1         action 1        ……      obs 9999      action 9999
+
+                    Agent’s Memory
+Adjust behavior …
+         Relevant Experience              obs 10000   action 10000    obs 10001
+
+
+                Read                                              Write
+                                           reorganize raw
+                                           memories
+    thought 1        thought 2
+                                              Reflection
+    thought 3        thought 4
+
+
+  goal           obs 1         action 1        ……      obs 9999      action 9999
+Adjust behavior …
+         Relevant Experience               obs 10000        action 10000     obs 10001
+
+                               GraphRAG
+                               https://arxiv.org/abs/2404.16130
+                Read                                                     Write
+                               HippoRAG
+                               https://arxiv.org/abs/2405.14831
+
+             Knowledge
+               Graph                              Reflection
+
+
+
+  goal           obs 1         action 1           ……          obs 9999      action 9999
+ChatGPT’s Memory
+To learn more …
+• MemGPT
+ https://arxiv.org/abs/2310.08560
+
+
+
+• Agent Workflow Memory
+ https://arxiv.org/abs/2409.07429
+
+
+
+• A-MEM: Agentic Memory for LLM Agents
+ https://arxiv.org/abs/2502.12110
+AI Agent’s Key Capabilities
+
+  How does AI learn from experience?
+
+         How does AI use tools?
+
+          Can AI make plans?
+Break
+PyTorch Tutorial_part2
+

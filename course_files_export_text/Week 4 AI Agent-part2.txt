@@ -1,0 +1,430 @@
+AI Agent_Part 2
+
+disclaimer: The term “AI Agent” is widely used, so the AI Agent discussed in
+this course may not necessarily align with definitions found elsewhere.
+AI Agent’s Key Capabilities
+
+  How does AI learn from experience?
+
+         How does AI use tools?
+
+          Can AI make plans?
+Common Tools for LLMs                       Tools: only know how to use it
+                                            instead of how it works inside
+
+
+
+
+  Search Engine              Python                 Another AI
+                                               (Different capabilities,
+                                                stronger but costly)
+
+  • Tool can be treated as Function, use a tool is calling a Function
+
+  • use tools =“Function Call”
+                                                        (There are many ways to use tools. Here is just a common one.)
+
+
+ How to use tools                                                                          System Prompt
+       If you hit a question you cannot answer based on your knowledge, use tools.
+                                                                                            how to
+       put the tool command between <tool> and </tool> , wrap the output between            use tools
+       <output> and </output>
+
+       now you can use tool:                                                                available
+       check the temperature of a location at a given time: Temperature(location, time),
+       e.g., Temperature(‘San Francisco’, ‘2026.2.14 15:00')
+                                                                                            tools
+
+        What was the temperature in San Francisco at 3:00 PM on Feb.14, 2026?        User Prompt
+
+
+                                            Language
+                                              Model           gpt-4o-mini
+
+
+
+<tool>Temperature(‘San Francisco', 2026.2.14 15:00')</tool>
+                                                                  a generated sentence, which
+                                                                  doesn’t call the function
+                                        (There are many ways to use tools; this is just one universal approach.)
+
+
+  How to use tools
+        Tool Usage Guide ……                                   System Prompt
+        What was the temperature in San Francisco at 3:00 PM on Feb.14, 2026?       User Prompt
+
+
+                                             Language gpt-4o-mini
+                                               Model
+Do not show to the user                                                   Do not show to the user
+
+           <tool>Temperature(‘SF', 2026.2.14 15:00')</tool>     <output>60</output>
+
+
+
+the developer set up
+       this workflow
+                          Temperature
+                            function                                                      Output seen by
+                                                                                          the user
+  (continue word prediction ……) On Feb. 14, 2026 at 3pm, San Francisco was 60 °F.
+Most common tool: Search Engine
+                 Retrieval Augmented Generation (RAG)
+Use another AI as a tool
+
+               text       Language
+                                      text response
+           instructions     Model
+
+
+
+                          Language
+        What did this                This person said
+                            Model
+        person say?                  Hello.
+
+
+
+                          Language
+        How does this                This person feels
+                            Model
+        person feel?                 good.
+https://arxiv.org/abs/2407.09886
+Choose from so many tools?
+
+                      obs 1    action 1
+     Hundreds                 Tool Use
+         of
+  Tool Descriptions
+                                         https://arxiv.org/abs/2310.03128
+Choose from so many tools?               https://arxiv.org/abs/2502.11271
+
+
+
+
+   selected tools   obs 1                            action 1
+                                                    Tool Use
+       Tool
+     Selection
+
+
+
+                       Hundreds
+                           of
+                    Tool Descriptions
+                                        Agent’s Memory
+                                   TroVE: https://arxiv.org/pdf/2401.12869
+                                   LATM: https://arxiv.org/abs/2305.17126
+
+LLM build its own tools            CREATOR: https://arxiv.org/abs/2305.14318
+                                   CRAFT: https://arxiv.org/abs/2309.17428
+
+
+
+
+   selected tools   obs 1                                  action 1
+                                                         Make Tools
+       Tool
+     Selection
+
+
+
+                       Hundreds
+                           of
+                    Tool Descriptions
+                                              Agent’s Memory
+Making mistakes due to over-
+trusting on tools
+
+
+
+             tool                      tool
+
+                        Making mistakes due to over-
+                        trusting on tools
+                                      don’t blindly trust
+                                      your tools, use your
+Making mistakes due to over-
+                                      own judgment
+trusting on tools
+
+
+
+              tool                      tool
+
+                         Making mistakes due to over-
+  don’t blindly trust    trusting on tools
+  your tools, use your
+  own judgment
+ LLM has judgment?
+        Tool Usage Guide ……                                 System Prompt
+        What was the temperature in San Francisco at 3:00 PM on Feb.14, 2026?     User Prompt
+
+
+                                          Language      gpt-4o-mini
+                                            Model
+Do not show to the user                                                Do not show to the user
+
+          <tool>Temperature(‘San Francisco', ‘2026.02.14 15:00')</tool> <output>212°F</output>
+
+
+ (continue word chaining ……) On Feb. 14, 2026 at 3pm, San Francisco was 212 °F.
+ LLM has judgment?
+        Tool Usage Guide ……                                   System Prompt
+        What was the temperature in San Francisco at 3:00 PM on Feb.14, 2026?       User Prompt
+
+
+                                           Language       gpt-4o-mini
+                                             Model
+Do not show to the user                                                   Do not show to the user
+
+          <tool>Temperature(‘San Francisco', ' 2026.02.14 15:00')</tool> <output>10000°F</output>
+
+
+ (continue word chaining ……) On Feb. 14, 2026 at 3pm, San Francisco was 10000 °F. This value is
+                             clearly unreasonable and may be an output error from the tool. If
+                             you require additional information or have any inquiries, please let
+                             me know.
+When LLM is doing RAG…
+
+
+  Internal                                             External
+ Knowledge                                            Knowledge
+
+
+
+
+        What kind of external knowledge is more likely to
+                        convince the AI?
+  What kind of external knowledge is more likely
+  to convince the AI?
+
+
+
+
+                                                                https://arxiv.org/abs/2404.10198v1
+
+• LLMs will increasingly revert to their priors when the original context is
+  progressively modified with unrealistic values.
+• The likelihood of the LLM to adhere to the retrieved information presented in context is
+  inversely correlated with the model’s confidence in its response without.
+     What kind of external knowledge is more likely
+     to convince the AI?
+                                                               answer is
+      The answer is A              The answer is B                C
+
+
+
+
+                                                              tend to believe
+                                            The answer is A    their AI peers
+
+https://arxiv.org/abs/2401.11911
+      What kind of external knowledge is more likely
+      to convince the AI?
+  the influence
+  of Meta Data
+
+ • LLM tends to trust
+   the newer one.
+ • the source didn’t
+   make much
+   difference (?)
+
+
+
+
+https://aclanthology.org/2024.bl
+ackboxnlp-1.24/
+      What kind of external knowledge is more likely
+      to convince the AI?
+  the influence
+  of Meta Data
+
+   Claude 3 is in
+   favor of the one
+   below
+
+
+
+                                   the content
+                                   is the same
+
+https://aclanthology.org/2024.bl
+ackboxnlp-1.24/
+The balance between the use of tools
+and the capabilities of the model itself
+• Using a tool isn’t always more efficient.
+e.g., simple arithmetic, is it faster using a calculator?
+
+
+   Question: 3 x 4
+
+                        12
+Break
+AI Agent’s Key Capabilities
+
+  How does AI learn from experience?
+
+         How does AI use tools?
+
+          Can AI make plans?
+  Make plans
+
+       Reactive Response?
+
+
+goal          obs 1     action 1   obs 2   action 2   obs 3   action 3
+
+
+
+
+  Planning
+                                    Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-
+
+Make plans
+                                    Thought Reasoning by Large Language Models
+                                                              https://arxiv.org/abs/2305.04091
+
+
+                  Plans are made to be changed
+
+ obs 1      plan     action 1    obs 2     action 2       obs 3        action 3
+
+
+
+
+plan
+       action 1       action 2      action 3
+                                    • Playing chess: The opponent’s moves
+
+Make plans
+                                      are not expected
+                                    • Using computers: pop-up ad suddenly
+                                      appears
+                                  new observation is not as expected,
+                                  leading to the original plan infeasible
+ obs 1      plan   action 1    obs 2   plan' action 2’
+
+
+
+                                  plan'
+                                          action 2’    action 3’
+plan
+       action 1     action 2      action 3
+Can LLMs make plans?
+TravelPlanner
+
+
+
+
+                https://arxiv.org/abs/2402.01622
+https://osu-nlp-group.github.io/TravelPlanner/
+https://arxiv.org/abs/2402.01622
+https://arxiv.org/abs/2404.11891
+    Strengthen the planning ability
+  try it with the environment?                  action 2-1-1   obs 2-1-1
+
+                         action 1-1   obs 2-1
+                                                action 2-1-2   obs 2-1-2
+
+
+obs 1                    action 1-2   obs 2-2   action 2-2-1   obs 2-2-1
+
+
+                                                action 2-3-1   obs 2-3-1
+                         action 1-3   obs 2-3
+
+                                                action 2-3-2   obs 2-3-2
+  what if the path is too long (complex task)
+                                   still a chance
+                                    of success?          No 
+
+
+
+                                  action 1-1   obs 2-1     reduce unnecessary
+                                                           exploration
+
+                                    still a chance
+obs 1
+                                     of success?         yes ☺
+
+
+                                                                  action 2-2-1   obs 2-2-1
+                                  action 1-2   obs 2-2
+
+   Tree Search for Language Model Agents                          action 2-2-2   obs 2-2-2
+   https://arxiv.org/abs/2407.01476
+Tree Search for Language Model Agents https://arxiv.org/abs/2407.01476
+   drawback: Some actions are irreversible
+                 no
+         cancellation/return
+                                              action 2-1-1   obs 2-1-1
+                  order a pizza
+                       action 1-1   obs 2-1
+                                              action 2-1-2   obs 2-1-2
+
+
+obs 1                  action 1-2   obs 2-2   action 2-2-1   obs 2-2-1
+
+
+                                              action 2-3-1   obs 2-3-1
+                       action 1-3   obs 2-3
+                  order a burger              action 2-3-2   obs 2-3-2
+        still a chance
+         of success?            No 
+
+
+
+         action 1-1   obs 2-1     reduce unnecessary
+                                  exploration
+
+        still a chance
+obs 1
+         of success?            Yes ☺
+
+
+                                         action 2-2-1 ……
+         action 1-2   obs 2-2
+
+                                         action 2-2-2 ……
+                           We need a World Model
+                           AI can build its own World
+                           Model?
+
+        action 1-1   obs 2-1       reduce unnecessary
+                                   exploration
+
+
+obs 1
+
+
+                                           action 2-2-1 ……
+        action 1-2   obs 2-2
+
+                                           action 2-2-2 ……
+AI Agent’s Key Capabilities
+
+  How does AI learn from experience?
+
+         How does AI use tools?
+
+          Can AI make plans?
+Break
+    HW2 & In-class Exercise
+Colab link:
+https://colab.research.google.com/drive/1AW8DvTgo48Gn6L0ZUehTPolLp8S247ME?usp=sharing
+Introduction
+
+What is Hugginface?
+Hugging Face is an open platform for machine learning that lets you
+build, share, and collaborate on AI models, datasets, and applications.
+ ● Zero setup for models – Use pre-trained models directly in your
+    browser or via API
+ ● Free community hub – Access thousands of open-source models,
+    datasets, and spaces
+ ● Easy sharing – Upload your own models or demos and share them
+    instantly
+                                                                          46
+

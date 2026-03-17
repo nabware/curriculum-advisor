@@ -1,0 +1,170 @@
+Study Guide – Week 5: LLM Training (Part 1)
+
+1. The Three Phases of LLM Training
+The training journey is described in three phases:
+
+Phase One – Self-Learning to Build Strength
+   •   Massive-scale word prediction
+   •   Learn language + world knowledge
+   •   Self-supervised learning
+
+Phase Two – Expert Guidance to Unlock Potential
+   •   Supervised instruction fine-tuning
+   •   Human-labeled Q&A data
+   •   Teaches model how to answer properly
+
+Phase Three – Real-World Practice to Improve Skills
+   •   Interaction with real users
+   •   Further refinement (preview of alignment phase)
+Important: > All phases are still learning next-token prediction — the difference is the
+training data.
+
+
+
+
+2. Background: Word Prediction
+Language models: Predict next token sequentially
+Example: input: Who was the first U.S. president? Outputs: → George → Washington →
+[END]
+Model = Transformer with billions of parameters.
+Training (learning parameters) vs Inference (using parameters).
+
+
+
+
+3. Challenges in Finding Good Parameters
+Training requires solving: - Optimization - Hyperparameter tuning - Computational
+constraints
+Possible problems: - Training failure (poor fit) - Overfitting (training good, testing bad)
+Important insight: > The model only cares about fitting training data, not logical
+correctness.
+
+
+
+
+4. Making Parameters “Reasonable”
+Strategies include: - Increasing training data diversity - Choosing good initial parameters -
+Careful hyperparameter selection
+Key concept: > Initial parameters strongly influence final results.
+Training from scratch starts from random initialization.
+Using pretrained parameters starts closer to good solutions.
+
+
+
+
+5. Phase One: Pretraining
+Goal: - Learn general language + world knowledge
+Method: - Self-supervised learning - Massive internet-scale corpora - Minimal human
+labeling
+Any text can technically be used for word prediction — but quality matters.
+
+
+
+
+6. Data Cleaning & Data Quality
+Large-scale training requires: - Removing harmful content - Removing HTML tags - Filtering
+low-quality data – Remove duplicated data - Testing set filtering
+High-quality data may be repeated more frequently.
+Data quality directly impacts model performance.
+
+
+
+
+7. Scaling Laws
+Historical progression:
+GPT-1 (117M parameters) GPT-2 (1.5B) GPT-3 (175B)
+More parameters + more data → better performance.
+However: - Simply scaling indefinitely does not solve everything. - Bigger models still may
+not answer properly.
+
+
+
+
+8. Why Pretraining Alone Is Not Enough
+Pretrained model: - Has strong knowledge - Does not know how to behave as a helpful
+assistant
+Analogy: > Strong muscles but no fighting technique.
+Pretraining teaches knowledge, not instruction-following.
+
+
+
+
+9. Phase Two: Instruction Fine-Tuning (Supervised
+Learning)
+Initial parameters from Phase One (starting point) + Instruction Fine-tuning (using limited
+human-labeled data)
+Add human-labeled data:
+Format: USER: Question AI: Answer
+Model learns conversational structure.
+Why include “USER:” and “AI:” tokens? - Teaches role structure - Distinguishes question
+from answer
+Instruction fine-tuning teaches the model: - How to respond
+
+
+
+
+10. Why Not Train Only with Human Teachers?
+Problems: - Human labeling is expensive - Dataset size is limited - Model may overfit to
+simple pattern matching
+Example failure: If the word “first” appears → output “George Washington.”
+This lacks generalization.
+11. The Importance of Using Phase One Parameters
+Solution: > Use pretrained parameters as initialization.
+Benefits: - Preserves general knowledge - Prevents overfitting to small instruction dataset -
+Maintains generalization ability
+Instruction tuning should stay close to pretrained parameters.
+
+
+
+
+12. Two Fine-Tuning Paths
+Track One – Train Many Specialists
+   •   E.g., Translation model, Summarization model, Editing model, etc.
+   •   Each trained separately
+
+Track Two – Train a Generalist
+   •   Single model
+   •   Multiple tasks
+   •   Instruction tuning across diverse tasks
+Modern trend favors generalists.
+
+
+
+
+13. Instruction-Tuned Generalists
+Examples: - T0 - FLAN - InstructGPT
+Scaling instruction data improves generalist ability.
+Instruction tuning acts as a “finishing touch.”
+
+
+
+
+14. Using ChatGPT as a Teacher?
+Possible: - Generate instruction-answer pairs
+Risks: - Legal issues - Terms of use violations - Imitation may not replicate full capability
+Important reminder: > The key is still the initial pretrained parameters.
+15. Open-Source Era
+Meta released: - LLaMA series
+Projects like: - Alpaca - Vicuna
+Demonstrated that smaller instruction datasets can significantly improve open models.
+The era of accessible fine-tuning has begun.
+
+
+
+
+What You Should Be Able to Explain After Week 5 (Part 1)
+You should be able to:
+
+   •   Describe the main purpose of Phase one training and Phase two training
+   •   Describe next-token prediction
+   •   Explain overfitting vs generalization
+   •   Explain why pretraining (phase one) is essential
+   •   Describe instruction fine-tuning
+   •   Compare specialist vs generalist training
+If you cannot explain why instruction fine-tuning must start from pretrained parameters,
+review this week.
+
+
+
+End of Study Guide
+

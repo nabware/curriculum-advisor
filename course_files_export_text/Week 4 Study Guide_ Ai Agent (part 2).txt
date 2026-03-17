@@ -1,0 +1,127 @@
+Study Guide – Week 4: AI Agent (Part 2)
+
+Key Capability #2 — Tool Use in LLM Agents
+1. Tools as Functions
+Core idea: Using a tool = calling a function.
+Examples of common tools: - Python (code execution) - Search engine - Another AI model
+(stronger but costly)
+Important: - The agent only needs to know how to use the tool - It does NOT need to know
+how the tool works internally
+
+
+
+2. Function-Calling Workflow
+Typical workflow: 1. User prompt 2. LLM decides whether to call a tool 3. Tool call wrapped
+in special format 4. Tool output returned (hidden from user) 5. LLM continues generation
+The developer defines this pipeline.
+Key insight: Tool use is still word prediction — just with special control tokens.
+
+
+
+3. Most Common Tool: Search (RAG)
+Retrieval-Augmented Generation (RAG):
+- Retrieve external knowledge
+- Inject into prompt
+- Generate response grounded in retrieved data
+RAG extends internal model knowledge with external knowledge.
+
+
+
+4. Using Another AI as a Tool
+An LLM can: - Call another AI model - Use specialized capabilities - Combine multiple
+models
+This enables modular intelligence.
+5. Tool Selection Problem
+Challenge: - Hundreds of tool descriptions to read before making a decision
+Advanced systems allow: - Tool libraries – Retrieval system for selecting relevant tools -
+Agent-generated tools
+
+
+
+6. Over-Trusting Tools
+Important warning to LLMs: > Do not blindly trust tool outputs.
+Example: - Tool returns 212°F in San Francisco - Tool returns 10,000°F
+Agent must: - Use judgment - Detect unreasonable outputs
+LLMs can sometimes recognize implausible results.
+
+
+
+7. Internal Knowledge vs External Knowledge
+When doing RAG:
+Two knowledge sources compete: - Internal (model prior) - External (retrieved content)
+Observations from research:
+- If the external info is too far away from what the model already believes, it won’t buy it. If
+the external info is close enough, it’s more likely to accept it.
+- Metadata (e.g., recency) influences trust
+- Models may trust other AI-generated content
+Key takeaway: > External information does not automatically override internal belief.
+
+
+
+8. Balance Between Model and Tools
+Using tools is not always better.
+Example: - 3 × 4 = 12
+Calling a calculator is unnecessary overhead.
+Agent must decide: - When tool use is efficient - When internal reasoning is sufficient
+Key Capability #3 — Planning in AI Agents
+9. Reactive vs Planning Agents
+Reactive agent: - Observes - Acts immediately
+Planning agent: - Generates multi-step plan - Executes steps - Updates plan if necessary
+Plan-and-Solve prompting improves reasoning.
+
+
+
+10. Plans Are Made to Be Changed
+Reality: - Environment is dynamic - New observations invalidate old plans
+Examples: - opponent move when playing Chess - Unexpected pop-up ad window
+Agents must: - Revise plans - Adapt dynamically
+
+
+
+11. Can LLMs Make Plans?
+Research shows: - LLMs can generate structured plans - Performance varies by task
+complexity
+Benchmarks like TravelPlanner test this.
+
+
+
+12. Strengthening Planning Ability
+Approaches: - Branch multiple action paths - Evaluate future consequences - Explore
+action trees
+This resembles tree search.
+
+
+
+13. Tree Search for LLM Agents
+Idea: - Expand multiple possible action sequences - Explore branches - Reduce
+unnecessary exploration
+Challenge: - Large branching factor - Computational cost
+14. Irreversible Actions
+Problem: - Some actions cannot be undone in real world
+Example: - Order pizza or order burger -> No cancellation
+Planning must account for: - Irreversibility - Risk management
+
+
+
+15. World Models
+To reduce blind exploration:
+Agents may use a world model: - Internal representation of environment dynamics -
+Predict consequences before acting
+- LLMs can implicitly act as world models.
+
+
+
+
+What You Should Be Able to Explain After Week 4
+You should be able to:
+
+   •   Explain tool use as function calling
+   •   Describe the tool selection challenge
+   •   Explain why tools should not be blindly trusted
+   •   Compare internal vs external knowledge during RAG
+   •   Distinguish reactive agents from planning agents
+   •   Explain why plans must adapt
+   •   Describe tree search in LLM agents
+   •   Explain the need for world models
+If you cannot explain when NOT to use a tool, revisit this week’s slides and recordings.
+

@@ -1,0 +1,302 @@
+          CSC 603/803 Generative AI: Fundamentals and Applications
+                                Spring 2026
+
+              Bulletin Description:
+                            This course provides an in-depth introduction to Generative AI,
+                            covering its fundamental concepts, models, and real-world
+                            applications. Students will explore key techniques for generating text,
+                            images, and multimodal content using state-of-the-art models such as
+                            transformers, GANs, and diffusion models. The course balances theory
+                            with hands-on practice, including prompt engineering, API usage, and
+                            AI-powered application development. Through projects, students will
+                            gain experience building AI-driven applications such as chatbots,
+                            media generation tools, and productivity applications.
+
+              Prerequisite
+              for CSC 603: CSC 413 with a grade of C or better; GPA of 3.0 or better; or permission
+                           of the instructor. Python programming skills, AI/ML basic knowledge
+              for CSC 803: Graduate level standing; or permission of the instructor. Python
+                           programming skills, AI/ML basic knowledge
+
+              Texts:           None
+
+              Instructor:      Prof. Xuhui (Tracy) Chen (tracychen@sfsu.edu)
+                               TA: Mr. Nipun Taneja (ntaneja@sfsu.edu)
+
+              Office:          Thornton Hall 910
+
+               Office hours: W 10-12pm (TH 910), or by appointment
+
+              Canvas:          Check CSC 603/803 website at https://canvas.sfsu.edu
+
+              Grading:         Attendance (10%), In-class exercise (20%), Homework (30%),
+                               Capstone project (40%)1
+               Grade Scale:
+                                 FINAL GRADE                     PERCENTAGE
+                                 A                               ≥ 90%
+                                 B+                              ≥ 86.5 and < 90%
+                                 B                               ≥ 80.0 and < 86.5%
+                                 C+                              ≥ 76.5 and < 80%
+                                 C                               ≥ 70.0 and <76.5%
+                                 D                               ≥ 60.0 and <70%
+                                 F                               < 60.0%
+
+
+1
+    603 and 803 will have different expectations in some of the categories as outlined later in the syllabus.
+          CSC 603/803 Topics (Tentative)
+1. Introduction to Generative AI
+       a. Overview: Definition and key characteristics of Generative AI. (w1)
+       b. Prompt Engineering: understand how GenAI model work and know how to interreact
+           with them effectively (W2)
+       c. AI Agent (W3&4)
+       d. How a model is trained (W5&6)
+       e. Post-training and forgetting (W7)
+       f. Inside Large Language Model (LLM) and its evolutions. (W8&11, no class on W9&10)
+       g. How to evaluate the performance of an LLM (W12)
+       h. Ethics and security issues (W12)
+       i. Image, audio, and video Generative AI Models (W13&14)
+2. GenAI in Software Development: AI-driven tools for developers. (W15)
+3. Team-based Capstone Project (Building GenAI-powered applications with open-source
+   models, APIs, frameworks, etc.): Final presentation and Q&A. (W16)
+
+
+
+
+          Assignments/ Student Requirements
+Grades will be determined with the following approximate weights.
+Attendance (10%): 2 attendance quiz per class, 10 times in total.
+In-class exercise (20%): In-class tutorials and exercises.
+Homework (30%) (Likely to change):
+           HW1-The power of GenAI
+           HW2- RAG-based Agentic System
+           HW3- AI Agent (prompt engineering)
+           HW4- Fine-tuning
+               o CSC603: quiz questions on LLM fine-tuning
+               o CSC803: Fine tune a LLM (hands-on coding)
+           HW5-Transformers
+Capstone project (100points) (40%): (3 students/team, with 1 team leader)
+(CSC803: must have innovations in the design instead of simply implementation.)
+       • Project proposal (20 points)
+       • Checkpoint progress report (20 points)
+       • Final presentation & demo (60 points (CSC603), or 40 points (CSC803))
+               o    Presentation grading: Instructor (50%) + peer evaluation (50%)
+       • Final report (20 points) (CSC803)
+                  General Information and Class Policies
+
+ Student Learning Outcomes
+ When a student completes this course, they will be able to…
+ #1 Understand the fundamentals of Generative AI, including core concepts, major
+ model types (text, image, audio, video), and real-world applications and limitations.
+ #2 Apply prompt engineering techniques to interact effectively with generative
+ systems and to define roles, tasks, and constraints in the design of GenAI-driven
+ applications.
+ #3 Develop Generative AI applications collaboratively through a team-based capstone
+ project using appropriate APIs, frameworks, and tools.
+ #4 Understand the principles of fine-tuning and customization of pre-trained
+ Generative AI models for specific tasks.
+
+
+            B.S. in CS Program Learning Outcomes                      Alignment with
+                                                                      Student Learning
+                                                                      Outcomes (use SLO
+                                                                      # from table above)
+
+PLO #1   Students will be able to design, develop,                2,3
+         document, and test software using current
+         techniques.
+
+PLO #2   Students will understand the fundamentals of             N/A
+         computer architecture and computing theory.
+
+PLO #3   Students will be able to solve problems working          3
+         in group settings.
+
+PLO #4   Students will demonstrate the ability to give            3
+         presentations and write technical reports.
+
+PLO #5   Students will demonstrate an understanding of            N/A
+         the importance of social and ethical issues
+         related to the profession.
+    Paired Course – Graduate Level Learning Outcomes
+    Graduate-Level Learning Outcomes – When a student completes the graduate version
+    of this course they will be able to…
+    GSLO #1 Understand the fundamentals of Generative AI, including core concepts,
+    major model types (text, image, audio, video), and real-world applications and
+    limitations.
+    GSLO #2 Apply prompt engineering techniques to interact effectively with generative
+    systems and to define roles, tasks, and constraints in the design of GenAI-driven
+    applications.
+    GSLO #3 Develop Generative AI applications collaboratively through a team-based
+    capstone project using appropriate APIs, frameworks, and tools.
+    GSLO #4 Apply fine-tuning and customization techniques to adapt pre-trained
+    Generative AI models for specific tasks.
+
+
+                              M.S. in CS                            Alignment with
+                 Graduate Program Learning Outcomes                  Grad Student
+                                                                  Learning Outcomes
+                                                                   (use GSLO # from
+                                                                     table above)
+
+GPLO      Students will demonstrate a breadth of knowledge in    GSLO #1
+#1        Computer Science, as exemplified in the areas of
+          systems, theory, and software development.
+GPLO      Students will demonstrate the ability to conduct a     GSLO #3
+#2        research or applied Computer Science project,
+          requiring writing and presentation skills which
+          exemplify scholarly style in Computer Science.
+
+
+
+
+              M.S. in Data Science and Artificial Intelligence      Alignment with
+                 Graduate Program Learning Outcomes                  Grad Student
+                                                                  Learning Outcomes
+                                                                   (use GSLO # from
+                                                                     table above)
+
+GPLO #1 Design and develop software systems to tackle          GSLO #2,3
+        problems throughout the life cycle of data science and
+        Artificial Intelligence. Major components in this life
+        cycle include: data collection/acquisition, data
+        storage/management, data preprocessing, data
+        modeling and machine learning, and visualization.
+              M.S. in Data Science and Artificial Intelligence         Alignment with
+                 Graduate Program Learning Outcomes                     Grad Student
+                                                                     Learning Outcomes
+                                                                      (use GSLO # from
+                                                                        table above)
+
+GPLO #2 Obtain an in-depth understanding of a host of              GSLO #1
+        machine learning/data mining algorithms; apply,
+        implement, and evaluate such algorithms to extract
+        knowledge from both structured and unstructured
+        data.
+GPLO #3 Utilize distributed and parallel computing platforms       GSLO #4
+        that are capable of managing and processing big data
+        using computing facilities on premise or in the cloud.
+GPLO #4 Analyze potentially unethical practices in data science N/A
+        and AI and adopt best practices to become a socially
+        and ethically responsible professional.
+GPLO #5 Communicate the data systems effectively with              N/A
+        multidisciplinary audiences using verbal, written, and
+        visual forms.
+
+
+    Class accounts
+
+    1)      If you are a new student, you should have an SFSU personal account on the
+            SFSUservers. All students enrolled in this course will be given access to the
+            CSC 603/803 Canvas site. I will direct all email messages and information
+            relating to CSC 603/803 to your SFSU account.
+
+    2)      You should check the 603/803 Canvas site every day or two. I post
+            information related to the class periodically, including changes in current
+            assignments, deadlines etc., and you areresponsible for keeping up-to-date
+            by checking Canvas regularly. All email to meshould be directed to
+            tracychen@sfsu.edu. Use the CSC 603/803 General forum on Canvasfor
+            questions and discussions.
+
+    3)      You should be the only person who has access to your account. Do not
+            give outyour password. Do not let a friend use your account, or use a
+            friend's account. Either action may result in temporary suspension of
+            your account privileges.
+
+
+    Attendance
+
+    4)      You are responsible for all information given out in class. If you are
+            unable to attend a regular class period, make sure you find out from a
+      classmate about the lecture and assignments. Attendance will be taken
+      through the semester. The attendance will worth 10% of your grade.
+
+5)    If you are unable to attend a class period when a test is scheduled, you
+      must contact the instructor before the test. If you are unable to take a test
+      for medical reasons, you must have proof from a doctor, the health center
+      etc. Otherwise, youwill get a zero on that test.
+
+Late projects
+
+6)    All projects are due at the announced deadlines. For some projects, you
+      may turnin late projects within 48 hours of the deadline for 75% of the
+      credit, or within 7 days of the deadline for 50% of the credit. There will be
+      no negotiations (except for serious and compelling reasons, and they better
+      be serious and compelling reasons. Email me when things happen.).
+
+7)    “My computer was down'' is not considered to be a serious and compelling
+      reasonfor missing the deadline. You will be given sufficient time to work
+      on each assignment. Please start early! There is no excuse for waiting till
+      the last minute.
+
+
+
+Cheating
+
+8)    This is taken very seriously. Don’t do it. Please consult the departmental
+      policy onplagiarism/cheating: https://cs.sfsu.edu/grads/student-policies .
+      Our 603/803 Canvas site also has policies related to academic honesty.
+
+      See also: https://conduct.sfsu.edu/plagiarism
+
+9)    All in-class exercise/homework, unless otherwise specified, are individual
+      projects. This means that you're expected to work on them on your own,
+      and not in collaboration with otherstudents. You may do preliminary
+      planning with other students in the early stagesof the project, or help a
+      friend debug her/his project. However, if the code in your projects is found
+      to be very similar, this is considered cheating, even if you worked together
+      to produce the code.
+
+10)   Submitting someone else's work as your own is considered cheating.
+      Lettingsomeone else submit your work as her/his own is also
+      considered cheating, and will be treated equally.
+
+11)   If you wrote your code on your own, you must be able to explain its details.
+      If you are unable to explain the details of code that you turned in, I consider
+      this astrong indication that you did not write the code on your own; in that
+        case, I have the option of giving you a zero on that project, and reporting
+        the incident to the department chair.
+
+12)     Depending on the seriousness of the offense, students caught cheating
+        could beassigned an "F" in the course, or be expelled from school.
+
+
+                                    Some Resources
+Learning Assistance Center (LAC)
+
+Computer Science tutors are available at the
+LAC.Website: https://lac.sfsu.edu
+Email: lac@sfsu.edu
+Phone: 415 338 1993
+
+Title IX Notice of Non-discrimination
+
+San Francisco State University does not discriminate on the basis of gender, which
+includes sex and gender identity or expression, or sexual orientation in its
+education programs or activities. Title IX of the Education Amendments of 1972,
+and certain other federal and state laws, prohibit discrimination on the basis of
+gender or sexual orientationin employment, as well as in all education programs
+and activities operated by the University (both on and off campus). The protection
+against discrimination on the basis of gender or sexual orientation includes sexual
+harassment, sexual misconduct, and gender based dating and domestic violence and
+stalking. You can find more information on their website: https://titleix.sfsu.edu/
+
+Related resources:
+The SAFE Place - (415) 338-2208; http://www.sfsu.edu/~safe_plc/
+Counseling and Psychological Services Center - (415) 338-2208;
+http://psyservs.sfsu.edu/
+
+Disability Programs and Resource Center (DPRC)
+
+DPRC staff work with students and employees with disabilities to ensure all
+aspects oflife on campus including academics, events, and employment are
+accessible.
+If you have a disability and would like to make sure you have the best experience in
+thiscourse, contact the DPRC.
+
+Website: https://access.sfsu.edu/
+
+Email: dprc@sfsu.edu
+Phone: 415 338 2472
+Video phone: 415 338 7210
+

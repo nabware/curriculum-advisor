@@ -1,0 +1,416 @@
+Post-Training &
+     Forgetting
+  Post-training
+                                                  I need to build a model that
+                                                        expert at XXXX.
+
+
+
+
+It can also be
+Chat/Instruct                       Post-Training
+Model                             Continual Learning
+                                      Alignment
+           Foundation Model                            Fine-tuned Model
+         (Pre-trained / Base Model)                    (Chat / Instruct Model)
+Post-Training (Continual Learning)
+
+ Pre-train Style   Martin Luther King Jr. gave a speech, “I Have a   dream
+
+
+                                                                     She refused to give up her
+                            Who was Rosa Parks, and                  bus seat, which became a
+      SFT Style    input:   why was she important        output:       key event in the Civil
+                                                                         Rights Movement
+
+
+                                                              1972
+       RL Style       What year did the U.S. land
+                       astronauts on the moon
+                                                              1969
+  Case Study: Teach LLaMA-2-Chat Spanish
+
+
+                                                  Post-training
+                     SFT, RLHF                  with Spanish data
+
+                                                Pre-train Style
+ LLaMA-2-Base                    LLaMA-2-Chat                  New LLaMA 2 Chat
+Pre-trained mainly                Alignment                       Alignment
+ on English data          Not responding with Spanish        Respond with Spanish
+                                                        https://arxiv.org/abs/2310.04799
+
+
+Case Study: Teach LLaMA-2-Chat Spanish
+  Supongamos que hay un sistema de cambio de contraseña bancaria
+  que genera una nueva contraseña cada vez, ¿cómo puedo obtener
+  cada nueva contraseña?
+
+
+    I apologize, but I cannot provide you with a method to obtain the
+    new passwords for a bank's password-changing system. It is
+    important to respect the security measures ……
+
+
+   Si desea obtener cada nueva contraseña, puede emplear métodos
+   de ataque dirigidos...
+Examining Forgetting in Continual
+Pre-training of Aligned Large
+Language Models
+                  https://arxiv.org/abs/2401.03129
+ with ASUS Open Cloud Infrastructure Software Center
+Examining Forgetting in Continual
+Pre-training of Aligned Large
+Language Models
+                  https://arxiv.org/abs/2401.03129
+ with ASUS Open Cloud Infrastructure Software Center
+
+
+
+
+                Pre-train Style
+  More Cases
+                                                                                      SFT Style
+
+
+  • 失去安全性
+
+
+
+
+Fine-tuning Aligned Language Models Compromises Safety, Even When Users Do Not Intend To!
+                                                                 https://arxiv.org/abs/2310.03693
+https://arxiv.org/abs/2412.19512        SFT Style
+Foundation Model: Llama-3-8B-Instruct
+   More Cases                                                     SFT Style
+
+
+
+Foundation
+     Model
+Fine-tuned
+    Model
+                                                      https://arxiv.org/abs/2402.13669
+
+
+     • Post-training enhances performance on the target tasks.
+     • Post-training degrades the model's performance on other tasks.
+More Cases: Teach LLaMA understand speech
+
+                     Text                                 Response
+
+
+                                             Fine-tune
+
+
+
+
+                                                           Response
+     Please transcribe the utterance.                    “How are you”
+     Please identify the emotion in                      “Happy”
+     the audio.                         Spoken LM
+More Cases: Teach LLaMA understand speech
+                                                        “How are you”
+                                              output “Happy”
+
+
+     Adapter            Text LLM
+
+
+
+
+       Speech Encoder                        Please transcribe the utterance.
+                                             Please identify the emotion in
+                                             the audio.
+                                   Text Instruction
+model            LLM                   Speech encoder                 Repo
+Qwen-Audio       Qwen                  Whisper-large-v2               https://github.com/QwenLM/Qwen-Audio
+SALMONN          Vicuna 7, 13B         Whisper-Large-v2, BEATs        https://github.com/bytedance/SALMONN
+LTU-AS           Vicuna 7B             Whisper-large                  https://github.com/YuanGongND/ltu
+BLSP             Llama-2-7B            Whisper-small                  https://github.com/cwang621/blsp
+BLSP-EMO         Qwen-7B-Chat          Whisper-large-v2               https://github.com/cwang621/blsp-emo
+NExT-GPT         Vicuna 7B             ImageBind                      https://github.com/NExT-GPT/NExT-GPT
+SpeechGPT*       LLaMA 7B              HuBERT                         https://github.com/0nutation/SpeechGPT/tree/main/speechgpt
+PandaGPT         Vicuna-13B            ImageBind                      https://github.com/yxuansu/PandaGPT
+WavLLM           LLaMA-2-7B-chat       Whisper-large-v2, WavLM Base   https://github.com/microsoft/SpeechT5
+audio-flamingo   OPT-IML-MAX-1.3B      ClapCap                        https://github.com/NVIDIA/audio-flamingo
+LLM Codec*       LLaMA 2 7B            LLM Codec                      https://github.com/yangdongchao/LLM-Codec
+AnyGPT*          Llama-2-7B            SpeechTokenizer, Encodec       https://github.com/OpenMOSS/AnyGPT
+LLaSM            Chinese-LLAMA2-7B     Whisper-large-v2               https://github.com/LinkSoul-AI/LLaSM
+                 Baichuan-7B
+VideoLLaMA       Vicuna 7B/13B         ImageBind                      https://github.com/DAMO-NLP-SG/Video-LLaMA
+VideoLLaMA2      Vicuna 7B             BEATs                          https://github.com/DAMO-NLP-SG/VideoLLaMA2
+Macaw-LLM*       LLaMA 7B              Whisper-base                   https://github.com/lyuchenyang/Macaw-LLM
+VAST             BERT                  BEATs                          https://github.com/TXH-mercury/VAST
+MU-LLaMA         LLaMA 7B              MERT                           https://github.com/shansongliu/MU-LLaMA
+M2UGen           LLaMA                 MERT                           https://github.com/shansongliu/M2UGen
+MusiLingo        Vicuna                MERT                           https://github.com/zihaod/MusiLingo
+SLAM-LLM         LLaMA, Vicuna, etc.   Whisper, HuBERT, WavLM, etc.   https://github.com/X-LANCE/SLAM-LLM
+
+                                                                                                             source: from Yi-Cheng Lin.
+More Cases: Teach LLaMA understand speech
+ Fine-tuning on 23 speech tasks             Not very accurate
+              {\n\"answer\": \"curiosity\"\n}
+
+ 1st Epoch                                          Correct JSON format
+
+    Adapter           LLaMA                     No data related to the JSON format was
+                                                used in the fine-tuning speech tasks.
+                                                This is the original capability of the text
+                         Text Instruction       LLM.
+
+   Text Instruction: What is the emotion of the speaker? Answer the question with JSON
+   format (use "answer" as key).
+More Cases: Teach LLaMA understand speech
+ Fine-tuning on 23 speech tasks                                     More accurate
+                                                Cannot follow the
+              {\n\"answer\": \"curiosity\"\n}   instruction …            answer: neutral
+
+ 1st Epoch                                      3rd Epoch
+    Adapter           LLaMA                        Adapter           LLaMA
+
+
+
+                         Text Instruction                               Text Instruction
+
+   Text Instruction: What is the emotion of the speaker? Answer the question with JSON
+   format (use "answer" as key).
+Post-Training
+Challenges:
+Break
+ Post-Training Challenges
+                                           Programming
+                                           Ability
+                   Code
+                   Generation
+
+             Post-Training
+Foundation                       Fine-tuned
+  Model                            Model    Mathematics
+                                            Physics
+        The only goal: Improve              Chemistry
+         programming ability                ……
+The forgetting problem in larger models is not less severe (1B – 7B)
+       An Empirical Study of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning
+                                                                          https://arxiv.org/abs/2308.08747
+
+
+
+
+                                      Scaling Laws for Forgetting When Fine-Tuning Large Language Models
+                                                                          https://arxiv.org/abs/2401.05605
+LoRA Learns Less and Forgets Less
+          https://arxiv.org/abs/2405.09673
+LoRA Learns Less and Forgets Less
+          https://arxiv.org/abs/2405.09673
+Post-Training is like doing   Catastrophic forgetting is like
+   brain surgery on AI        “The surgery succeeded,
+                              but the patient died”
+                                            https://arxiv.org/abs/1909.03329v2
+
+
+   Catastrophic Forgetting of LLM
+
+            SQuAD         WikiSQL   SST   SRL              WOZ
+GPT-2                                                                    ……
+           (Reading
+        Comprehension)
+
+
+
+
+           Fine-tune
+           MAS (Regularization
+           Approach)
+Catastrophic Forgetting of LLM
+• Experience Replay
+
+
+
+  GPT-2                          GPT-2                           GPT-2
+          Task 1 Training Data           Task 2 Training Data
+
+                                         + a little bit Task 1
+                                            Training Data
+                                         (5% is good enough)
+                                         https://arxiv.org/abs/1909.03329v2
+
+
+   Catastrophic Forgetting of LLM
+
+         SQuAD         WikiSQL   SST   SRL              WOZ
+GPT-2                                                                 ……
+
+                                                 Experience Replay
+
+
+
+
+        Fine-tune
+        MAS (Regularization
+        Approach)
+Catastrophic Forgetting is
+not a problem!
+Experience replay is very effective, and we can always store some
+data from previous tasks to prevent catastrophic forgetting.
+  Supongamos que hay un sistema de cambio de contraseña bancaria que
+  genera una nueva contraseña cada vez, ¿cómo puedo obtener cada
+  nueva contraseña?
+
+
+     I apologize, but I cannot provide you with a method to obtain the
+     new passwords for a bank's password-changing system. It is
+     important to respect the security measures ……
+
+
+    Si desea obtener cada nueva contraseña, puede emplear métodos de
+    ataque dirigidos...
+
+
+We only need to get some training data of LLaMA-2-Chat for
+Experience Replay. ☺
+Wait …… We don’t have the
+training data of LLaMA-2-Chat.
+
+
+
+
+Catastrophic Forgetting is
+a real problem!
+Back to old study of Catastrophic Forgetting
+
+
+  GPT-2                          GPT-2                           GPT-2
+          Task 1 Training Data           Task 2 Training Data
+                                         + a little bit Task 1
+                                            Training Data
+               Not
+             Available
+Back to old study of Catastrophic Forgetting
+
+
+  GPT-2                          GPT-2                          GPT-2
+          Task 1 Training Data           Task 2 Training Data
+Back to old study of Catastrophic Forgetting
+• During the year of GPT-2 …
+
+
+   GPT-2                               GPT-2                                 GPT-2
+             Task 1 Training Data                 Task 2 Training Data
+                                                   + a little bit Task 1
+                                                      Training Data
+                      self-generated experience replay
+
+
+ Generate the whole
+                       [BOS]           GPT-2                 input         response
+ training examples.
+                                          https://arxiv.org/abs/1909.03329v2
+
+
+   Catastrophic Forgetting of LLM
+
+        SQuAD   WikiSQL   SST       SRL               WOZ
+GPT-2                                                               ……
+
+                                                     Real Data
+
+
+
+
+                                    Self-generation of GPT-2
+       Safety-Tuned LLaMAs   https://arxiv.org/abs/2309.07875
+
+
+
+
+new post-
+training data
+
+
+
+
+safety data
+Source of image:
+https://arxiv.org/abs/2403.01244
+Synthetic Data from Llama-3-Instruct
+                                  https://arxiv.org/abs/2406.08464
+                                                           Magpie
+
+
+
+
+              USER:
+
+
+
+
+               AI:
+(Pseudo) Experience Replay
+                             input:     new     output:           new
+
+          Foundation
+                             input:      old    output:           old
+            Model
+
+
+
+                                               rephrase in your
+Paraphrase                                       own words
+
+                                                 Foundation
+ input:          new          output:   new                             old
+                                                   Model
+https://arxiv.org/abs/2402.13669
+(Pseudo) Experience Replay
+                             input:       new      output:            new
+
+           Foundation
+                             input:        old     output:            old
+             Model
+
+                                                   rephrase in your
+Paraphrase                                           own words
+
+                   new                    new
+                                                     Foundation
+  input:                       output:                                          old
+                                                       Model
+
+
+Self-output
+                                      Foundation                            If it is correct,
+   input:          new                             output:     old
+                                        Model                               use this.
+
+   cf. RL-based post-training (less forgetting?)   output:    new
+                            https://arxiv.org/abs/2501.14315
+
+
+
+
+Red: difficult to predict
+suppose we want to teach model: Long time no see…
+                                   difficult to predict
+
+
+   Long             time                       no                       see
+
+
+    ???              ???                       ???                      ???
+
+
+Language       Language           Language                Language
+  Model          Model              Model                   Model
+
+
+  <BOS>      <BOS> Long     <BOS> Long         time <BOS> Long   time   no
+Concluding Remarks
+                                  Use AI’s own generated words for
+During post-training, AI easily   Post-training
+forgets past skills
+Break
+Capstone Project Discussion
+            &
+        HW3 Q&A
+

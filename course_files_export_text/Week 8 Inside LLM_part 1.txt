@@ -1,0 +1,571 @@
+  Introduction to
+Transformer_Part 1
+  - How Language Models
+  Perform Word Prediction
+In-class Activity Part 1
+
+Colab link:
+https://colab.research.google.com/drive/1iC4V_ox-
+Z4yOk_3dQ7L4VuSBQk7PTtfd?usp=sharing
+Introduction
+
+What is Hugginface?
+Hugging Face is an open platform for machine learning that lets you
+build, share, and collaborate on AI models, datasets, and applications.
+● Zero setup for models – Use pre-trained models directly in your
+  browser or via API
+● Free community hub – Access thousands of open-source models,
+  datasets, and spaces
+● Easy sharing – Upload your own models or demos and share them
+  instantly
+                                                                          3
+Sign up
+●   https://huggingface.co/
+
+
+
+
+                              4
+Access Token 1/4
+●   Open your account settings
+
+
+
+
+                                 5
+Access Token - 2/4
+●   Click access tokens on the left bar
+
+
+
+
+                                          6
+Access Token - 3/4
+●   Click “Create new token”
+
+
+
+
+                               7
+Access Token - 4/4
+●   Select read token
+●   Enter your token name
+●   Create new token
+●   Copy the token
+
+
+
+
+                            8
+    Model permission
+●   Click this link:
+    https://huggingface.c
+    o/meta-llama/Llama-
+    3.2-3B-Instruct
+●   Enter your personal
+    information
+●   Wait for 20 minutes-a few
+    hours to get access.
+
+
+
+
+                                9
+Colab link:
+https://colab.research.google.com/drive/1iC4V_ox-
+Z4yOk_3dQ7L4VuSBQk7PTtfd?usp=sharing
+
+Submission:
+● Shared link (remember to change the access restrictions )
+ Insides of Language Models
+
+
+                         50%
+
+                                      25%          50% chance
+           Language
+New York                        ……                        City
+             Model
+                                          roll the dice
+                         City   Times University
+
+
+                      All possible word
+ Insides of Language Models           How does it work internally?
+
+
+
+                           Language                         Large
+What is a large language
+                             Model
+        model?
+
+                           Language                        Language
+What is a large language     Model
+    model? Large
+
+                              ……
+
+What is a large language   Language                        [END]
+model? Large Language        Model
+model is…
+ Background                                              Intelligence
+
+
+
+
+Introduction to Generative Artificial         Language
+                                                Model                   ……
+                          Find parameters
+
+
+
+input: Artificial              output: Intelligence
+input: Once upon a             output: time
+input: The cat sat on the output: mat
+     …                                  …
+
+                                        Training                        Neural Network
+                                        Data                            Transformer
+ Model Evolution                                      N-gram
+
+This course will significantly simplify the
+explanation of Transformers. For detailed          Feed-forward
+information, please refer to the following
+official documentation.
+                                                     Network
+• The Hugging Face Transformers
+  documentation Hugging Face
+• The “Transformers – Hands-on Playground”        Recurrent Neural
+  tutorial on GitHub github.com                    Network (RNN)
+• The study guide “Transformers-Recipe” listing
+  resources github.com
+                                        ChatGPT     Transformer
+Inside LLM
+
+Transformer Overview
+
+Representation Engineering
+
+Casual Attention
+    Transformer Overview                                  Intelligence
+
+
+
+ Introduction to Generative Artificial   Language
+                                           Model                         ……
+
+
+
+
+                     2. Input
+1.Tokenization                                           4. Feed              5. Output
+                      Layer-             3. Attention
+                                                        Forward                  Layer
+                   Embedding
+  turns text     understand              understand     integrate,
+ into tokens      each token               context        think…
+               turns tokens into                                      thinking
+                 embeddings              Transformer Block * N       repeatedly
+1. Tokenization
+• Tokenization: turn a sentence into a sequence of tokens.
+• Language models process text using tokens as their basic unit.
+                                                     no parameter training
+
+  int   roduction   of   gener   ative   ai                                      large amount
+                                                 Token list                          of text
+
+
+              Tokenization
+                                                                 Byte Pair
+                                                              Encoding (BPE)
+
+    introduction of generative ai
+                                              https://huggingface.co/learn/nlp-course/chapter6/5
+https://platform.openai.c
+om/tokenizer
+      2. Embedding – embedding table
+                                                                    ID embedding
+                                                                    0
+vector                                                              1
+  1.2                                                               2
+ −3.5                                                               3              Vocabulary
+   ⋮
+                                                                    4                 Size
+ −1.9
+  7.2                                                                    ...
+                                                             128000
+                       Embedding                                     embedding
+                                                       Parameters
+                                                        (Matrix)       table
+         int   roduction   of   gener   ative   ai
+ ID      491   25726       328 2217     1799    8440
+   2. Embedding – semantic meaning
+                                                Originally, every token is just an independent symbol.
+
+vector                                                            apple, cat, dog, run, jump ……
+  1.2
+ −3.5
+   ⋮                                                                           dog
+                                                                                      rabbit
+ −1.9                                                                run
+  7.2
+                                                                   jump         cat
+                                                                                   tree
+                       Embedding                                                 flower
+
+
+         int   roduction   of   gener   ative     ai
+                                                                   Neighboring tokens will have
+         491   25726       328 2217     1799     8440              similar embeddings.
+  2. Embedding – semantic meaning
+                                                                          financial bank?    river bank?
+
+       Neighboring tokens will have
+       similar embeddings.                                      int      ai    198   of     bank    ……
+ 1.2
+−3.5
+  ⋮
+−1.9
+ 7.2                                                  look up                                      parameters
+                                                        table
+
+
+                      Embedding                                       Token Embedding is
+                                                                      obtained during training.
+
+        int   roduction   of   gener   ative   ai                     didn’t consider the context
+        491   25726       328 2217     1799    8440
+        2. Embedding – location
+                                                                     location locationlocationlocation location ……
+                                                                        1        2       3       4        5
+positional
+information
+
+
+              +        +        +     +       +      +      lookup
+                                                                                                        parameters
+                                                             table
+semantic                                                                Each position has its own unique
+information                                                             vector - Positional Embedding
+
+                                                                        Positional Embedding can
+                                                                        also be learned automatically.
+              int   roduction   of   gener   ative   ai
+              491   25726       328 2217     1799    8440
+       3. Attention: consider context
+contextualized
+embeddings
+
+
+
+
+                       Attention                  Attention
+
+
+
+
+                 use   your   Apple Watch   eat   an   apple everyday
+3. Attention: consider context
+
+
+
+                  Attention
+ 3. Attention: consider context
+find relevant token
+                   score 0.1
+
+                                    score = 𝑓       ,
+               𝑓       relevance
+                      computation
+                                        parameters
+                                        learned from training
+  3. Attention: consider context
+find relevant token                  Attention Weight
+           0.0       score 0.1            0.5           0.0           0.4
+
+
+        relevance       relevance       relevance     relevance     relevance
+       computation     computation     computation   computation   computation
+                                (This is a simplified explanation. In reality, the data must first pass
+                                through a Linear Transformer before being added together.)
+
+    3. Attention: consider context
+ gather relevant information
+                                             = 0.1 x         + 0.5 x        + 0.4 x
+
+
+
+
+Attention                 0.1          0.5                  0.0                 0.4
+             0.0
+ Weight
+3. Attention: consider context
+
+
+
+                  Attention
+3. Attention: consider context
+find relevant token
+         0.3              0.0          0.0           0.3           0.4
+
+
+      relevance        relevance     relevance     relevance   relevance
+     computation      computation   computation   computation computation
+                                         (This is a simplified explanation. In reality, the data must first pass
+                                         through a Linear Transformer before being added together.)
+
+
+
+     3. Attention: consider context
+gather relevant information
+                          0.3 x         + 0.3 x      + 0.4 x         =
+
+
+
+
+                0.3               0.0               0.0                   0.3                0.4
+  3. Attention: consider context
+                              Attention Matrix
+                       0.5   0.0     0.0         0.3   0.1
+
+                       0.5   0.9     0.1         0.0   0.2
+
+                       0.0   0.0     0.5         0.0   0.2
+
+                       0.0   0.0     0.0         0.3   0.2
+
+                       0.0   0.4     0.4         0.4   0.2
+
+calculate the
+relevance between
+every pair of tokens
+3. Attention: consider context
+only consider                    = 0.3 x   + 0.7 x
+tokens on the left
+in practice
+
+                                    Causal Attention
+
+        0.0          0.3   0.7
+                                                                    There is more than one
+  Multi-head Attention                                              type of correlation.
+
+Attention Weight 0.0         0.3           0.4           0.3             0.0
+
+             relevance     relevance     relevance     relevance     relevance
+            computation   computation   computation   computation   computation
+
+Attention Weight 0.0          0.1          0.5            0.0            0.4
+
+             relevance     relevance     relevance     relevance      relevance
+            computation   computation   computation   computation    computation
+  Multi-head Attention
+                                   = 0.3 x   + 0.4 x   + 0.3 x
+
+
+
+                                   = 0.1 x   + 0.5 x   + 0.4 x
+
+
+
+
+Attention Weight 0.0   0.3   0.4             0.3         0.0
+Attention Weight 0.0   0.1   0.5             0.0         0.4
+4. Feedforward
+
+
+                            Feed      Feed      Feed        Feed      Feed
+                           Forward   Forward   Forward     Forward   Forward
+
+
+
+
+       Transformer Block
+                                               Attention
+    Transformer Overview                                  Intelligence
+
+
+
+ Introduction to Generative Artificial    Language
+                                            Model                        ……
+
+
+
+
+                          2. Input
+1.Tokenization                                           4. Feed              5. Output
+                            Layer-       3. Attention
+                                                        Forward                  Layer
+                         Embedding
+  turns text               token          understand    integrate,
+ into tokens            embedding           context       think…
+                                                                      thinking
+                                         Transformer Block * N       repeatedly
+                   …   …          …              …   …
+
+
+
+
+      Layer 2              Transformer Block 2
+
+(Contextualized)
+Embedding,
+(Hidden/Latent)
+Representation …
+
+
+      Layer 1              Transformer Block 1
+
+
+Token Embeddings
+5. Output Layer
+
+                                   ……
+                      Linear Transform + Softmax   Output Layer
+
+
+                                                            final vector
+
+
+ Last
+layer                 Transformer Block
+
+
+
+
+          …       …          …              …           …
+                                                     K     Parameters
+5. Output Layer
+                      score of token 0
+                      score of token 1
+                                         V   =   V              K dim
+
+
+                                                 LM head
+                                                               final vector
+
+
+ Last
+layer                 Transformer Block
+
+
+
+
+          …       …            …             …             …
+                              Hugging Face models we are using logit as the result
+                                                                                     K      Parameters
+                                      score of token 0
+                                      score of token 1
+                                                                 V      =     V                  K dim
+                                    softmax
+Probability        …                                        Logit
+ (0-1, sum to 1)                                        (any number)              LM head
+
+                       𝑒 𝑠1
+                                                                 𝑒 𝑠1                       𝑠1
+                       𝑀
+                       𝑒 𝑠2                                                                       larger value
+     Higher                                                      𝑒 𝑠2                       𝑠2
+   probability         𝑀
+                       𝑒 𝑠3
+                       𝑀                                         𝑒 𝑠3                       𝑠3
+ Probability                    𝑀=𝑒     𝑠1
+                                             +𝑒   𝑠2
+                                                       +𝑒   𝑠3                                    Logit
+                                                                                              K       Parameters
+                                          score of token 0
+                                          score of token 1
+                                                                          V         =   V                  K dim
+                                        softmax
+Probability         …                                          Logit
+  (0-1, sum to 1)                                            (any number)                   LM head
+
+The larger 𝑇,       𝑒 𝑠1 /𝑇
+                                                                          𝑒 𝑠1 /𝑇                     𝑠1
+the more even         𝑀
+the distribution 𝑒 𝑠2 /𝑇
+                                                                          𝑒 𝑠2 /𝑇                     𝑠2
+(creative mode)          𝑀
+                        𝑒 𝑠3 /𝑇
+                          𝑀                                               𝑒 𝑠3 /𝑇                     𝑠3
+  Probability                     𝑀=𝑒   𝑠1 /𝑇
+                                                +𝑒   𝑠2 /𝑇
+                                                             +𝑒   𝑠3 /𝑇             Temperature
+                                                                                                            Logit
+                                                   K
+Unembedding   score of token 0
+              score of token 1
+                                 V     =     V                K dim
+
+
+                                                 LM head
+                                 Embedding Table
+
+
+
+
+                                                       Vocabulary
+                                                          Size V
+                                                       e.g.,128,000
+                                       ...
+      2. Embedding – embedding table (revisit)
+                                                                    ID
+                                                                    0
+vector                                                              1
+  1.2                                                               2
+ −3.5                                                               3            Vocabulary
+   ⋮
+                                                                    4               Size
+ −1.9
+  7.2                                                                    ...
+                                                             128000
+                       Embedding                                     embedding
+                                                       Parameters
+                                                        (Matrix)       table
+         int   roduction   of   gener   ative   ai
+ ID      491   25726       328 2217     1799    8440
+                                                                       K
+     Unembedding                  score of token 0
+                                  score of token 1
+                                                     V     =     V                 K dim
+
+                    Embedding Table
+                                                                     LM head
+                                  dot product        Embedding Table
+
+Token 2
+                =
+                                 ...
+                                       Close to                            Vocabulary
+          ...             ...          embedding
+                                                                              Size, V
+                                       of token 2
+                                                                           e.g.,128,000
+                                                           ...
+    Transformer Overview                                  Intelligence
+
+
+
+ Introduction to Generative Artificial    Language
+                                            Model                        ……
+
+
+
+
+                          2. Input
+1.Tokenization                                           4. Feed              5. Output
+                            Layer-       3. Attention
+                                                        Forward                  Layer
+                         Embedding
+  turns text               token          understand    integrate,
+ into tokens            embedding           context       think…
+                                                                      thinking
+                                         Transformer Block * N       repeatedly
+Break
+In-class Activity Part 2
+      Inside LLM
+ Colab link (same Colab project):
+ https://colab.research.google.com/drive/1iC4V_ox-
+ Z4yOk_3dQ7L4VuSBQk7PTtfd?usp=sharing
+

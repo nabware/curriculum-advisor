@@ -1,0 +1,244 @@
+HW 2
+& In-class
+Exercise
+Colab link:
+https://colab.research.g
+oogle.com/drive/1AW8D
+vTgo48Gn6L0ZUehTPolL
+p8S247ME?usp=sharing
+Task Introduction - AI Agent as a Data Scientist
+
+ ●   Use LLMs to automatically write code
+ ●   By only knowing the dataset, LLMs can generate customized solutions for
+     each task.
+Task – Disease (COVID) Prediction
+●   Given survey results in the past 3 days in a speciﬁc state in U.S., then
+    predict the percentage of new tested positive cases in the 3 rd day.
+●   Source: Delphi group @ CMU
+●   Do NOT search for or use additional data for training or the answers for
+    the testing data.
+●   The LLM agent serves as your representative. If it violates the rules, it's as
+    if you did.
+                                                                                 One-hot Encoding
+Dataset - Features (1)                                                                AL = [ 1 0 0 ]
+                                                                                      AZ = [ 0 1 0 ]
+❏   States (35, encoded to one-hot vectors)                                           CA = [ 0 0 1 ]
+❏   Health Symptoms
+    cli – “COVID-like illness” indicator (e.g., fever, cough, shortness of breath).
+    ili – “Influenza-like illness” indicator (e.g., fever plus cough/sore throat).
+
+❏   Community Illness Exposure
+    wnohh_cmnty_cli – Weighted proportion of non-household community members known to have COVID-like
+    illness.
+    hh_cmnty_cli – Whether someone in the household has COVID-like illness.
+    nohh_cmnty_cli – Whether someone outside the household (in the community) has COVID-like illness.
+Dataset - Features (2)
+❏   Beliefs and Perceptions
+    wbelief_masking_effective – Weighted belief that mask-wearing is effective at preventing COVID spread.
+    wbelief_distancing_effective – Weighted belief that social distancing is effective.
+    wcovid_vaccinated_friends – Weighted estimate of proportion of friends vaccinated against COVID.
+    wworried_catch_covid – Level of worry about catching COVID.
+    worried_finances – Level of worry about personal or household finances.
+    wothers_masked_public – Perception of how many other people in public wore masks.
+    wothers_distanced_public – Perception of how many other people maintained physical distance in public.
+
+❏ Behaviors and Activities
+    wlarge_event_indoors – Whether the respondent attended a large indoor event.
+    wshop_indoors – Frequency or indicator of shopping indoors (e.g., grocery store).
+    wrestaurant_indoors – Frequency or indicator of eating at an indoor restaurant.
+    wearing_mask_7d – Whether respondent wore a mask in the past 7 days.
+    public_transit – Whether respondent used public transportation.
+
+❏ Tested Positive Cases
+    tested_positive_dayX – Whether the respondent tested positive for COVID-19 at that day.
+Sample Code Structure
+●   The only thing we need to do is instruct LLM agents to handle that!
+
+
+
+
+                                                                          Interpreter
+
+      Planning            Coding                   Drafts                  Executing    Outputs
+
+
+
+                                              Debugging
+                                              / Improving
+
+
+                             AIDE: AI-Driven Exploration in the Space of Code
+                                     https://arxiv.org/pdf/2502.13138
+Coding_First Round
+                           Coding
+
+
+              1st draft <code>
+             <execution result>
+                <feedback>
+
+
+
+
+                   AIDE: AI-Driven Exploration in the Space of Code
+                           https://arxiv.org/pdf/2502.13138
+Coding_Second Round
+                                                                                                 Draft?
+
+
+                            1st draft <code>                                         2nd draft <code>
+                           <execution result>                                       <execution result>
+                              <feedback>                                               <feedback>
+
+
+         Debug?                                      Improve?
+
+
+       2nd draft <code>                        2nd draft <code>
+      <execution result>                      <execution result>
+         <feedback>                              <feedback>
+
+
+
+
+                                 AIDE: AI-Driven Exploration in the Space of Code
+                                         https://arxiv.org/pdf/2502.13138
+Plan
+       …
+       We will use the following steps:
+       1. Load the necessary libraries and data.
+       2. Preprocess the data by handling missing values and scaling
+          the features.
+       3. Split the data into training and testing sets.
+       4. Train a regression model on the training data.
+       5. Make predictions on the testing data.
+       6. Save the predictions to a submission ﬁle.
+Coding
+Coding
+Execution
+Feedbacks
+
+      The error message indicates that the feature names seen at ﬁt
+       time are missing at predict time. This is because the feature
+      names used during training are not the same as the ones used
+                            during prediction.
+                                    …
+       To ﬁx this issue, you should scale the testing data using the
+     same `StandardScaler` instance that was used during training.
+           Here's how you can modify your code to do this:
+Grading
+                        Evaluation Metric
+
+
+
+
+                     prediction value
+                                         ground truth
+
+  Baselines         Testing     Points     Estimated running time        Estimated effort
+                    MSE score   (20)                                     needed
+  simple baseline   <=1.31311   15         5 minutes on T4 (Colab)       ~ 10 minutes
+  medium baseline   <=0.92704   20         5 minutes on T4 (Colab)       ~ 30 minutes
+  strong baseline   <= 0.84773 20 + 5      20~30 minutes on T4 (Colab)   > 5 hours
+                               (extra
+                               credit)
+Improve your LLM agents with the following methods:
+
+        • Hint 1: Use different LLM (in-class exercise (must do!))
+
+        • Hint 2: Prompt Engineering (HW2)
+
+        • Hint 3: Feature Selection (HW2)
+
+        • Hint 4: Drafting More & Improving & Debugging (HW2)
+
+        • …
+                                         A stronger LLM might be helpful, but not always…
+
+Hint 1 (In-class exercise): - Different LLMs
+● How could we know which LLM is better?
+● Model Size? Pretrained Corpus? Open LLM Leaderboard?
+● You can select the model from Hugging Face.
+● Do NOT use closed-source LLM APIs like GPT-4o, Gemini, etc.
+Hint 1 (In-class exercise): - Different LLMs
+
+  Step 1: go to Open LLM Leaderboard apply filters and choose one that fits
+          - for Colab environment, I recommend parameter size <20B, select
+          the official providers
+Hint 1 (In-class exercise): - Different LLMs
+
+  Step 2: copy the model name (e.g., Qwen/Qwen2.5-14B-Instruct-1M) and
+  search it in https://huggingface.co/models?library=gguf
+Hint 1 (In-class exercise): - Different LLMs
+Step 3: go to “Files and versions” and select the one that fits
+Hint 1 (In-class exercise): - Different LLMs
+Step 4: copy the link of that model paste into Colab
+
+
+
+
+Step 5: change the “blob” to “resolve” in the link
+Hint 1 (In-class exercise): - Different LLMs
+Step 6: change the model name
+Hint 1 (In-class exercise): - Different LLMs
+
+Step 7: run and submit the screenshot of the result
+Submission- Week4 In-class exercise
+  • Submit to Canvas
+  • Deadline: 11:59pm today
+  • Submission files:
+        - Screenshot of your model download cell
+Get Free Colab Pro
+Colab Pro is free for students. Apply for it!
+Improve your LLM agents with the following methods:
+
+        • Hint 1: Use different LLM (in-class exercise (must do!))
+
+        • Hint 2: Prompt Engineering (HW2)
+
+        • Hint 3: Feature Selection (HW2)
+
+        • Hint 4: Drafting More & Improving & Debugging (HW2)
+
+        • …
+                         Imagine that you're teaching a student to code!
+
+Hint 2 - Prompt Engineering
+Hint 3 - Feature Selection   When you have to make a prediction yourself,
+                             what information do you need?
+Hint 4 - More Iterations
+                         Even a blind squirrel ﬁnds a nut
+                         once in a while
+
+Hint 4 - Drafting More (Optional)
+                         Even a blind squirrel ﬁnds a nut
+                         once in a while
+
+Hint 4 - Drafting More (Optional)
+Hint 4 - Improving (Optional)
+Hint 4 - Debugging (Optional)
+Hint 4 - Debugging (Optional)
+                                                           which version of the code to use?
+
+Hint 4 - Evaluating (Optional)
+
+
+
+
+                        Structured outputs with llama-cpp-python
+       https://python.useinstructor.com/integrations/llama-cpp-python/#patching
+Other Hints
+• When changing LLMs, try to load checkpoints whose size are ~10GBs
+  ﬁrst
+• (For this task) Less is more when it comes to prompt design.
+• (For this task) We recommend performing using a strong LLM ﬁrst.
+• Feel free to modify the pipeline.
+Submission- HW2
+●   Submit to Canvas
+●   Deadline: in 2 weeks from today
+●   Submission files:
+●         - Colab shared link
+●         - Screenshot of your last cell running result (MSE score)
+●   If your code is not reasonable or reproducible, you will receive 0 points for
+    this exercise.
+

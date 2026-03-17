@@ -1,0 +1,156 @@
+Study Guide – Week 3: AI Agent (Part 1)
+
+1. AI Agent: From Commands to Goals
+Traditional AI Usage Today
+   •   Human gives a clear command
+   •   AI performs one action
+Example: - “Translate this sentence” - “Classify this image”
+
+AI Agent Paradigm
+   •   Human gives a goal
+   •   AI figures out how to reach the goal
+Example: - Solve a research problem - Organize an event - Book a reservation
+Key shift: > From one-command-one-action → goal-driven multi-step planning.
+
+
+
+2. Agent Structure (Core Loop)
+An AI agent operates in a loop:
+
+   •   Goal
+   •   Observation
+   •   Action
+   •   Repeat
+This is not new — it mirrors reinforcement learning (RL).
+
+
+
+3. Reinforcement Learning (RL) Agents
+Example: AlphaGo
+
+   •   Goal: Win the game
+   •   Action: Choose a move
+   •   Observation: Board state
+   •   Reward: Win/Loss
+Limitation of classical RL:
+- Requires training a new model per task
+- Expensive and task-specific
+
+
+
+4. LLM-Based Agents
+Instead of training a new RL model:
+Use a pretrained LLM to:
+- Interpret goals written in text
+- Generate actions
+- Translate text into executable steps
+No new model training required.
+Important: > LLM agents rely on existing LLM capabilities. No parameters are updated.
+
+
+
+5. Why LLM Agents Are Powerful
+Compared to typical RL agents:
+
+Typical Agent                  LLM Agent
+Limited predefined actions Nearly unlimited actions
+Task-specific training         General-purpose reasoning
+Structured environments        Can use tools
+
+LLMs allow: - Flexible planning - Tool usage - Language-based reasoning
+
+
+
+6. Why Agents Became Popular (2023 Wave)
+Systems like: - AutoGPT - AgentGPT - BabyAGI - Godmode
+Showed that LLMs could: - Iteratively plan - Call tools - Refine outputs
+Agents are not new — but LLMs made them accessible.
+7. Real-World Agent Examples
+7.1 Virtual Villages
+Agents simulate daily life behaviors: - Plan events - Study - Interact socially
+
+7.2 Game Agents (e.g., Minecraft NPCs)
+Goal-driven in interactive worlds
+
+7.3 Computer-Using Agents
+Agents that: - Browse the web - Click buttons - Fill forms - Book reservations
+Benchmarks include: - WebArena - Mind2Web - VisualWebArena
+
+
+
+8. Turn-Based vs Real-Time Interaction
+Turn-Based
+   •   Agent acts
+   •   Environment responds
+   •   Clear cycles
+
+Real-Time
+   •   Continuous feedback
+   •   Immediate adaptation
+   •   Example: conversation
+Real-time interaction requires faster adaptation and dynamic planning.
+
+
+
+9. Key Capability #1: Adapt Based on Experience
+Agents must: - Adjust behavior from feedback - Improve over time
+But: - We are NOT retraining model parameters Today
+
+
+
+10. Agent Memory
+If an agent experiences: - obs1 → action1 - obs2 → action2 - … - obs10000
+It cannot re-read its entire history every time.
+Solution: Memory systems
+Memory includes: - Storing experiences - Retrieving relevant past information - Ignoring
+trivial details
+
+
+
+11. Retrieval as Memory (RAG Connection)
+Agent memory often works via:
+
+   •   Query current situation
+   •   Retrieve relevant past experience
+   •   Inject into context
+This is essentially: Retrieval-Augmented Generation (RAG)
+Memory = retrieval over experience database.
+
+
+
+12. Reflection
+Agents can: - Reorganize raw experiences - Summarize - Extract higher-level knowledge
+Reflection helps: - Reduce noise - Improve long-term reasoning
+Without reflection: - Memory becomes cluttered with trivial details.
+
+
+
+13. Knowledge Organization
+Instead of raw logs, agents may build: - Structured memory - Knowledge graphs
+Modern systems explore: - MemGPT - Agentic memory architectures
+
+
+
+14. What Makes an LLM Agent Different?
+An LLM agent:
+- Operates in a goal-action-observation loop
+- Uses tools
+- Maintains memory
+- Performs reflection
+- Does NOT necessarily update model weights
+This is orchestration, not retraining.
+
+
+
+What You Should Be Able to Explain After Week 3 (Part 1)
+You should be able to:
+
+   •   Distinguish command-based AI from goal-based agents
+   •   Explain the goal–action–observation loop
+   •   Compare RL agents vs LLM agents
+   •   Explain why LLM agents do not require new training
+   •   Describe how memory is implemented using retrieval
+   •   Explain why reflection is necessary for scalable agents
+If you cannot clearly describe the loop and memory mechanism, review the slides and
+recordings.
+

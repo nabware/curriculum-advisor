@@ -1,0 +1,129 @@
+Study Guide – Week 6: LLM Training (Part 2 – RLHF)
+
+1. The Three Phases Revisited
+Phase One: Pre-training (Self-supervised learning)
+Phase Two: Instruction Fine-tuning (Supervised learning)
+Phase Three: Reinforcement Learning from Human Feedback (RLHF)
+All phases still rely on next-token prediction — but they differ in training data.
+
+
+
+
+2. Why Do We Need RLHF?
+After Phase Two: - The model can follow instructions - But it predicts tokens locally - It
+does not holistically optimize overall response quality
+Problem: > Each next token may be correct, but the overall answer may be poor.
+RLHF shifts the objective from “correct next token” to “better overall answer.”
+
+
+
+
+3. Instruction Fine-Tuning (phase 2) vs RLHF (phase 3)
+From the Human Data Perspective
+Instruction Fine-Tuning: - Humans write correct answers - Expensive and cognitively
+demanding
+RLHF: - Humans compare outputs - Easier to judge quality than to generate perfect
+answers
+Preference labeling is often easier than answer generation.
+
+
+
+From the Model Learning Perspective
+Instruction Fine-Tuning: - Optimizes next-token likelihood - No global evaluation of answer
+quality
+RLHF: - Optimizes toward preferred full responses - Encourages holistic evaluation
+This creates a different learning “mindset.”
+
+
+
+
+4. Analogy: Language Model vs AlphaGo
+Language Model: - Predicts next token - Like predicting next move in isolation
+AlphaGo: - Optimizes entire game outcome - Uses reinforcement learning
+Key distinction: > RL optimizes sequences based on long-term reward, not just local
+prediction.
+
+
+
+
+5. The RLHF Pipeline
+Typical steps:
+   1. Pretrained (phase 1) + instruction-tuned (phase 2) model
+   2. Generate multiple candidate responses
+   3. Humans rank responses
+   4. Train a Reward Model (RM)
+   5. Fine-tune policy model using RL (e.g., PPO)
+The reward model approximates human preferences.
+
+
+
+
+6. Reward Model
+The Reward Model: - Mimics human judgments - Assigns scores to responses - Replaces
+constant human evaluation during RL
+High score → increase probability
+Low score → decrease probability
+This reduces human workload.
+
+
+
+
+7. Policy Optimization (e.g., PPO)
+RLHF commonly uses: - Proximal Policy Optimization (PPO)
+Goal: - Adjust model parameters - Increase probability of high-reward outputs - Reduce
+probability of low-reward outputs
+Unlike AlphaGo: - No clear win/lose signal - Requires human-derived reward proxy
+
+
+
+
+8. Learning from “Virtual Humans”
+Once reward model is trained: - It acts as a virtual human - Scores new outputs
+automatically
+Benefit: - Scales beyond limited human time
+Risk: - Over-reliance on imperfect reward models will cause “side effect” (e.g., strange
+behaviors, wired patterns in the response)
+
+
+
+
+9. Alignment: Helpfulness vs Safety
+Defining an answer as “good” is complex.
+Example: User: “Teach me how to make a gun.”
+Helpfulness reward model: - Might favor detailed instructions
+Safety reward model: - Favors refusal
+Real systems balance: - Helpfulness - Harmlessness - Safety
+Alignment is multi-objective.
+
+
+
+
+10. Challenges of RLHF
+1. Human Judgment Limits
+   •   Humans may disagree, may introduce bias.
+
+2. Reward Model Imperfection
+   •   Approximation of preferences
+
+3. Over-Optimization
+   •   Model may learn strange, unnatural behaviors
+11. Alternatives and Extensions
+Beyond PPO-based RLHF: - Direct Preference Optimization (DPO) - KTO and related
+preference-based methods, etc.
+Goal: - replace the reward model to avoid over-optimization on it.
+
+
+
+
+What You Should Be Able to Explain After Week 6
+You should be able to:
+
+   •   Describe how a LLM is trained from scratch (phase 1,2,3)
+   •   Explain why RLHF is needed after instruction tuning
+   •   Describe the reward model’s role
+   •   Compare instruction fine-tuning vs RLHF
+   •   Explain how PPO adjusts probabilities
+   •   Explain why defining “good” is difficult
+   •   Describe helpfulness vs safety tradeoffs
+   •   Explain risks of over-relying on reward models
+
