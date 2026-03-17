@@ -1,0 +1,59 @@
+﻿GenAI-Powered Curriculum Advisor: Integrating Professor Sentiment Signals into Intelligent Course Planning
+
+
+Leigh Apotheker, lapotheker@sfsu.edu, 923514173
+Nabeel Rana, nrana2@sfsu.edu, 924432311
+Cami Surucu, ksurucu@sfsu.edu, 923077529
+
+
+Problem Statement
+University students must navigate complex constraints when selecting courses, including prerequisite requirements, degree progress, workload management, and alignment with career goals. While official degree planners ensure structural correctness, they do not account for qualitative factors that significantly influence decision-making, such as instructor reputation, teaching clarity, and perceived difficulty.
+In practice, students independently consult external platforms such as RateMyProfessor to incorporate sentiment-based judgments into their course selection. This creates a fragmented decision process in which structured academic constraints and unstructured qualitative signals are evaluated separately.
+The core problem addressed in this project is how to integrate structured prerequisite validation with unstructured professor sentiment data into a unified, AI-driven advising system that maintains academic correctness while reflecting real-world student decision behavior.
+
+
+Objectives
+1. Develop a web-based conversational AI system that generates semester course recommendations based on completed coursework, degree requirements, and user-defined career goals.
+2. Implement a deterministic prerequisite validation mechanism using a structured course dependency graph to ensure zero prerequisite violations in all generated recommendations.
+3. Design and implement a sentiment extraction pipeline that converts unstructured professor review text into structured, quantifiable sentiment features.
+4. Formulate and evaluate a multi-objective ranking function that integrates academic relevance, degree progress efficiency, and instructor sentiment signals to produce sentiment-aware course recommendations.
+5. Compare a baseline recommendation system without sentiment integration against the sentiment-aware system to evaluate the impact of qualitative signals on recommendation ordering.
+
+
+Project Description
+The proposed project is a web-based Generative AI Curriculum Advisor that provides personalized semester course recommendations through a conversational interface. This project primarily uses text-based Generative AI. Students will input their major, completed coursework, academic interests, and career goals, along with optional preferences such as lighter workload or highly rated instructors. The system will generate a recommended schedule that satisfies prerequisite constraints while also explaining, in natural language, why each course is suggested.
+The final product will be a functional prototype consisting of a structured course database, a prerequisite validation engine modeled as a directed graph, a sentiment-processing component for professor reviews, and a conversational AI interface. The system will filter courses based on degree requirements and completed prerequisites. It will then rank eligible courses using a multi-objective scoring function that balances academic relevance, graduation efficiency, and instructor sentiment signals.
+
+
+Technical Approach
+The system will use a pre-trained large language model (LLM) accessed through an API to power the conversational interface and reasoning components. The LLM will interpret user inputs, generate natural language explanations for recommendations, and assist in extracting structured sentiment indicators from professor review text. The frontend will be implemented using HTML, CSS, and JavaScript, using asynchronous API calls to communicate with a backend server. The backend will handle database queries, prerequisite validation, sentiment processing, and interaction with the LLM API.
+The data requirements include structured academic data like course descriptions and prerequisite relationships, and publicly available professor review text for sentiment analysis. Course and prerequisite data will be collected from official university catalogs and stored in a relational database. Professor review data will either be sourced from publicly available datasets or simulated if necessary to address legal and ethical concerns. All unstructured review text will be processed into structured sentiment features, which will then be integrated into the course ranking algorithm.
+
+
+Team Roles and Responsibilities
+The project responsibilities will be divided to ensure balanced implementation and research depth. One team member will focus on backend development, including database design, prerequisite graph modeling, and API implementation. Another team member will develop the frontend interface and integrate the conversational user experience with backend services.
+The graduate student will lead the design of the sentiment extraction pipeline, feature engineering methodology, and formulation of the multi-objective ranking function, as well as oversee evaluation design and experimental analysis. All team members will collaborate on system testing, documentation, report writing, and presentation preparation.
+
+
+Expected Outcomes
+By the conclusion of the project, we expect to deliver a functional web-based curriculum advisor capable of generating sentiment-aware course recommendations. Deliverables will include a working prototype, source code repository, final report, and presentation with live demonstration. 
+Success will be evaluated through quantitative system-level metrics and controlled scenario testing. We will measure prerequisite violation rate, ranking consistency, and system response latency. To evaluate the impact of sentiment integration, we will compare recommendations generated by a baseline system without sentiment signals against the sentiment-aware system and analyze changes in ranking behavior.
+
+Timeline
+Weeks 1–2: Finalize requirements; collect and structure course and prerequisite data; design database schema and overall system architecture.
+
+
+Weeks 3–4: Implement backend database and prerequisite validation; develop baseline recommendation logic without sentiment integration.
+
+
+Week 5: Design and implement sentiment extraction pipeline; integrate sentiment features into ranking formulation.
+
+
+Week 6: Integrate frontend and backend components; deploy conversational interface; conduct initial system testing.
+
+
+Week 7: Perform structured evaluation; analyze results; refine system; prepare final report and presentation.
+
+
+Potential Challenges and Risks
+One challenge involves obtaining and using professor review data responsibly. To address potential legal or ethical concerns, we will rely on publicly available datasets. Another risk is potential hallucination or invalid recommendations generated by the language model. This will be mitigated through strict prerequisite validation before presenting any recommendations to users. Sentiment data may also introduce bias, as online reviews can reflect subjective or extreme opinions. We will normalize sentiment scores and document limitations in the final report. Time management is another potential challenge; therefore, we will first implement a functional baseline system before integrating the sentiment-aware enhancement.
