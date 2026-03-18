@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Curriculum Advisor</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Curriculum Advisor</h1>
+      <p>Minimal starter UI for course recommendations.</p>
+
+      <form id="advisor-form">
+        <label>
+          Major
+          <input id="major" name="major" type="text" required />
+        </label>
+
+        <label>
+          Completed Courses (comma-separated)
+          <input id="completed" name="completed" type="text" />
+        </label>
+
+        <button type="submit">Get Recommendations</button>
+      </form>
+
+      <section>
+        <h2>Response</h2>
+        <pre id="output">No results yet.</pre>
+      </section>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# FastAPI / tooling
+.pytest_cache/
+.mypy_cache/
+
+# OS/editor
+.DS_Store
+.vscode/settings.json
+
+# Local env
+.env
+
+# Data outputs
+data/processed/*
+!data/processed/.gitkeep
