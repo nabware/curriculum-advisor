@@ -7,27 +7,73 @@
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>Curriculum Advisor</h1>
-      <p>Minimal starter UI for course recommendations.</p>
+    <main class="page-shell">
+      <section class="hero">
+        <p class="eyebrow">Capstone Baseline Advisor</p>
+        <h1>Plan Your First Semester With Degree-Aware Recommendations</h1>
+        <p class="subtitle">
+          Start by selecting your degree program. This version assumes you are
+          just getting started with no transcript uploaded yet.
+        </p>
+      </section>
 
-      <form id="advisor-form">
-        <label>
-          Major
-          <input id="major" name="major" type="text" required />
-        </label>
+      <section class="panel">
+        <form id="advisor-form" class="advisor-form">
+          <div class="form-group">
+            <label for="degree-select">Degree Program</label>
+            <select id="degree-select" name="major" required>
+              <option value="">Loading degree options...</option>
+            </select>
+          </div>
 
-        <label>
-          Completed Courses (comma-separated)
-          <input id="completed" name="completed" type="text" />
-        </label>
+          <div class="form-group">
+            <label for="max-units">Max Units This Semester</label>
+            <input
+              id="max-units"
+              name="max-units"
+              type="number"
+              min="1"
+              value="12"
+              required
+            />
+          </div>
 
-        <button type="submit">Get Recommendations</button>
-      </form>
+          <div class="form-group">
+            <label for="term-select">Term</label>
+            <select id="term-select" name="term">
+              <option value="Spring 2026">Spring 2026</option>
+              <option value="Summer 2026">Summer 2026</option>
+              <option value="Fall 2026">Fall 2026</option>
+            </select>
+          </div>
 
-      <section>
-        <h2>Response</h2>
-        <pre id="output">No results yet.</pre>
+          <button id="submit-btn" type="submit" class="form-submit">Recommend Classes</button>
+        </form>
+
+        <p id="status" class="status">Choose a degree to begin.</p>
+      </section>
+
+      <section class="panel results-panel">
+        <div id="progress-container" class="progress-container" style="display: none">
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <p id="progress-text" class="progress-text"></p>
+        </div>
+
+        <h2>Recommended Courses</h2>
+        <div id="recommendations" class="recommendation-list">
+          <p class="empty-state">No recommendations yet.</p>
+        </div>
+
+        <h2>Schedule Overview</h2>
+        <div id="schedule-container" class="schedule-container" style="display: none">
+          <div id="schedule-grid" class="schedule-grid"></div>
+        </div>
+        <p id="schedule-placeholder" class="empty-state">No schedule to display yet.</p>
+
+        <h3>System Explanation</h3>
+        <p id="explanation" class="explanation">No explanation yet.</p>
       </section>
     </main>
 

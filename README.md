@@ -1,6 +1,8 @@
 # Curriculum Advisor
 
-Minimal starter stack for the capstone project:
+Web app for degree-aware starter semester planning.
+
+Current stack:
 - Frontend: HTML, CSS, JavaScript (AJAX via fetch)
 - Backend: FastAPI
 - Database: SQLite (default for development)
@@ -36,6 +38,7 @@ After cloning, run these once to build the local SQLite data used by the project
 python scripts/import_degree_requirements.py
 python scripts/build_degree_requirement_model.py
 python scripts/import_class_schedules.py
+python scripts/import_course_metadata.py
 ```
 
 Expected SQLite file:
@@ -47,6 +50,8 @@ Expected core tables:
 - `requirement_groups`
 - `requirement_group_courses`
 - `class_schedules`
+- `course_descriptions`
+- `professor_profiles`
 
 ## Where To Look
 
@@ -107,4 +112,15 @@ This recreates `class_schedules` in `data/seed/curriculum_advisor.db`.
 ## Current API Endpoints
 
 - GET `/health`
+- GET `/advisor/degrees`
 - POST `/advisor/recommend`
+
+## Current Recommendation Behavior
+
+- Degree-first onboarding from `GET /advisor/degrees`.
+- Requirement-group-aware recommendations.
+- Term-filtered availability via class schedules.
+- Greedy schedule conflict removal.
+- Semester cap support via `max_units_per_semester`.
+- Progress output using `total_units_selected` and `total_units_required`.
+- Course enrichment from metadata imports (course descriptions, professor names, and professor images).

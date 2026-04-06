@@ -32,7 +32,8 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
         CREATE TABLE degree_programs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            degree_name TEXT NOT NULL UNIQUE
+            degree_name TEXT NOT NULL UNIQUE,
+            total_units_required INTEGER
         );
 
         CREATE TABLE requirement_groups (
@@ -59,17 +60,19 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
 
 def build_model(conn: sqlite3.Connection) -> None:
-    degree_names = [
-        row[0]
-        for row in conn.execute(
-            "SELECT DISTINCT degree FROM degree_requirements ORDER BY degree"
-        ).fetchall()
-    ]
+    degree_rows = conn.execute(
+        """
+        SELECT degree, MAX(degree_total_units) AS degree_total_units
+        FROM degree_requirements
+        GROUP BY degree
+        ORDER BY degree
+        """
+    ).fetchall()
 
-    for degree_name in degree_names:
+    for degree_name, degree_total_units in degree_rows:
         conn.execute(
-            "INSERT INTO degree_programs (degree_name) VALUES (?)",
-            (degree_name,),
+            "INSERT INTO degree_programs (degree_name, total_units_required) VALUES (?, ?)",
+            (degree_name, degree_total_units),
         )
 
     group_rows = conn.execute(

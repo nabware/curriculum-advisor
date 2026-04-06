@@ -1,0 +1,25 @@
+/*
+Fixing Paragraph Previewer styling issue
+*/
+.js .field--widget-paragraphs-previewer .paragraphs-dropbutton-wrapper {
+    display: inline-flex;
+    display: -webkit-inline-box;
+    display: -webkit-inline-flex;
+    display: -ms-inline-flexbox;
+}
+
+.js .field--widget-paragraphs-previewer th .paragraphs-actions {
+    float: right;
+}
+
+/*
+Adding icon to the Site Settings menu
+*/
+.toolbar-icon-sfstate-site-settings-top::before,
+.toolbar-icon-sfstate-site-settings-top.is-active::before,
+.toolbar-icon-sfstate-site-settings-top:active::before{
+    background-image: url(../images/cog-solid.svg);
+}
+.toolbar-menu .toolbar-icon.toolbar-icon-sfstate-site-settings-top {
+    padding-left: 2.75em;
+}

@@ -109,6 +109,45 @@ def parse_requirement_groups(html_text: str) -> list[str]:
     return deduped
 
 
+def parse_degree_total_units(raw_html: str, degree_name: str) -> int | None:
+    """Extract total units from the degree header on the bulletin page."""
+
+    def normalize(value: str) -> str:
+        lowered = value.lower()
+        lowered = re.sub(r"[^a-z0-9\s]", " ", lowered)
+        return re.sub(r"\s+", " ", lowered).strip()
+
+    normalized_degree = normalize(degree_name)
+    major_phrase = re.sub(r"^(bachelor|master)\s+of\s+science\s+in\s+", "", normalized_degree).strip()
+
+    headings = re.findall(r"<h2[^>]*>(.*?)</h2>", raw_html, flags=re.IGNORECASE | re.DOTALL)
+    for heading_html in headings:
+        heading_text = html_to_text(html.unescape(heading_html))
+        if not heading_text:
+            continue
+
+        normalized_heading = normalize(heading_text)
+        if "units" not in normalized_heading:
+            continue
+
+        # Prefer headings that reference the degree name or major phrase.
+        if normalized_degree not in normalized_heading and (
+            not major_phrase or major_phrase not in normalized_heading
+        ):
+            continue
+
+        units_match = re.search(r"\b(\d+)\s+units?\b", normalized_heading, flags=re.IGNORECASE)
+        if not units_match:
+            continue
+
+        try:
+            return int(units_match.group(1))
+        except ValueError:
+            continue
+
+    return None
+
+
 def parse_course_rows(
     html_text: str,
 ) -> list[tuple[str, str, str | None, str | None]]:
@@ -171,6 +210,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE degree_requirements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             degree TEXT NOT NULL,
+            degree_total_units INTEGER,
             course_group TEXT,
             course_code TEXT,
             course_name TEXT,
@@ -190,6 +230,7 @@ def upsert_file(conn: sqlite3.Connection, file_path: Path, source_root: Path) ->
     source_rel_path = str(file_path.relative_to(source_root))
 
     section_html = get_degree_section_html(raw_content)
+    degree_total_units = parse_degree_total_units(raw_content, degree_name)
     course_rows = parse_course_rows(section_html)
     requirement_groups = parse_requirement_groups(section_html)
 
@@ -245,6 +286,7 @@ def upsert_file(conn: sqlite3.Connection, file_path: Path, source_root: Path) ->
         """
         INSERT INTO degree_requirements (
             degree,
+            degree_total_units,
             course_group,
             course_code,
             course_name,
@@ -252,11 +294,12 @@ def upsert_file(conn: sqlite3.Connection, file_path: Path, source_root: Path) ->
             source_file,
             imported_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             (
                 degree_name,
+                degree_total_units,
                 course_group,
                 (course_code or None),
                 course_name,

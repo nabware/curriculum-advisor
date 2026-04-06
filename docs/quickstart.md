@@ -8,6 +8,7 @@ Run these once to build the local SQLite data used by the project:
 python scripts/import_degree_requirements.py
 python scripts/build_degree_requirement_model.py
 python scripts/import_class_schedules.py
+python scripts/import_course_metadata.py
 ```
 
 Expected SQLite file: `data/seed/curriculum_advisor.db`
@@ -18,6 +19,8 @@ Expected core tables:
 - `requirement_groups`
 - `requirement_group_courses`
 - `class_schedules`
+- `course_descriptions`
+- `professor_profiles`
 
 ## 1) Backend
 ```bash
@@ -41,8 +44,23 @@ bash scripts/run_frontend.sh
 Frontend URL: http://localhost:5500
 
 ## 3) Test request (optional)
+List available degree programs:
+```bash
+curl http://localhost:8000/advisor/degrees
+```
+
+Starter recommendation request:
 ```bash
 curl -X POST http://localhost:8000/advisor/recommend \
   -H "Content-Type: application/json" \
-  -d '{"major":"CS","completed_courses":["CSC 210"],"interests":[],"career_goals":[]}'
+  -d '{
+    "major": "Bachelor of Science in Computer Science",
+    "completed_courses": [],
+    "interests": [],
+    "career_goals": [],
+    "prefer_light_workload": false,
+    "prefer_high_rated_professors": false,
+    "max_units_per_semester": 12,
+    "term": "Spring 2026"
+  }'
 ```

@@ -1,0 +1,140 @@
+/* Faculty Profile Container */
+.faculty-profile {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 40px auto;
+    max-width: 1100px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* adjust width: 300px and height: 300px */
+.faculty-photo-container img {
+    width: 300px;
+    height: 300px;
+}
+
+/* Faculty Name & Pronoun - Ensures Same Line and Proper Alignment */
+.faculty-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.faculty-name {
+    font-size: 28px;
+    font-weight: bold;
+    color: black;
+}
+
+.faculty-pronoun {
+    font-size: 16px;
+    color: black;
+    margin-left: 10px;
+}
+
+/* Faculty Title & Department - Adjusted Spacing */
+.faculty-title {
+    margin-bottom: 12px;
+}
+
+.pt-5 {
+    padding-top: 3rem !important;
+}
+
+/* Contact Section - Proper Spacing & Alignment */
+.faculty-contact {
+    margin-top: 15px;
+}
+
+/* Contact Item - Ensures Proper Label & Value Alignment */
+.contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+}
+
+/* Contact Label Container - Ensures All Labels Align Evenly */
+.contact-label-container {
+    display: flex;
+    align-items: center;
+    min-width: 180px; /* Ensures all labels (Email, Phone, Location) align perfectly */
+}
+
+/* Contact Icon */
+.contact-icon {
+    font-size: 18px;
+    margin-right: 8px;
+}
+
+/* Contact Labels */
+.contact-label {
+    font-weight: bold;
+    text-align: left;
+    min-width: 140px; /* Adjusted for perfect label alignment */
+}
+
+/* Contact Value */
+.contact-value {
+    flex-grow: 1;
+}
+
+/* Ensuring "At SF State Since" value appears on a new line */
+.sf-state-value {
+    display: block;
+    margin-top: 5px;
+}
+
+/* Increased Spacing for Bottom Section */
+.faculty-sfstate,
+.faculty-office-hours {
+    margin-bottom: 15px;
+}
+
+.fa-map-marker-alt.contact-icon {
+    margin-right: 13px;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+    .faculty-profile {
+        padding: 15px;
+    }
+
+    .faculty-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .faculty-name {
+        font-size: 24px;
+    }
+
+    .faculty-pronoun {
+        margin-left: 0;
+    }
+
+    .faculty-contact {
+        font-size: 14px;
+    }
+
+    .contact-label-container {
+        min-width: 140px; /* Adjust for mobile */
+    }
+
+    .faculty-bottom {
+        flex-direction: column;
+    }
+
+    .faculty-sidebar, .faculty-content {
+        padding: 0;
+    }
+
+    /* Increased spacing between columns */
+    .pe-md-6 {
+        padding-left: 4rem !important;
+    }
+}

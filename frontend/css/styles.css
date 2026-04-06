@@ -1,9 +1,15 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;700&display=swap");
+
 :root {
-  --bg: #f6f7fb;
-  --card: #ffffff;
-  --text: #1e2430;
-  --muted: #4d5a72;
-  --accent: #1a73e8;
+  --bg: #f6efe2;
+  --bg-accent: #ffd6a8;
+  --card: #fffaf2;
+  --text: #262018;
+  --muted: #665749;
+  --line: #d9c9b3;
+  --brand: #1c6b57;
+  --brand-strong: #165241;
+  --danger: #b43f34;
 }
 
 * {
@@ -12,55 +18,344 @@
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, sans-serif;
-  background: var(--bg);
+  min-height: 100vh;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 8% 8%, var(--bg-accent), transparent 24%),
+    radial-gradient(circle at 90% 20%, #f7c9a4, transparent 26%),
+    var(--bg);
   color: var(--text);
 }
 
-.container {
-  max-width: 780px;
+.page-shell {
+  max-width: 940px;
   margin: 2rem auto;
+  padding: 1rem;
+}
+
+.hero {
+  margin-bottom: 1rem;
+  padding: 1.5rem;
+  background: rgba(255, 250, 242, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  backdrop-filter: blur(2px);
+}
+
+.eyebrow {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Fraunces", Georgia, serif;
+  margin-top: 0;
+}
+
+h1 {
+  margin: 0.55rem 0;
+  font-size: clamp(1.8rem, 5vw, 2.7rem);
+  line-height: 1.14;
+}
+
+.subtitle {
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0;
+}
+
+.panel {
   padding: 1.25rem;
   background: var(--card);
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-}
-
-p {
-  color: var(--muted);
-}
-
-form {
-  display: grid;
-  gap: 0.75rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 28px rgba(58, 44, 28, 0.08);
   margin-bottom: 1rem;
 }
 
-label {
+.advisor-form {
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
   gap: 0.35rem;
 }
 
+label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+select,
 input {
-  padding: 0.6rem 0.7rem;
-  border: 1px solid #d5dbe8;
-  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
 }
 
-button {
-  width: fit-content;
-  padding: 0.6rem 1rem;
+select:focus,
+input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(28, 107, 87, 0.1);
+}
+
+.form-submit {
+  grid-column: 1 / -1;
+  padding: 0.8rem 1.2rem;
   border: 0;
-  border-radius: 8px;
-  background: var(--accent);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--brand), var(--brand-strong));
   color: white;
+  font-weight: 700;
+  font-size: 0.98rem;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-pre {
+.form-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(28, 107, 87, 0.2);
+}
+
+.form-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.results-panel h2 {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+}
+
+.recommendation-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.recommendation-card {
+  padding: 0.85rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  animation: rise-in 320ms ease;
+}
+
+.course-code {
+  margin: 0;
+  color: var(--brand);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+}
+
+.recommendation-card h4 {
+  margin: 0.2rem 0;
+}
+
+.course-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.course-schedule {
+  margin: 0.35rem 0 0;
+  color: var(--brand-strong);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.course-description {
+  margin: 0.5rem 0 0;
+  color: var(--text);
+  line-height: 1.5;
+  font-size: 0.93rem;
+}
+
+.professor-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
   padding: 0.75rem;
-  background: #0f172a;
-  color: #dbeafe;
-  border-radius: 8px;
-  overflow: auto;
+  background: rgba(28, 107, 87, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.professor-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  border: 2px solid rgba(28, 107, 87, 0.14);
+}
+
+.professor-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.professor-name {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text);
+}
+
+
+.empty-state,
+.explanation {
+  color: var(--muted);
+}
+
+.empty-state.inline {
+  margin: 0;
+}
+
+.progress-container {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(28, 107, 87, 0.05);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+.progress-container h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e0d5c7;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-strong));
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@keyframes rise-in {
+  from {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+  .schedule-container {
+    margin: 0.5rem 0 2rem;
+  }
+
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .schedule-day {
+    padding: 1rem;
+    background: rgba(28, 107, 87, 0.05);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+  }
+
+  .schedule-day h4 {
+    margin: 0 0 0.75rem 0;
+    color: var(--brand);
+    font-size: 1rem;
+  }
+
+  .schedule-course {
+    padding: 0.65rem;
+    margin-bottom: 0.5rem;
+    background: #fff;
+    border-radius: 8px;
+    border-left: 3px solid var(--brand);
+    font-size: 0.9rem;
+  }
+
+  .schedule-course strong {
+    display: block;
+    color: var(--brand);
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+  }
+
+  .schedule-time {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .schedule-empty {
+    margin: 0;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 0.92rem;
+  }
+
+@media (max-width: 760px) {
+  .page-shell {
+    margin: 1rem auto;
+  }
+
+  .advisor-form {
+    grid-template-columns: 1fr;
+  }
+
+  .form-submit {
+    grid-column: 1;
+  }
+
+  .schedule-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
 }
