@@ -1,5 +1,24 @@
 # Quickstart
 
+## 0) First-Clone Data Setup
+
+Run these once to build the local SQLite data used by the project:
+
+```bash
+python scripts/import_degree_requirements.py
+python scripts/build_degree_requirement_model.py
+python scripts/import_class_schedules.py
+```
+
+Expected SQLite file: `data/seed/curriculum_advisor.db`
+
+Expected core tables:
+- `degree_requirements`
+- `degree_programs`
+- `requirement_groups`
+- `requirement_group_courses`
+- `class_schedules`
+
 ## 1) Backend
 ```bash
 cd backend

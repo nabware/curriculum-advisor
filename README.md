@@ -28,6 +28,26 @@ bash scripts/run_frontend.sh
 - Frontend: http://localhost:5500
 - Backend health: http://localhost:8000/health
 
+## First-Clone Data Setup
+
+After cloning, run these once to build the local SQLite data used by the project:
+
+```bash
+python scripts/import_degree_requirements.py
+python scripts/build_degree_requirement_model.py
+python scripts/import_class_schedules.py
+```
+
+Expected SQLite file:
+- `data/seed/curriculum_advisor.db`
+
+Expected core tables:
+- `degree_requirements`
+- `degree_programs`
+- `requirement_groups`
+- `requirement_group_courses`
+- `class_schedules`
+
 ## Where To Look
 
 - Project architecture: [docs/architecture.md](docs/architecture.md)
@@ -49,6 +69,40 @@ For a minimal, easy-to-use setup, use SQLite first.
 - Why now: zero setup, works well for local development and demos.
 - Suggested file location: `data/seed/curriculum_advisor.db` (or `backend/curriculum_advisor.db`).
 - Future upgrade path: PostgreSQL when multi-user concurrency and deployment scale up.
+
+### Import Degree Requirements Into SQLite
+
+If you place degree requirement HTML files in `data/raw/degree_requirements`, run:
+
+```bash
+python scripts/import_degree_requirements.py
+```
+
+This recreates `degree_requirements` in `data/seed/curriculum_advisor.db`.
+Current parser behavior is intentionally simple: groups are based on requirement `h3` headings.
+
+### Build Lightweight Requirement Model (Multi-table)
+
+To build the simplified serving model for advisor logic (degrees, requirement groups, and group course options), run:
+
+```bash
+python scripts/build_degree_requirement_model.py
+```
+
+This creates these tables in `data/seed/curriculum_advisor.db`:
+- `degree_programs`
+- `requirement_groups`
+- `requirement_group_courses`
+
+### Import Class Schedules Into SQLite
+
+If you place class schedule HTML files in `data/raw/class_schedules`, run:
+
+```bash
+python scripts/import_class_schedules.py
+```
+
+This recreates `class_schedules` in `data/seed/curriculum_advisor.db`.
 
 ## Current API Endpoints
 
