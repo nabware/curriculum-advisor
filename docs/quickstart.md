@@ -24,13 +24,13 @@ Expected core tables:
 
 ## 1) Backend
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cd ..
 bash scripts/run_backend.sh
 ```
+
+`scripts/run_backend.sh` will:
+- create `backend/.venv` if missing
+- install dependencies from `backend/requirements.txt` when requirements change
+- start FastAPI on port `8000`
 
 Backend URL: http://localhost:8000
 Health check: http://localhost:8000/health

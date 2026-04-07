@@ -12,19 +12,18 @@ Current stack:
 1. Start backend:
 
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cd ..
 bash scripts/run_backend.sh
 ```
+
+The script auto-creates `backend/.venv`, installs dependencies when needed, and starts the API.
 
 2. Start frontend in a second terminal:
 
 ```bash
 bash scripts/run_frontend.sh
 ```
+
+The script serves `frontend/` on port `5500`.
 
 3. Open:
 - Frontend: http://localhost:5500
