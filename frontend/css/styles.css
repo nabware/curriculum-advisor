@@ -1,17 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;700&display=swap");
 
 :root {
-  --bg: #f4e2f6;
-  --bg-accent: #ffd6a8;
-  --card: #fffaf2;
-  --text: #262018;
-  --muted: #665749;
-  --line: #d9c9b3;
-  --brand: #50086a;
-  --brand-strong: #4b064c;
+  --bg: #2e0f4e;
+  --bg-accent: #4a1a6e;
+  --card: #ffffff;
+  --text: #1a0a2e;
+  --muted: #5a3e72;
+  --line: #c9b8d8;
+  --brand: #4e1c6e;
+  --brand-strong: #3a0f55;
   --danger: #b43f34;
+  --gold: #c8972a;          
 }
-
 * {
   box-sizing: border-box;
 }
@@ -21,8 +21,8 @@ body {
   min-height: 100vh;
   font-family: "Manrope", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at 8% 8%, var(--bg-accent), transparent 24%),
-    radial-gradient(circle at 90% 20%, #f7c9a4, transparent 26%),
+    radial-gradient(circle at 8% 8%, var(--bg-accent), transparent 30%),
+    radial-gradient(circle at 90% 20%, #3d1260, transparent 30%),
     var(--bg);
   color: var(--text);
 }
@@ -267,7 +267,7 @@ input:focus {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand), var(--brand-strong));
+  background: linear-gradient(90deg, var(--brand), var(--gold));
   width: 0;
   transition: width 0.3s ease;
 }
