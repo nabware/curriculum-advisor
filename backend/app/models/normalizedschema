@@ -1,0 +1,561 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import sqlite3
+import sys
+from pathlib import Path
+
+
+DEFAULT_DB_PATH = "data/seed/curriculum_advisor.db"
+
+
+def connect(db_path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    row = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+        """,
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def create_normalized_tables(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS courses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            course_code TEXT NOT NULL UNIQUE,
+            subject_code TEXT,
+            catalog_number TEXT,
+            course_title TEXT NOT NULL,
+            description TEXT,
+            min_units REAL,
+            max_units REAL,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            source_file TEXT,
+            imported_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS professors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            display_name TEXT NOT NULL,
+            title TEXT,
+            image_src TEXT,
+            profile_url TEXT,
+            source_file TEXT,
+            imported_at TEXT,
+            UNIQUE(display_name, profile_url)
+        );
+
+        CREATE TABLE IF NOT EXISTS terms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            term_code TEXT NOT NULL UNIQUE,
+            term_name TEXT NOT NULL,
+            start_date TEXT,
+            end_date TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS course_offerings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            term_id INTEGER NOT NULL,
+            course_id INTEGER NOT NULL,
+            class_number TEXT,
+            section TEXT,
+            days_times TEXT,
+            room TEXT,
+            meeting_dates TEXT,
+            status TEXT,
+            source_file TEXT NOT NULL,
+            imported_at TEXT NOT NULL,
+            FOREIGN KEY (term_id) REFERENCES terms(id),
+            FOREIGN KEY (course_id) REFERENCES courses(id),
+            UNIQUE(term_id, class_number)
+        );
+
+        CREATE TABLE IF NOT EXISTS offering_instructors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            offering_id INTEGER NOT NULL,
+            professor_id INTEGER NOT NULL,
+            role TEXT DEFAULT 'Instructor',
+            FOREIGN KEY (offering_id) REFERENCES course_offerings(id) ON DELETE CASCADE,
+            FOREIGN KEY (professor_id) REFERENCES professors(id),
+            UNIQUE(offering_id, professor_id, role)
+        );
+
+        CREATE TABLE IF NOT EXISTS requirement_group_courses_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            course_id INTEGER NOT NULL,
+            FOREIGN KEY (group_id) REFERENCES requirement_groups(id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES courses(id),
+            UNIQUE (group_id, course_id)
+        );
+        """
+    )
+
+
+def create_indexes(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_courses_code
+            ON courses(course_code);
+
+        CREATE INDEX IF NOT EXISTS idx_courses_subject_catalog
+            ON courses(subject_code, catalog_number);
+
+        CREATE INDEX IF NOT EXISTS idx_professors_display_name
+            ON professors(display_name);
+
+        CREATE INDEX IF NOT EXISTS idx_terms_term_code
+            ON terms(term_code);
+
+        CREATE INDEX IF NOT EXISTS idx_course_offerings_term_course
+            ON course_offerings(term_id, course_id);
+
+        CREATE INDEX IF NOT EXISTS idx_course_offerings_status
+            ON course_offerings(status);
+
+        CREATE INDEX IF NOT EXISTS idx_offering_instructors_offering
+            ON offering_instructors(offering_id);
+
+        CREATE INDEX IF NOT EXISTS idx_req_group_courses_v2_group
+            ON requirement_group_courses_v2(group_id);
+
+        CREATE INDEX IF NOT EXISTS idx_req_group_courses_v2_course
+            ON requirement_group_courses_v2(course_id);
+        """
+    )
+
+
+def parse_course_code(course_code: str | None) -> tuple[str | None, str | None]:
+    if not course_code:
+        return None, None
+
+    raw = course_code.strip()
+    letters: list[str] = []
+    numbers: list[str] = []
+    hit_number = False
+
+    for ch in raw:
+        if ch.isdigit():
+            hit_number = True
+            numbers.append(ch)
+        elif ch.isalpha():
+            if hit_number:
+                numbers.append(ch)
+            else:
+                letters.append(ch)
+
+    subject_code = "".join(letters) or None
+    catalog_number = "".join(numbers) or None
+    return subject_code, catalog_number
+
+
+def backfill_courses_from_course_descriptions(conn: sqlite3.Connection) -> None:
+    if not table_exists(conn, "course_descriptions"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT course_code, course_title, description, source_file, imported_at
+        FROM course_descriptions
+        """
+    ).fetchall()
+
+    for row in rows:
+        subject_code, catalog_number = parse_course_code(row["course_code"])
+        conn.execute(
+            """
+            INSERT INTO courses (
+                course_code,
+                subject_code,
+                catalog_number,
+                course_title,
+                description,
+                source_file,
+                imported_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(course_code) DO UPDATE SET
+                course_title = excluded.course_title,
+                description = COALESCE(excluded.description, courses.description),
+                subject_code = COALESCE(courses.subject_code, excluded.subject_code),
+                catalog_number = COALESCE(courses.catalog_number, excluded.catalog_number),
+                source_file = COALESCE(excluded.source_file, courses.source_file),
+                imported_at = COALESCE(excluded.imported_at, courses.imported_at)
+            """,
+            (
+                row["course_code"],
+                subject_code,
+                catalog_number,
+                row["course_title"],
+                row["description"],
+                row["source_file"],
+                row["imported_at"],
+            ),
+        )
+
+
+def backfill_courses_from_class_schedules(conn: sqlite3.Connection) -> None:
+    if not table_exists(conn, "class_schedules"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT DISTINCT course_code, course_title, source_file, imported_at
+        FROM class_schedules
+        WHERE course_code IS NOT NULL AND TRIM(course_code) <> ''
+        """
+    ).fetchall()
+
+    for row in rows:
+        subject_code, catalog_number = parse_course_code(row["course_code"])
+        course_title = (row["course_title"] or "").strip() or row["course_code"]
+
+        conn.execute(
+            """
+            INSERT INTO courses (
+                course_code,
+                subject_code,
+                catalog_number,
+                course_title,
+                source_file,
+                imported_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(course_code) DO UPDATE SET
+                course_title = CASE
+                    WHEN courses.course_title IS NULL OR TRIM(courses.course_title) = ''
+                    THEN excluded.course_title
+                    ELSE courses.course_title
+                END,
+                subject_code = COALESCE(courses.subject_code, excluded.subject_code),
+                catalog_number = COALESCE(courses.catalog_number, excluded.catalog_number)
+            """,
+            (
+                row["course_code"],
+                subject_code,
+                catalog_number,
+                course_title,
+                row["source_file"],
+                row["imported_at"],
+            ),
+        )
+
+
+def backfill_professors(conn: sqlite3.Connection) -> None:
+    if table_exists(conn, "professor_profiles"):
+        rows = conn.execute(
+            """
+            SELECT professor_name, title, image_src, profile_url, source_file, imported_at
+            FROM professor_profiles
+            WHERE professor_name IS NOT NULL AND TRIM(professor_name) <> ''
+            """
+        ).fetchall()
+
+        for row in rows:
+            conn.execute(
+                """
+                INSERT INTO professors (
+                    display_name,
+                    title,
+                    image_src,
+                    profile_url,
+                    source_file,
+                    imported_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(display_name, profile_url) DO NOTHING
+                """,
+                (
+                    row["professor_name"].strip(),
+                    row["title"],
+                    row["image_src"],
+                    row["profile_url"],
+                    row["source_file"],
+                    row["imported_at"],
+                ),
+            )
+
+    if table_exists(conn, "class_schedules"):
+        rows = conn.execute(
+            """
+            SELECT DISTINCT instructor
+            FROM class_schedules
+            WHERE instructor IS NOT NULL AND TRIM(instructor) <> ''
+            """
+        ).fetchall()
+
+        for row in rows:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO professors (display_name)
+                VALUES (?)
+                """,
+                (row["instructor"].strip(),),
+            )
+
+
+def backfill_terms(conn: sqlite3.Connection) -> None:
+    if not table_exists(conn, "class_schedules"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT DISTINCT term
+        FROM class_schedules
+        WHERE term IS NOT NULL AND TRIM(term) <> ''
+        """
+    ).fetchall()
+
+    for row in rows:
+        term = row["term"].strip()
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO terms (term_code, term_name)
+            VALUES (?, ?)
+            """,
+            (term, term),
+        )
+
+
+def backfill_course_offerings(conn: sqlite3.Connection) -> None:
+    if not table_exists(conn, "class_schedules"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT
+            cs.term,
+            cs.course_code,
+            cs.class_number,
+            cs.section,
+            cs.days_times,
+            cs.room,
+            cs.meeting_dates,
+            cs.status,
+            cs.source_file,
+            cs.imported_at
+        FROM class_schedules cs
+        WHERE cs.term IS NOT NULL
+          AND TRIM(cs.term) <> ''
+          AND cs.course_code IS NOT NULL
+          AND TRIM(cs.course_code) <> ''
+          AND cs.class_number IS NOT NULL
+          AND TRIM(cs.class_number) <> ''
+        """
+    ).fetchall()
+
+    for row in rows:
+        term_row = conn.execute(
+            "SELECT id FROM terms WHERE term_code = ?",
+            (row["term"].strip(),),
+        ).fetchone()
+        course_row = conn.execute(
+            "SELECT id FROM courses WHERE course_code = ?",
+            (row["course_code"].strip(),),
+        ).fetchone()
+
+        if not term_row or not course_row:
+            continue
+
+        conn.execute(
+            """
+            INSERT INTO course_offerings (
+                term_id,
+                course_id,
+                class_number,
+                section,
+                days_times,
+                room,
+                meeting_dates,
+                status,
+                source_file,
+                imported_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(term_id, class_number) DO NOTHING
+            """,
+            (
+                term_row["id"],
+                course_row["id"],
+                row["class_number"],
+                row["section"],
+                row["days_times"],
+                row["room"],
+                row["meeting_dates"],
+                row["status"],
+                row["source_file"],
+                row["imported_at"],
+            ),
+        )
+
+
+def backfill_offering_instructors(conn: sqlite3.Connection) -> None:
+    if not table_exists(conn, "class_schedules"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT term, course_code, class_number, instructor
+        FROM class_schedules
+        WHERE instructor IS NOT NULL
+          AND TRIM(instructor) <> ''
+          AND term IS NOT NULL
+          AND TRIM(term) <> ''
+          AND course_code IS NOT NULL
+          AND TRIM(course_code) <> ''
+          AND class_number IS NOT NULL
+          AND TRIM(class_number) <> ''
+        """
+    ).fetchall()
+
+    for row in rows:
+        instructor_name = row["instructor"].strip()
+
+        prof_row = conn.execute(
+            "SELECT id FROM professors WHERE display_name = ? LIMIT 1",
+            (instructor_name,),
+        ).fetchone()
+        term_row = conn.execute(
+            "SELECT id FROM terms WHERE term_code = ?",
+            (row["term"].strip(),),
+        ).fetchone()
+        course_row = conn.execute(
+            "SELECT id FROM courses WHERE course_code = ?",
+            (row["course_code"].strip(),),
+        ).fetchone()
+
+        if not prof_row or not term_row or not course_row:
+            continue
+
+        offering_row = conn.execute(
+            """
+            SELECT id
+            FROM course_offerings
+            WHERE term_id = ?
+              AND course_id = ?
+              AND class_number = ?
+            """,
+            (term_row["id"], course_row["id"], row["class_number"]),
+        ).fetchone()
+
+        if not offering_row:
+            continue
+
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO offering_instructors (
+                offering_id,
+                professor_id,
+                role
+            )
+            VALUES (?, ?, 'Instructor')
+            """,
+            (offering_row["id"], prof_row["id"]),
+        )
+
+
+def backfill_requirement_group_courses_v2(conn: sqlite3.Connection) -> None:
+    if not table_exists(conn, "requirement_group_courses"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT group_id, course_code
+        FROM requirement_group_courses
+        WHERE course_code IS NOT NULL AND TRIM(course_code) <> ''
+        """
+    ).fetchall()
+
+    for row in rows:
+        course_row = conn.execute(
+            "SELECT id FROM courses WHERE course_code = ?",
+            (row["course_code"].strip(),),
+        ).fetchone()
+
+        if not course_row:
+            continue
+
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO requirement_group_courses_v2 (
+                group_id,
+                course_id
+            )
+            VALUES (?, ?)
+            """,
+            (row["group_id"], course_row["id"]),
+        )
+
+
+def create_compatibility_view(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP VIEW IF EXISTS advisor_course_catalog")
+    conn.execute(
+        """
+        CREATE VIEW advisor_course_catalog AS
+        SELECT
+            c.id AS course_id,
+            c.course_code,
+            c.course_title,
+            c.description,
+            c.min_units,
+            c.max_units
+        FROM courses c
+        """
+    )
+
+
+def print_summary(conn: sqlite3.Connection) -> None:
+    names = [
+        "courses",
+        "professors",
+        "terms",
+        "course_offerings",
+        "offering_instructors",
+        "requirement_group_courses_v2",
+    ]
+    print("Migration complete.")
+    for name in names:
+        count = conn.execute(f"SELECT COUNT(*) AS count FROM {name}").fetchone()["count"]
+        print(f"{name}: {count}")
+
+
+def main() -> None:
+    db_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DB_PATH
+
+    if not Path(db_path).exists():
+        raise FileNotFoundError(f"Database not found: {db_path}")
+
+    conn = connect(db_path)
+    try:
+        create_normalized_tables(conn)
+        backfill_courses_from_course_descriptions(conn)
+        backfill_courses_from_class_schedules(conn)
+        backfill_professors(conn)
+        backfill_terms(conn)
+        backfill_course_offerings(conn)
+        backfill_offering_instructors(conn)
+        backfill_requirement_group_courses_v2(conn)
+        create_indexes(conn)
+        create_compatibility_view(conn)
+        conn.commit()
+        print_summary(conn)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    main()
