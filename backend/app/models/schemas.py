@@ -1,9 +1,22 @@
 from pydantic import BaseModel, Field
 
 
+class BlockedTimeWindow(BaseModel):
+    day: str = Field(..., description="Day of the week, e.g. 'Monday'")
+    start: str = Field(..., description="Start time, e.g. '9:00AM'")
+    end: str = Field(..., description="End time, e.g. '11:00AM'")
+
+
 class AdvisorRequest(BaseModel):
     major: str = Field(..., description="Student major")
     completed_courses: list[str] = Field(default_factory=list)
+    transcript_text: str | None = Field(
+        default=None, description="Raw transcript text; course codes are parsed automatically"
+    )
+    blocked_time_windows: list[BlockedTimeWindow] = Field(
+        default_factory=list,
+        description="Day/time ranges when the student is unavailable",
+    )
     interests: list[str] = Field(default_factory=list)
     career_goals: list[str] = Field(default_factory=list)
     prefer_light_workload: bool = False
@@ -27,6 +40,12 @@ class RecommendedCourse(BaseModel):
     description: str | None = None
     professor_name: str | None = None
     professor_image_url: str | None = None
+    # RMP fields
+    rmp_rating: float | None = None
+    rmp_difficulty: float | None = None
+    rmp_would_take_again_pct: float | None = None
+    rmp_url: str | None = None
+    rmp_num_ratings: int | None = None
 
 
 class RequirementGroupRecommendation(BaseModel):

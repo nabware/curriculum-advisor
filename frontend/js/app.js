@@ -5,6 +5,73 @@ const explanationEl = document.getElementById("explanation");
 const recommendationsEl = document.getElementById("recommendations");
 const submitBtn = document.getElementById("submit-btn");
 
+// ── Blocked time windows state ───────────────────────────────────────────────
+const blockedWindows = []; // { day, start, end } objects
+
+function formatTime24To12(hhmm) {
+  const [hStr, mStr] = hhmm.split(":");
+  let h = parseInt(hStr, 10);
+  const m = mStr || "00";
+  const period = h >= 12 ? "PM" : "AM";
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${m}${period}`;
+}
+
+function renderBlockedWindows() {
+  const list = document.getElementById("blocked-windows-list");
+  list.innerHTML = "";
+  blockedWindows.forEach((w, idx) => {
+    const chip = document.createElement("span");
+    chip.className = "blocked-chip";
+    chip.textContent = `${w.day} ${formatTime24To12(w.start)} – ${formatTime24To12(w.end)}`;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "blocked-chip-remove";
+    removeBtn.setAttribute("aria-label", `Remove ${chip.textContent}`);
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      blockedWindows.splice(idx, 1);
+      renderBlockedWindows();
+    });
+    chip.appendChild(removeBtn);
+    list.appendChild(chip);
+  });
+}
+
+document.getElementById("add-blocked-btn").addEventListener("click", () => {
+  const day = document.getElementById("blocked-day").value;
+  const start = document.getElementById("blocked-start").value;
+  const end = document.getElementById("blocked-end").value;
+  if (!start || !end || start >= end) {
+    setStatus("Blocked window: end time must be after start time.", true);
+    return;
+  }
+  blockedWindows.push({ day, start, end });
+  renderBlockedWindows();
+});
+
+// ── Transcript drag-and-drop ─────────────────────────────────────────────────
+const dropzone = document.getElementById("transcript-dropzone");
+const transcriptTextarea = document.getElementById("transcript-text");
+
+dropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropzone.classList.add("drag-over");
+});
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag-over"));
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("drag-over");
+  const file = e.dataTransfer?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    transcriptTextarea.value = ev.target.result || "";
+  };
+  reader.readAsText(file);
+});
+
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
   statusEl.classList.toggle("error", isError);
@@ -130,6 +197,44 @@ function renderRecommendations(groups, fallbackCourses = []) {
     professorName.textContent = course.professor_name || course.instructor || "Professor not available";
 
     professorMeta.appendChild(professorName);
+
+    // RMP ratings
+    if (course.rmp_rating !== null && course.rmp_rating !== undefined) {
+      const rmpBadge = document.createElement("div");
+      rmpBadge.className = "rmp-badge";
+
+      const ratingEl = document.createElement("span");
+      ratingEl.className = "rmp-rating";
+      ratingEl.title = `Based on ${course.rmp_num_ratings ?? "?"} ratings`;
+      ratingEl.textContent = `${course.rmp_rating.toFixed(1)} / 5`;
+
+      const diffEl = document.createElement("span");
+      diffEl.className = "rmp-difficulty";
+      diffEl.title = "Avg difficulty (1–5)";
+      diffEl.textContent = `Difficulty ${course.rmp_difficulty !== null && course.rmp_difficulty !== undefined ? course.rmp_difficulty.toFixed(1) : "—"}`;
+
+      rmpBadge.append(ratingEl, diffEl);
+
+      if (course.rmp_would_take_again_pct !== null && course.rmp_would_take_again_pct !== undefined && course.rmp_would_take_again_pct >= 0) {
+        const wtaEl = document.createElement("span");
+        wtaEl.className = "rmp-wta";
+        wtaEl.title = "Would take again";
+        wtaEl.textContent = `${Math.round(course.rmp_would_take_again_pct)}% again`;
+        rmpBadge.appendChild(wtaEl);
+      }
+
+      if (course.rmp_url) {
+        const rmpLink = document.createElement("a");
+        rmpLink.className = "rmp-link";
+        rmpLink.href = course.rmp_url;
+        rmpLink.target = "_blank";
+        rmpLink.rel = "noopener noreferrer";
+        rmpLink.textContent = "RMP";
+        rmpBadge.appendChild(rmpLink);
+      }
+
+      professorMeta.appendChild(rmpBadge);
+    }
 
     professor.append(professorImage, professorMeta);
 
@@ -312,12 +417,31 @@ form.addEventListener("submit", async (event) => {
   const termSelect = document.getElementById("term-select");
   const term = termSelect.value || null;
 
+  // Collect completed courses from manual textarea
+  const completedRaw = document.getElementById("completed-courses").value || "";
+  const completedCourses = completedRaw
+    .split(/[\n,]+/)
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+
+  // Collect transcript text
+  const transcriptText = transcriptTextarea.value.trim() || null;
+
+  // Blocked time windows: convert HH:MM → "H:MMAM/PM" for backend
+  const blocked = blockedWindows.map((w) => ({
+    day: w.day,
+    start: formatTime24To12(w.start),
+    end: formatTime24To12(w.end),
+  }));
+
   submitBtn.disabled = true;
-  setStatus("Generating starter recommendations...");
+  setStatus("Generating recommendations…");
 
   const payload = {
     major,
-    completed_courses: [],
+    completed_courses: completedCourses,
+    transcript_text: transcriptText,
+    blocked_time_windows: blocked,
     interests: [],
     career_goals: [],
     prefer_light_workload: false,

@@ -48,6 +48,62 @@
             </select>
           </div>
 
+          <!-- Transcript -->
+          <div class="form-group form-full">
+            <label for="transcript-text">Transcript (paste or drop a .txt file)</label>
+            <div
+              id="transcript-dropzone"
+              class="transcript-dropzone"
+              role="button"
+              tabindex="0"
+              aria-label="Drop transcript file here or click to paste"
+            >
+              <textarea
+                id="transcript-text"
+                name="transcript-text"
+                class="transcript-textarea"
+                placeholder="Paste your transcript here — course codes like CSC 101 are detected automatically…"
+                rows="4"
+              ></textarea>
+              <p class="dropzone-hint">or drag &amp; drop a .txt file</p>
+            </div>
+          </div>
+
+          <!-- Completed courses (manual) -->
+          <div class="form-group form-full">
+            <label for="completed-courses">Completed Courses (optional, one per line)</label>
+            <textarea
+              id="completed-courses"
+              name="completed-courses"
+              class="completed-textarea"
+              placeholder="e.g. CSC 210&#10;MATH 226&#10;CSC 230"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <!-- Blocked time windows -->
+          <div class="form-group form-full">
+            <label>Blocked Time Windows</label>
+            <div class="blocked-windows-builder">
+              <div class="blocked-windows-inputs">
+                <select id="blocked-day" class="blocked-day-select">
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+                <input id="blocked-start" type="time" value="09:00" class="blocked-time-input" />
+                <span class="blocked-separator">–</span>
+                <input id="blocked-end" type="time" value="11:00" class="blocked-time-input" />
+                <button type="button" id="add-blocked-btn" class="blocked-add-btn">Add</button>
+              </div>
+              <div id="blocked-windows-list" class="blocked-windows-list" aria-live="polite"></div>
+            </div>
+          </div>
+
           <button id="submit-btn" type="submit" class="form-submit">Recommend Classes</button>
         </form>
 

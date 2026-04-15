@@ -3,17 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 import re
 import sqlite3
+from typing import Any
 from urllib.parse import quote
 
 from app.core.database import get_database_path
 from app.models.schemas import (
     AdvisorRequest,
     AdvisorResponse,
+    BlockedTimeWindow,
     DegreeProgram,
     DegreeProgramsResponse,
     RequirementGroupRecommendation,
     RecommendedCourse,
 )
+from app.services.rmp_service import fetch_professor_rating
 
 
 class AdvisorService:
@@ -160,6 +163,35 @@ class AdvisorService:
                 if max(first_start, second_start) < min(first_end, second_end):
                     return True
 
+        return False
+
+    @staticmethod
+    def _parse_transcript_courses(transcript_text: str | None) -> set[str]:
+        """Extract course codes from pasted transcript text, e.g. 'CSC 101', 'MATH 226'."""
+        if not transcript_text:
+            return set()
+        matches = re.findall(r"\b([A-Z]{2,6})\s*(\d{3,4}[A-Z]?)\b", transcript_text.upper())
+        return {f"{dept} {num}" for dept, num in matches}
+
+    @staticmethod
+    def _conflicts_with_blocked_windows(
+        days_times: str | None,
+        blocked_windows: list[BlockedTimeWindow],
+    ) -> bool:
+        """Return True if any parsed slot from days_times overlaps a blocked window."""
+        if not days_times or not blocked_windows:
+            return False
+        course_slots = AdvisorService._parse_days_times(days_times)
+        for slot_day, slot_start, slot_end in course_slots:
+            for window in blocked_windows:
+                if window.day.strip().capitalize() != slot_day:
+                    continue
+                win_start = AdvisorService._time_to_minutes(window.start)
+                win_end = AdvisorService._time_to_minutes(window.end)
+                if win_start is None or win_end is None:
+                    continue
+                if max(slot_start, win_start) < min(slot_end, win_end):
+                    return True
         return False
 
     @staticmethod
@@ -325,6 +357,7 @@ class AdvisorService:
     @staticmethod
     def recommend(payload: AdvisorRequest) -> AdvisorResponse:
         completed = {c.strip().upper() for c in payload.completed_courses if c.strip()}
+        completed |= AdvisorService._parse_transcript_courses(payload.transcript_text)
         semester_capacity = (
             payload.max_units_per_semester
             if payload.max_units_per_semester is not None and payload.max_units_per_semester > 0
@@ -395,7 +428,7 @@ class AdvisorService:
 
             # Build term filter and schedule lookup if provided
             term_filter = ""
-            query_params = [degree_id]
+            query_params: list[Any] = [degree_id]
             schedule_lookup: dict[str, dict[str, str]] = {}  # course_code -> schedule metadata
             description_lookup = {
                 (row["course_code"] or "").strip().upper(): (row["description"] or "").strip()
@@ -475,7 +508,7 @@ class AdvisorService:
                 query_params,
             ).fetchall()
 
-        grouped_rows: list[dict[str, object]] = [
+        grouped_rows: list[dict[str, Any]] = [
             {
                 "group_id": int(row["group_id"]),
                 "group_name": (row["group_name"] or "Requirement Group").strip(),
@@ -526,6 +559,35 @@ class AdvisorService:
                 )
             )
 
+        # Build per-instructor RMP cache so we only call the API once per name
+        rmp_cache: dict[str, dict | None] = {}
+
+        def _get_rmp(instructor: str | None) -> dict | None:
+            if not instructor:
+                return None
+            if instructor not in rmp_cache:
+                try:
+                    rmp_cache[instructor] = fetch_professor_rating(instructor)
+                except Exception:
+                    rmp_cache[instructor] = None
+            return rmp_cache[instructor]
+
+        # Attach RMP data to every candidate course before group selection
+        for group_data in grouped_rows:
+            enriched: list[RecommendedCourse] = []
+            for course in group_data["courses"]:
+                rmp = _get_rmp(course.instructor or course.professor_name)
+                if rmp:
+                    course = course.model_copy(update={
+                        "rmp_rating": rmp.get("rating"),
+                        "rmp_difficulty": rmp.get("difficulty"),
+                        "rmp_would_take_again_pct": rmp.get("would_take_again_pct"),
+                        "rmp_url": rmp.get("rmp_url"),
+                        "rmp_num_ratings": rmp.get("num_ratings"),
+                    })
+                enriched.append(course)
+            group_data["courses"] = enriched
+
         grouped_recommendations = [
             RequirementGroupRecommendation(
                 group_name=group_data["group_name"],
@@ -541,6 +603,31 @@ class AdvisorService:
         ]
 
         recommendations = [course for group in grouped_recommendations for course in group.courses]
+
+        # Remove courses that fall inside a blocked time window
+        if payload.blocked_time_windows:
+            blocked_filtered: list[RecommendedCourse] = []
+            blocked_removed: list[RecommendedCourse] = []
+            for course in recommendations:
+                if AdvisorService._conflicts_with_blocked_windows(
+                    course.days_times, payload.blocked_time_windows
+                ):
+                    blocked_removed.append(course)
+                else:
+                    blocked_filtered.append(course)
+
+            if blocked_removed:
+                blocked_codes = {c.course_code for c in blocked_removed}
+                grouped_recommendations = [
+                    RequirementGroupRecommendation(
+                        group_name=g.group_name,
+                        min_units=g.min_units,
+                        max_units=g.max_units,
+                        courses=[c for c in g.courses if c.course_code not in blocked_codes],
+                    )
+                    for g in grouped_recommendations
+                ]
+            recommendations = blocked_filtered
 
         recommendations, skipped_conflicts = AdvisorService._filter_time_conflicts(recommendations)
         if skipped_conflicts:
@@ -590,6 +677,14 @@ class AdvisorService:
 
         if skipped_conflicts:
             explanation += " Some overlapping sections were removed to avoid time conflicts."
+
+        if payload.blocked_time_windows:
+            explanation += " Courses conflicting with your blocked time windows were excluded."
+
+        if payload.transcript_text:
+            transcript_count = len(AdvisorService._parse_transcript_courses(payload.transcript_text))
+            if transcript_count:
+                explanation += f" {transcript_count} course(s) were read from your transcript and marked as completed."
 
         if semester_capacity is not None:
             explanation += f" Limited to {semester_capacity} units for this semester."
