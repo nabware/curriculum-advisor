@@ -1,603 +1,402 @@
 from __future__ import annotations
 
-from pathlib import Path
 import re
 import sqlite3
-from urllib.parse import quote
-
-from app.core.database import get_database_path
-from app.models.schemas import (
-    AdvisorRequest,
-    AdvisorResponse,
-    DegreeProgram,
-    DegreeProgramsResponse,
-    RequirementGroupRecommendation,
-    RecommendedCourse,
-)
+from dataclasses import dataclass
+from typing import Any
 
 
-class AdvisorService:
-    @staticmethod
-    def _connect() -> sqlite3.Connection:
-        conn = sqlite3.connect(get_database_path())
-        conn.row_factory = sqlite3.Row
-        return conn
+DB_PATH = "data/seed/curriculum_advisor.db"
 
-    @staticmethod
-    def list_degrees() -> DegreeProgramsResponse:
-        with AdvisorService._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT id, degree_name
-                FROM degree_programs
-                ORDER BY degree_name
-                """
-            ).fetchall()
 
-        return DegreeProgramsResponse(
-            degrees=[DegreeProgram(id=row["id"], degree_name=row["degree_name"]) for row in rows]
+@dataclass
+class RecommendationRequest:
+    degree_name: str
+    term: str | None = None
+    max_units: float | None = None
+
+
+def get_connection() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def list_degrees() -> list[dict[str, Any]]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            """
+            SELECT
+                id,
+                degree_name,
+                total_units_required
+            FROM degree_programs
+            ORDER BY degree_name
+            """
+        ).fetchall()
+
+        return [
+            {
+                "id": row["id"],
+                "degree_name": row["degree_name"],
+                "total_units_required": row["total_units_required"],
+            }
+            for row in rows
+        ]
+    finally:
+        conn.close()
+
+
+def recommend_courses(payload: RecommendationRequest | dict[str, Any]) -> dict[str, Any]:
+    if isinstance(payload, dict):
+        payload = RecommendationRequest(
+            degree_name=payload["degree_name"],
+            term=payload.get("term"),
+            max_units=payload.get("max_units"),
         )
 
-    @staticmethod
-    def _resolve_degree_id(conn: sqlite3.Connection, major: str) -> tuple[int, str] | tuple[None, None]:
-        normalized_major = major.strip().lower()
+    conn = get_connection()
+    try:
+        degree = _get_degree(conn, payload.degree_name)
+        if not degree:
+            raise ValueError(f"Degree not found: {payload.degree_name}")
 
-        exact = conn.execute(
-            """
-            SELECT id, degree_name
-            FROM degree_programs
-            WHERE lower(degree_name) = ?
-            LIMIT 1
-            """,
-            (normalized_major,),
-        ).fetchone()
-        if exact:
-            return exact["id"], exact["degree_name"]
+        groups = _get_requirement_groups(conn, degree["id"])
+        raw_candidates = _build_group_candidates(conn, groups, payload.term)
+        selected = _select_courses_by_group(raw_candidates)
+        selected = _apply_conflict_filter(selected)
+        selected = _apply_unit_cap(selected, payload.max_units)
+        result = _build_response(selected, degree)
 
-        alias_map = {
-            "cs": "computer science",
-            "bs cs": "bachelor of science in computer science",
-            "ms cs": "master of science in computer science",
-            "ms dsai": "master of science in data science and artificial intelligence",
-            "dsai": "data science and artificial intelligence",
-        }
-        lookup_phrase = alias_map.get(normalized_major, normalized_major)
+        return result
+    finally:
+        conn.close()
 
-        fuzzy = conn.execute(
-            """
-            SELECT id, degree_name
-            FROM degree_programs
-            WHERE lower(degree_name) LIKE ?
-            ORDER BY length(degree_name) ASC
-            LIMIT 1
-            """,
-            (f"%{lookup_phrase}%",),
-        ).fetchone()
 
-        if not fuzzy:
-            return None, None
-        return fuzzy["id"], fuzzy["degree_name"]
+def _get_degree(conn: sqlite3.Connection, degree_name: str) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT id, degree_name, total_units_required
+        FROM degree_programs
+        WHERE degree_name = ?
+        """,
+        (degree_name,),
+    ).fetchone()
 
-    @staticmethod
-    def _safe_units(value: str | None) -> int | None:
-        if not value:
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
 
-    @staticmethod
-    def _time_to_minutes(value: str | None) -> int | None:
-        if not value:
-            return None
+def _get_requirement_groups(conn: sqlite3.Connection, degree_id: int) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT
+            id,
+            group_name,
+            min_units,
+            max_units
+        FROM requirement_groups
+        WHERE degree_id = ?
+        ORDER BY id
+        """,
+        (degree_id,),
+    ).fetchall()
 
-        cleaned = value.strip().upper().replace(" ", "")
-        match = re.match(r"^(\d{1,2})(?::(\d{2}))?(AM|PM)$", cleaned)
-        if not match:
-            return None
 
-        hour = int(match.group(1))
-        minute = int(match.group(2) or 0)
-        period = match.group(3)
+def _build_group_candidates(
+    conn: sqlite3.Connection,
+    groups: list[sqlite3.Row],
+    term: str | None,
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
 
-        if hour == 12:
-            hour = 0
-        if period == "PM":
-            hour += 12
+    for group in groups:
+        group_courses = _get_group_course_candidates(conn, group["id"], term)
+        if not group_courses:
+            continue
 
-        return hour * 60 + minute
+        candidates.append(
+            {
+                "group_id": group["id"],
+                "group_name": group["group_name"],
+                "courses": group_courses,
+            }
+        )
 
-    @staticmethod
-    def _parse_days_times(days_times: str | None) -> list[tuple[str, int, int]]:
-        if not days_times:
-            return []
+    return candidates
 
-        match = re.match(r"^(?P<days>[A-Za-z]+)\s+(?P<start>[\d:APMapm]+)\s*-\s*(?P<end>[\d:APMapm]+)$", days_times.strip())
-        if not match:
-            return []
 
-        start_minutes = AdvisorService._time_to_minutes(match.group("start"))
-        end_minutes = AdvisorService._time_to_minutes(match.group("end"))
-        if start_minutes is None or end_minutes is None or end_minutes <= start_minutes:
-            return []
+def _get_group_course_candidates(
+    conn: sqlite3.Connection,
+    group_id: int,
+    term: str | None,
+) -> list[dict[str, Any]]:
+    params: list[Any] = [group_id]
+    term_sql = ""
 
-        day_tokens = re.findall(r"Th|Tu|We|Fr|Sa|Su|Mo|M|T|W|R|F|S|U", match.group("days"), flags=re.IGNORECASE)
-        day_map = {
-            "Mo": "Monday",
-            "Tu": "Tuesday",
-            "We": "Wednesday",
-            "Th": "Thursday",
-            "Fr": "Friday",
-            "Sa": "Saturday",
-            "Su": "Sunday",
-            "M": "Monday",
-            "T": "Tuesday",
-            "W": "Wednesday",
-            "R": "Thursday",
-            "F": "Friday",
-            "S": "Saturday",
-            "U": "Sunday",
-        }
+    if term:
+        term_sql = "AND t.term_code = ?"
+        params.append(term)
 
-        parsed_days: list[tuple[str, int, int]] = []
-        for token in day_tokens:
-            day_name = day_map.get(token.capitalize())
-            if day_name:
-                parsed_days.append((day_name, start_minutes, end_minutes))
+    rows = conn.execute(
+        f"""
+        SELECT
+            c.id AS course_id,
+            c.course_code,
+            c.course_title,
+            c.description,
+            COALESCE(c.min_units, c.max_units, 3) AS units,
+            co.id AS offering_id,
+            t.term_code,
+            co.class_number,
+            co.section,
+            co.days_times,
+            co.room,
+            co.meeting_dates,
+            co.status,
+            p.display_name AS professor_name,
+            p.title AS professor_title,
+            p.image_src AS professor_image_src,
+            p.profile_url AS professor_profile_url
+        FROM requirement_group_courses_v2 rgc
+        JOIN courses c
+            ON c.id = rgc.course_id
+        LEFT JOIN course_offerings co
+            ON co.course_id = c.id
+        LEFT JOIN terms t
+            ON t.id = co.term_id
+        LEFT JOIN offering_instructors oi
+            ON oi.offering_id = co.id
+        LEFT JOIN professors p
+            ON p.id = oi.professor_id
+        WHERE rgc.group_id = ?
+          {term_sql}
+        ORDER BY
+            CASE
+                WHEN co.status = 'Open' THEN 0
+                WHEN co.status = 'Closed' THEN 2
+                ELSE 1
+            END,
+            c.course_code,
+            co.section
+        """,
+        params,
+    ).fetchall()
 
-        return parsed_days
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[Any, Any]] = set()
 
-    @staticmethod
-    def _has_time_conflict(first: str | None, second: str | None) -> bool:
-        first_slots = AdvisorService._parse_days_times(first)
-        second_slots = AdvisorService._parse_days_times(second)
+    for row in rows:
+        key = (row["course_id"], row["offering_id"])
+        if key in seen:
+            continue
+        seen.add(key)
 
-        for first_day, first_start, first_end in first_slots:
-            for second_day, second_start, second_end in second_slots:
-                if first_day != second_day:
-                    continue
-                if max(first_start, second_start) < min(first_end, second_end):
-                    return True
+        result.append(
+            {
+                "course_id": row["course_id"],
+                "course_code": row["course_code"],
+                "course_title": row["course_title"],
+                "description": row["description"],
+                "units": float(row["units"] or 3),
+                "offering_id": row["offering_id"],
+                "term": row["term_code"],
+                "class_number": row["class_number"],
+                "section": row["section"],
+                "days_times": row["days_times"],
+                "room": row["room"],
+                "meeting_dates": row["meeting_dates"],
+                "status": row["status"],
+                "professor": {
+                    "name": row["professor_name"],
+                    "title": row["professor_title"],
+                    "image_src": row["professor_image_src"],
+                    "profile_url": row["professor_profile_url"],
+                }
+                if row["professor_name"]
+                else None,
+            }
+        )
 
+    return result
+
+
+def _select_courses_by_group(group_candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+
+    for group in group_candidates:
+        courses = group["courses"]
+        if not courses:
+            continue
+
+        # Pick the first viable course per group.
+        # You can later expand this to satisfy min_units/max_units.
+        chosen = courses[0].copy()
+        chosen["requirement_group"] = group["group_name"]
+        selected.append(chosen)
+
+    return selected
+
+
+def _apply_conflict_filter(selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    accepted: list[dict[str, Any]] = []
+
+    for candidate in selected:
+        if not _has_conflict(candidate, accepted):
+            accepted.append(candidate)
+
+    return accepted
+
+
+def _has_conflict(course: dict[str, Any], accepted: list[dict[str, Any]]) -> bool:
+    current_slots = _parse_days_times(course.get("days_times"))
+
+    if not current_slots:
         return False
 
-    @staticmethod
-    def _filter_time_conflicts(courses: list[RecommendedCourse]) -> tuple[list[RecommendedCourse], list[RecommendedCourse]]:
-        selected: list[RecommendedCourse] = []
-        skipped: list[RecommendedCourse] = []
+    for existing in accepted:
+        existing_slots = _parse_days_times(existing.get("days_times"))
+        if _slots_overlap(current_slots, existing_slots):
+            return True
 
-        for course in courses:
-            if not course.days_times:
-                selected.append(course)
-                continue
+    return False
 
-            if any(
-                existing.days_times and AdvisorService._has_time_conflict(course.days_times, existing.days_times)
-                for existing in selected
-            ):
-                skipped.append(course)
-                continue
 
-            selected.append(course)
+def _apply_unit_cap(
+    selected: list[dict[str, Any]],
+    max_units: float | None,
+) -> list[dict[str, Any]]:
+    if max_units is None:
+        return selected
 
-        return selected, skipped
+    total = 0.0
+    result: list[dict[str, Any]] = []
 
-    @staticmethod
-    def _normalize_name(value: str | None) -> str:
-        return re.sub(r"\s+", " ", (value or "")).strip().lower()
+    for item in selected:
+        units = float(item.get("units") or 0)
+        if total + units <= max_units:
+            result.append(item)
+            total += units
 
-    @staticmethod
-    def _name_tokens(value: str | None) -> list[str]:
-        normalized = AdvisorService._normalize_name(value)
-        if not normalized:
-            return []
-        cleaned = re.sub(r"[^a-z\s-]", " ", normalized)
-        return [token for token in re.split(r"[\s-]+", cleaned) if token]
+    return result
 
-    @staticmethod
-    def _last_name_key(value: str | None) -> str | None:
-        tokens = AdvisorService._name_tokens(value)
-        if not tokens:
-            return None
-        return tokens[-1]
 
-    @staticmethod
-    def _last_name_first_initial_key(value: str | None) -> str | None:
-        tokens = AdvisorService._name_tokens(value)
-        if len(tokens) < 2:
-            return None
-        return f"{tokens[-1]}|{tokens[0][0]}"
+def _build_response(selected: list[dict[str, Any]], degree: sqlite3.Row) -> dict[str, Any]:
+    total_units_selected = sum(float(item.get("units") or 0) for item in selected)
 
-    @staticmethod
-    def _resolve_professor_info(
-        instructor_name: str | None,
-        by_full_name: dict[str, dict[str, str | None]],
-        by_last_initial: dict[str, list[dict[str, str | None]]],
-        by_last_name: dict[str, list[dict[str, str | None]]],
-    ) -> dict[str, str | None] | None:
-        full_key = AdvisorService._normalize_name(instructor_name)
-        if full_key and full_key in by_full_name:
-            return by_full_name[full_key]
+    return {
+        "degree": {
+            "id": degree["id"],
+            "degree_name": degree["degree_name"],
+            "total_units_required": degree["total_units_required"],
+        },
+        "recommendations": selected,
+        "progress": {
+            "total_units_selected": total_units_selected,
+            "total_units_required": degree["total_units_required"],
+        },
+        "schedule_overview": _build_schedule_overview(selected),
+    }
 
-        last_initial_key = AdvisorService._last_name_first_initial_key(instructor_name)
-        if last_initial_key:
-            matches = by_last_initial.get(last_initial_key, [])
-            if len(matches) == 1:
-                return matches[0]
 
-        last_key = AdvisorService._last_name_key(instructor_name)
-        if last_key:
-            matches = by_last_name.get(last_key, [])
-            if len(matches) == 1:
-                return matches[0]
+def _build_schedule_overview(selected: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    overview: dict[str, list[dict[str, Any]]] = {
+        "Mon": [],
+        "Tue": [],
+        "Wed": [],
+        "Thu": [],
+        "Fri": [],
+        "Sat": [],
+        "Sun": [],
+    }
 
-        return None
-
-    @staticmethod
-    def _to_public_professor_image_url(image_src: str | None) -> str | None:
-        if not image_src:
-            return None
-
-        cleaned = image_src.strip().replace("\\", "/")
-        if not cleaned:
-            return None
-
-        if cleaned.startswith("./"):
-            cleaned = cleaned[2:]
-
-        if cleaned.startswith("/") or cleaned.lower().startswith("http://") or cleaned.lower().startswith("https://"):
-            return cleaned
-
-        image_root = (Path(__file__).resolve().parents[3] / "data" / "raw" / "professor_images").resolve()
-        target = (image_root / cleaned).resolve()
-
-        try:
-            target.relative_to(image_root)
-        except ValueError:
-            return None
-
-        if not target.exists():
-            return None
-
-        return f"/assets/professor-images/{quote(cleaned, safe='/')}"
-
-    @staticmethod
-    def _select_group_courses(
-        courses: list[RecommendedCourse],
-        min_units: int | None,
-        max_units: int | None,
-    ) -> list[RecommendedCourse]:
-        if not courses:
-            return []
-
-        if min_units is None:
-            target_units = max_units if max_units is not None else 0
-        elif min_units == 0:
-            target_units = max_units if max_units is not None else min_units
-        else:
-            target_units = min_units
-
-        ordered_courses = sorted(courses, key=lambda item: item.course_code)
-        best_by_total: dict[int, list[RecommendedCourse]] = {0: []}
-
-        for course in ordered_courses:
-            course_units = course.units or 0
-            current_states = list(best_by_total.items())
-            for total_units, selected_courses in current_states:
-                new_total_units = total_units + course_units
-                new_selection = selected_courses + [course]
-                existing_selection = best_by_total.get(new_total_units)
-
-                if existing_selection is None:
-                    best_by_total[new_total_units] = new_selection
-                    continue
-
-                if len(new_selection) < len(existing_selection):
-                    best_by_total[new_total_units] = new_selection
-                    continue
-
-                if len(new_selection) == len(existing_selection):
-                    new_codes = tuple(item.course_code for item in new_selection)
-                    existing_codes = tuple(item.course_code for item in existing_selection)
-                    if new_codes < existing_codes:
-                        best_by_total[new_total_units] = new_selection
-
-        totals = sorted(best_by_total)
-        if not totals:
-            return []
-
-        if target_units <= 0:
-            positive_totals = [total for total in totals if total > 0]
-            if positive_totals:
-                target_units = min(positive_totals)
-            else:
-                return []
-
-        satisfying_totals = [total for total in totals if total >= target_units]
-        if satisfying_totals:
-            chosen_total = min(satisfying_totals)
-        else:
-            chosen_total = max(totals)
-
-        return best_by_total[chosen_total]
-
-    @staticmethod
-    def recommend(payload: AdvisorRequest) -> AdvisorResponse:
-        completed = {c.strip().upper() for c in payload.completed_courses if c.strip()}
-        semester_capacity = (
-            payload.max_units_per_semester
-            if payload.max_units_per_semester is not None and payload.max_units_per_semester > 0
-            else None
-        )
-
-        with AdvisorService._connect() as conn:
-            degree_id, degree_name = AdvisorService._resolve_degree_id(conn, payload.major)
-            if degree_id is None:
-                return AdvisorResponse(
-                    grouped_recommendations=[],
-                    recommendations=[],
-                    total_units_selected=0,
-                    total_units_required=0,
-                    explanation=(
-                        "Could not match the selected degree. Choose a degree from the list "
-                        "and try again."
-                    ),
-                )
-
-            degree_units_row = conn.execute(
-                """
-                SELECT total_units_required
-                FROM degree_programs
-                WHERE id = ?
-                """,
-                (degree_id,),
-            ).fetchone()
-            degree_total_units_required = None
-            if degree_units_row is not None:
-                raw_total_units = degree_units_row["total_units_required"]
-                if isinstance(raw_total_units, int) and raw_total_units > 0:
-                    degree_total_units_required = raw_total_units
-
-            group_rows = conn.execute(
-                """
-                SELECT
-                    rg.id AS group_id,
-                    rg.group_name,
-                    rg.min_units,
-                    rg.max_units
-                FROM requirement_groups rg
-                WHERE rg.degree_id = ?
-                ORDER BY
-                    CASE
-                        WHEN lower(rg.group_name) LIKE '%core%' THEN 0
-                        WHEN lower(rg.group_name) LIKE '%general%' THEN 1
-                        ELSE 2
-                    END,
-                    rg.id
-                """,
-                (degree_id,),
-            ).fetchall()
-
-            description_rows = conn.execute(
-                """
-                SELECT course_code, description
-                FROM course_descriptions
-                """
-            ).fetchall()
-
-            professor_rows = conn.execute(
-                """
-                SELECT professor_name, image_src
-                FROM professor_profiles
-                """
-            ).fetchall()
-
-            # Build term filter and schedule lookup if provided
-            term_filter = ""
-            query_params = [degree_id]
-            schedule_lookup: dict[str, dict[str, str]] = {}  # course_code -> schedule metadata
-            description_lookup = {
-                (row["course_code"] or "").strip().upper(): (row["description"] or "").strip()
-                for row in description_rows
-                if (row["course_code"] or "").strip()
-            }
-            professor_by_full_name: dict[str, dict[str, str | None]] = {}
-            professor_by_last_initial: dict[str, list[dict[str, str | None]]] = {}
-            professor_by_last_name: dict[str, list[dict[str, str | None]]] = {}
-            for row in professor_rows:
-                professor_name = (row["professor_name"] or "").strip()
-                if not professor_name:
-                    continue
-
-                profile_info = {
-                    "professor_name": professor_name,
-                    "professor_image_url": AdvisorService._to_public_professor_image_url(
-                        (row["image_src"] or "").strip() or None
-                    ),
+    for item in selected:
+        slots = _parse_days_times(item.get("days_times"))
+        for slot in slots:
+            overview[slot["day"]].append(
+                {
+                    "course_code": item["course_code"],
+                    "course_title": item["course_title"],
+                    "start": slot["start"],
+                    "end": slot["end"],
+                    "section": item.get("section"),
+                    "room": item.get("room"),
                 }
-
-                full_key = AdvisorService._normalize_name(professor_name)
-                if full_key and full_key not in professor_by_full_name:
-                    professor_by_full_name[full_key] = profile_info
-
-                last_initial_key = AdvisorService._last_name_first_initial_key(professor_name)
-                if last_initial_key:
-                    professor_by_last_initial.setdefault(last_initial_key, []).append(profile_info)
-
-                last_key = AdvisorService._last_name_key(professor_name)
-                if last_key:
-                    professor_by_last_name.setdefault(last_key, []).append(profile_info)
-            
-            if payload.term:
-                term_filter = """
-                    AND EXISTS (
-                        SELECT 1 FROM class_schedules cs
-                        WHERE cs.course_code = rgc.course_code
-                        AND cs.term = ?
-                        AND cs.status = 'Open'
-                    )
-                """
-                query_params.append(payload.term)
-                
-                # Fetch schedule info for all courses in this term
-                schedule_rows = conn.execute(
-                    """
-                    SELECT course_code, days_times, instructor
-                    FROM class_schedules
-                    WHERE term = ? AND status = 'Open'
-                    ORDER BY course_code, class_number, section, id
-                    """,
-                    (payload.term,),
-                ).fetchall()
-                for row in schedule_rows:
-                    course_code = (row["course_code"] or "").strip().upper()
-                    if not course_code or course_code in schedule_lookup:
-                        continue
-                    schedule_lookup[course_code] = {
-                        "days_times": (row["days_times"] or "").strip(),
-                        "instructor": (row["instructor"] or "").strip(),
-                    }
-
-            req_rows = conn.execute(
-                f"""
-                SELECT
-                    rg.id AS group_id,
-                    rgc.course_code,
-                    rgc.course_name,
-                    rgc.units
-                FROM requirement_groups rg
-                JOIN requirement_group_courses rgc ON rg.id = rgc.group_id
-                WHERE rg.degree_id = ?
-                {term_filter}
-                ORDER BY rg.id, rgc.id
-                """,
-                query_params,
-            ).fetchall()
-
-        grouped_rows: list[dict[str, object]] = [
-            {
-                "group_id": int(row["group_id"]),
-                "group_name": (row["group_name"] or "Requirement Group").strip(),
-                "min_units": row["min_units"],
-                "max_units": row["max_units"],
-                "courses": [],
-            }
-            for row in group_rows
-        ]
-        grouped_by_id = {group["group_id"]: group for group in grouped_rows}
-
-        for row in req_rows:
-            group_id = int(row["group_id"])
-            group_entry = grouped_by_id.get(group_id)
-            if not group_entry:
-                continue
-
-            course_code = (row["course_code"] or "").strip().upper()
-            if not course_code or course_code in completed:
-                continue
-
-            courses = group_entry["courses"]
-            assert isinstance(courses, list)
-            if any(existing.course_code == course_code for existing in courses):
-                continue
-
-            group_name = str(group_entry["group_name"])
-            schedule_info = schedule_lookup.get(course_code) if payload.term else None
-            professor_info = None
-            if schedule_info and schedule_info.get("instructor"):
-                professor_info = AdvisorService._resolve_professor_info(
-                    schedule_info.get("instructor"),
-                    professor_by_full_name,
-                    professor_by_last_initial,
-                    professor_by_last_name,
-                )
-            courses.append(
-                RecommendedCourse(
-                    course_code=course_code,
-                    title=(row["course_name"] or "TBD").strip(),
-                    group_name=group_name,
-                    units=AdvisorService._safe_units(row["units"]),
-                    days_times=schedule_info["days_times"] if schedule_info else None,
-                    instructor=schedule_info["instructor"] if schedule_info else None,
-                    description=description_lookup.get(course_code),
-                    professor_name=professor_info["professor_name"] if professor_info else (schedule_info.get("instructor") if schedule_info else None),
-                    professor_image_url=professor_info["professor_image_url"] if professor_info else None,
-                )
             )
 
-        grouped_recommendations = [
-            RequirementGroupRecommendation(
-                group_name=group_data["group_name"],
-                min_units=group_data["min_units"],
-                max_units=group_data["max_units"],
-                courses=AdvisorService._select_group_courses(
-                    group_data["courses"],
-                    group_data["min_units"],
-                    group_data["max_units"],
-                ),
-            )
-            for group_data in grouped_rows
-        ]
+    for day in overview:
+        overview[day].sort(key=lambda x: x["start"])
 
-        recommendations = [course for group in grouped_recommendations for course in group.courses]
+    return overview
 
-        recommendations, skipped_conflicts = AdvisorService._filter_time_conflicts(recommendations)
-        if skipped_conflicts:
-            selected_codes = {course.course_code for course in recommendations}
-            grouped_recommendations = [
-                RequirementGroupRecommendation(
-                    group_name=group.group_name,
-                    min_units=group.min_units,
-                    max_units=group.max_units,
-                    courses=[course for course in group.courses if course.course_code in selected_codes],
-                )
-                for group in grouped_recommendations
-            ]
 
-        if semester_capacity is not None and semester_capacity > 0:
-            trimmed_recommendations: list[RecommendedCourse] = []
-            current_units = 0
+DAY_TOKEN_MAP = {
+    "M": "Mon",
+    "T": "Tue",
+    "W": "Wed",
+    "R": "Thu",
+    "F": "Fri",
+    "S": "Sat",
+    "U": "Sun",
+}
 
-            for course in recommendations:
-                course_units = course.units or 0
-                if current_units + course_units <= semester_capacity:
-                    trimmed_recommendations.append(course)
-                    current_units += course_units
 
-            recommendations = trimmed_recommendations
-            grouped_recommendations = [
-                RequirementGroupRecommendation(
-                    group_name=group.group_name,
-                    min_units=group.min_units,
-                    max_units=group.max_units,
-                    courses=[course for course in group.courses if course in recommendations],
-                )
-                for group in grouped_recommendations
-            ]
+def _parse_days_times(days_times: str | None) -> list[dict[str, str]]:
+    """
+    Examples handled:
+    - MW 10:00AM-11:15AM
+    - TR 1:00PM-2:15PM
+    - F 08:00AM-10:45AM
+    """
+    if not days_times:
+        return []
 
-        total_units_selected = sum(course.units or 0 for course in recommendations)
-        total_units_required = degree_total_units_required or sum(
-            (group.min_units or 0) if (group.min_units and group.min_units > 0) else (group.max_units or 0)
-            for group in grouped_recommendations
-        )
+    text = days_times.strip()
+    match = re.match(
+        r"^([MTWRFSU]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)$",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return []
 
-        explanation = (
-            f"Baseline recommendations for a new {degree_name} student. "
-            "Results are organized by requirement group so the plan reads like a degree map; "
-            "transcript and scheduling constraints can be layered in later."
-        )
+    day_tokens = match.group(1).upper()
+    start = _to_24h(match.group(2).upper())
+    end = _to_24h(match.group(3).upper())
 
-        if skipped_conflicts:
-            explanation += " Some overlapping sections were removed to avoid time conflicts."
+    result: list[dict[str, str]] = []
+    for token in day_tokens:
+        day = DAY_TOKEN_MAP.get(token)
+        if day:
+            result.append({"day": day, "start": start, "end": end})
 
-        if semester_capacity is not None:
-            explanation += f" Limited to {semester_capacity} units for this semester."
+    return result
 
-        return AdvisorResponse(
-            grouped_recommendations=grouped_recommendations,
-            recommendations=recommendations,
-            total_units_selected=total_units_selected,
-            total_units_required=total_units_required,
-            explanation=explanation,
-        )
+
+def _to_24h(value: str) -> str:
+    hour_minute = value[:-2]
+    suffix = value[-2:]
+
+    hour_str, minute_str = hour_minute.split(":")
+    hour = int(hour_str)
+    minute = int(minute_str)
+
+    if suffix == "AM":
+        if hour == 12:
+            hour = 0
+    elif suffix == "PM":
+        if hour != 12:
+            hour += 12
+
+    return f"{hour:02d}:{minute:02d}"
+
+
+def _slots_overlap(
+    slots_a: list[dict[str, str]],
+    slots_b: list[dict[str, str]],
+) -> bool:
+    for a in slots_a:
+        for b in slots_b:
+            if a["day"] != b["day"]:
+                continue
+            if a["start"] < b["end"] and b["start"] < a["end"]:
+                return True
+    return False
