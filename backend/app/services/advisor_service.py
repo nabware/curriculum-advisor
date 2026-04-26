@@ -267,6 +267,31 @@ class AdvisorService:
         return None
 
     @staticmethod
+    def _resolve_numeric_name_match(
+        instructor_name: str | None,
+        by_full_name: dict[str, float],
+        by_last_initial: dict[str, list[float]],
+        by_last_name: dict[str, list[float]],
+    ) -> float | None:
+        full_key = AdvisorService._normalize_name(instructor_name)
+        if full_key and full_key in by_full_name:
+            return by_full_name[full_key]
+
+        last_initial_key = AdvisorService._last_name_first_initial_key(instructor_name)
+        if last_initial_key:
+            matches = by_last_initial.get(last_initial_key, [])
+            if len(matches) == 1:
+                return matches[0]
+
+        last_key = AdvisorService._last_name_key(instructor_name)
+        if last_key:
+            matches = by_last_name.get(last_key, [])
+            if len(matches) == 1:
+                return matches[0]
+
+        return None
+
+    @staticmethod
     def _to_public_professor_image_url(image_src: str | None) -> str | None:
         if not image_src:
             return None
@@ -437,6 +462,8 @@ class AdvisorService:
             ).fetchall()
 
             sentiment_by_professor: dict[str, float] = {}
+            sentiment_by_last_initial: dict[str, list[float]] = {}
+            sentiment_by_last_name: dict[str, list[float]] = {}
             try:
                 sentiment_rows = conn.execute(
                     """
@@ -454,7 +481,17 @@ class AdvisorService:
                 score_raw = row["confidence_adjusted_sentiment_score"]
                 if score_raw is None:
                     continue
-                sentiment_by_professor[AdvisorService._normalize_name(professor_name)] = float(score_raw)
+                score = float(score_raw)
+                normalized = AdvisorService._normalize_name(professor_name)
+                sentiment_by_professor[normalized] = score
+
+                last_initial_key = AdvisorService._last_name_first_initial_key(professor_name)
+                if last_initial_key:
+                    sentiment_by_last_initial.setdefault(last_initial_key, []).append(score)
+
+                last_key = AdvisorService._last_name_key(professor_name)
+                if last_key:
+                    sentiment_by_last_name.setdefault(last_key, []).append(score)
 
             # Build term filter and schedule lookup if provided
             term_filter = ""
@@ -624,10 +661,13 @@ class AdvisorService:
             if payload.prefer_high_rated_professors:
                 score_by_code = {}
                 for course in group_data["courses"]:
-                    sentiment_name = AdvisorService._normalize_name(
-                        course.professor_name or course.instructor
+                    sentiment_score = AdvisorService._resolve_numeric_name_match(
+                        course.professor_name or course.instructor,
+                        sentiment_by_professor,
+                        sentiment_by_last_initial,
+                        sentiment_by_last_name,
                     )
-                    score_by_code[course.course_code] = sentiment_by_professor.get(sentiment_name, 0.0)
+                    score_by_code[course.course_code] = sentiment_score or 0.0
 
             grouped_recommendations.append(
                 RequirementGroupRecommendation(

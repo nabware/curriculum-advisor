@@ -47,7 +47,56 @@ def normalize_name(value: str | None) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip().lower()
 
 
-def load_sentiment_by_professor(conn: sqlite3.Connection) -> dict[str, float]:
+def name_tokens(value: str | None) -> list[str]:
+    normalized = normalize_name(value)
+    if not normalized:
+        return []
+    cleaned = re.sub(r"[^a-z\s-]", " ", normalized)
+    return [token for token in re.split(r"[\s-]+", cleaned) if token]
+
+
+def last_name_key(value: str | None) -> str | None:
+    tokens = name_tokens(value)
+    if not tokens:
+        return None
+    return tokens[-1]
+
+
+def last_name_first_initial_key(value: str | None) -> str | None:
+    tokens = name_tokens(value)
+    if len(tokens) < 2:
+        return None
+    return f"{tokens[-1]}|{tokens[0][0]}"
+
+
+def resolve_numeric_name_match(
+    instructor_name: str | None,
+    by_full_name: dict[str, float],
+    by_last_initial: dict[str, list[float]],
+    by_last_name: dict[str, list[float]],
+) -> float | None:
+    full_key = normalize_name(instructor_name)
+    if full_key and full_key in by_full_name:
+        return by_full_name[full_key]
+
+    last_initial = last_name_first_initial_key(instructor_name)
+    if last_initial:
+        matches = by_last_initial.get(last_initial, [])
+        if len(matches) == 1:
+            return matches[0]
+
+    last_key = last_name_key(instructor_name)
+    if last_key:
+        matches = by_last_name.get(last_key, [])
+        if len(matches) == 1:
+            return matches[0]
+
+    return None
+
+
+def load_sentiment_by_professor(
+    conn: sqlite3.Connection,
+) -> tuple[dict[str, float], dict[str, list[float]], dict[str, list[float]]]:
     try:
         rows = conn.execute(
             """
@@ -57,26 +106,43 @@ def load_sentiment_by_professor(conn: sqlite3.Connection) -> dict[str, float]:
             """
         ).fetchall()
     except sqlite3.OperationalError:
-        return {}
+        return {}, {}, {}
 
     sentiment: dict[str, float] = {}
+    by_last_initial: dict[str, list[float]] = {}
+    by_last_name: dict[str, list[float]] = {}
     for row in rows:
         key = normalize_name(row[0])
         if not key:
             continue
-        sentiment[key] = float(row[1])
-    return sentiment
+        score = float(row[1])
+        sentiment[key] = score
+
+        last_initial = last_name_first_initial_key(row[0])
+        if last_initial:
+            by_last_initial.setdefault(last_initial, []).append(score)
+
+        last_key = last_name_key(row[0])
+        if last_key:
+            by_last_name.setdefault(last_key, []).append(score)
+
+    return sentiment, by_last_initial, by_last_name
 
 
 def average_sentiment_score(
-    courses: list[RecommendedCourse], sentiment_by_professor: dict[str, float]
+    courses: list[RecommendedCourse],
+    by_full_name: dict[str, float],
+    by_last_initial: dict[str, list[float]],
+    by_last_name: dict[str, list[float]],
 ) -> float | None:
     scores: list[float] = []
     for course in courses:
-        key = normalize_name(course.professor_name or course.instructor)
-        if not key:
-            continue
-        score = sentiment_by_professor.get(key)
+        score = resolve_numeric_name_match(
+            course.professor_name or course.instructor,
+            by_full_name,
+            by_last_initial,
+            by_last_name,
+        )
         if score is None:
             continue
         scores.append(score)
@@ -145,7 +211,9 @@ def main() -> None:
         raise SystemExit(f"No scenarios found in {args.scenarios_csv}")
 
     with sqlite3.connect(args.db_path) as conn:
-        sentiment_by_professor = load_sentiment_by_professor(conn)
+        sentiment_by_professor, sentiment_by_last_initial, sentiment_by_last_name = (
+            load_sentiment_by_professor(conn)
+        )
 
     report_rows: list[dict[str, object]] = []
     for scenario in scenarios:
@@ -180,10 +248,16 @@ def main() -> None:
         overlap = overlap_at_k(baseline_codes, sentiment_codes, k) if k > 0 else 0.0
 
         baseline_avg_sentiment = average_sentiment_score(
-            baseline.recommendations, sentiment_by_professor
+            baseline.recommendations,
+            sentiment_by_professor,
+            sentiment_by_last_initial,
+            sentiment_by_last_name,
         )
         sentiment_avg_sentiment = average_sentiment_score(
-            sentiment.recommendations, sentiment_by_professor
+            sentiment.recommendations,
+            sentiment_by_professor,
+            sentiment_by_last_initial,
+            sentiment_by_last_name,
         )
 
         sentiment_lift = None
