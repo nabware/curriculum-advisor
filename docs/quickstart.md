@@ -9,6 +9,7 @@ python scripts/import_degree_requirements.py
 python scripts/build_degree_requirement_model.py
 python scripts/import_class_schedules.py
 python scripts/import_course_metadata.py
+python scripts/build_professor_sentiment_features.py
 ```
 
 Expected SQLite file: `data/seed/curriculum_advisor.db`
@@ -21,6 +22,28 @@ Expected core tables:
 - `class_schedules`
 - `course_descriptions`
 - `professor_profiles`
+- `professor_sentiment_features`
+
+## 0.5) Evaluate Baseline vs Sentiment-Aware Ranking
+
+Run the evaluation script over fixed scenarios:
+
+```bash
+python scripts/evaluate_sentiment_impact.py
+```
+
+Defaults:
+- Scenarios input: `data/seed/evaluation_scenarios.csv`
+- Report output: `data/processed/evaluation_sentiment_impact.csv`
+
+Optional flags:
+
+```bash
+python scripts/evaluate_sentiment_impact.py \
+  --scenarios-csv data/seed/evaluation_scenarios.csv \
+  --output-csv data/processed/evaluation_sentiment_impact.csv \
+  --top-k 5
+```
 
 ## 1) Backend
 ```bash

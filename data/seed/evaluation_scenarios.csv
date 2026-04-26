@@ -1,0 +1,9 @@
+scenario_id,major,term,max_units_per_semester,completed_courses,transcript_text,prefer_light_workload
+cs_spring_new,Bachelor of Science in Computer Science,Spring 2026,12,,,false
+cs_fall_foundations,Bachelor of Science in Computer Science,Fall 2026,12,"CSC 101; MATH 226",,false
+cs_summer_light,Bachelor of Science in Computer Science,Summer 2026,6,"CSC 210; CSC 220",,true
+ms_cs_core,Master of Science in Computer Science,Spring 2026,9,,,false
+ms_cs_with_background,Master of Science in Computer Science,Fall 2026,9,"CSC 220; CSC 340",,false
+ms_dsai_new,Master of Science in Data Science and Artificial Intelligence,Spring 2026,9,,,false
+ms_dsai_transfer,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,"MATH 226; CSC 230",,false
+cs_with_transcript,Bachelor of Science in Computer Science,Spring 2026,12,,"Completed: CSC 101, MATH 226, CSC 210",false
