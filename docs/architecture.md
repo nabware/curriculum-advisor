@@ -42,6 +42,7 @@
   - `class_schedules`
   - `course_descriptions`
   - `professor_profiles`
+  - `professor_sentiment_features`
 
 ## Data Pipeline Scripts
 - `scripts/import_degree_requirements.py`
@@ -52,3 +53,7 @@
   - Imports schedule/term/section data.
 - `scripts/import_course_metadata.py`
   - Imports course descriptions and professor profile metadata.
+- `scripts/build_professor_sentiment_features.py`
+  - Builds professor-level sentiment features with confidence-aware smoothing.
+  - Writes to `professor_sentiment_features` in SQLite and exports
+    `data/processed/professor_sentiment_features.csv`.

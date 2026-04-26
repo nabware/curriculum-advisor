@@ -299,6 +299,7 @@ class AdvisorService:
         courses: list[RecommendedCourse],
         min_units: int | None,
         max_units: int | None,
+        score_by_code: dict[str, float] | None = None,
     ) -> list[RecommendedCourse]:
         if not courses:
             return []
@@ -330,6 +331,15 @@ class AdvisorService:
                     continue
 
                 if len(new_selection) == len(existing_selection):
+                    if score_by_code:
+                        new_score = sum(score_by_code.get(item.course_code, 0.0) for item in new_selection)
+                        existing_score = sum(
+                            score_by_code.get(item.course_code, 0.0) for item in existing_selection
+                        )
+                        if new_score > existing_score:
+                            best_by_total[new_total_units] = new_selection
+                            continue
+
                     new_codes = tuple(item.course_code for item in new_selection)
                     existing_codes = tuple(item.course_code for item in existing_selection)
                     if new_codes < existing_codes:
@@ -425,6 +435,26 @@ class AdvisorService:
                 FROM professor_profiles
                 """
             ).fetchall()
+
+            sentiment_by_professor: dict[str, float] = {}
+            try:
+                sentiment_rows = conn.execute(
+                    """
+                    SELECT professor_name, confidence_adjusted_sentiment_score
+                    FROM professor_sentiment_features
+                    """
+                ).fetchall()
+            except sqlite3.OperationalError:
+                sentiment_rows = []
+
+            for row in sentiment_rows:
+                professor_name = (row["professor_name"] or "").strip()
+                if not professor_name:
+                    continue
+                score_raw = row["confidence_adjusted_sentiment_score"]
+                if score_raw is None:
+                    continue
+                sentiment_by_professor[AdvisorService._normalize_name(professor_name)] = float(score_raw)
 
             # Build term filter and schedule lookup if provided
             term_filter = ""
@@ -588,19 +618,30 @@ class AdvisorService:
                 enriched.append(course)
             group_data["courses"] = enriched
 
-        grouped_recommendations = [
-            RequirementGroupRecommendation(
-                group_name=group_data["group_name"],
-                min_units=group_data["min_units"],
-                max_units=group_data["max_units"],
-                courses=AdvisorService._select_group_courses(
-                    group_data["courses"],
-                    group_data["min_units"],
-                    group_data["max_units"],
-                ),
+        grouped_recommendations: list[RequirementGroupRecommendation] = []
+        for group_data in grouped_rows:
+            score_by_code: dict[str, float] | None = None
+            if payload.prefer_high_rated_professors:
+                score_by_code = {}
+                for course in group_data["courses"]:
+                    sentiment_name = AdvisorService._normalize_name(
+                        course.professor_name or course.instructor
+                    )
+                    score_by_code[course.course_code] = sentiment_by_professor.get(sentiment_name, 0.0)
+
+            grouped_recommendations.append(
+                RequirementGroupRecommendation(
+                    group_name=group_data["group_name"],
+                    min_units=group_data["min_units"],
+                    max_units=group_data["max_units"],
+                    courses=AdvisorService._select_group_courses(
+                        group_data["courses"],
+                        group_data["min_units"],
+                        group_data["max_units"],
+                        score_by_code=score_by_code,
+                    ),
+                )
             )
-            for group_data in grouped_rows
-        ]
 
         recommendations = [course for group in grouped_recommendations for course in group.courses]
 
@@ -685,6 +726,9 @@ class AdvisorService:
             transcript_count = len(AdvisorService._parse_transcript_courses(payload.transcript_text))
             if transcript_count:
                 explanation += f" {transcript_count} course(s) were read from your transcript and marked as completed."
+
+        if payload.prefer_high_rated_professors and sentiment_by_professor:
+            explanation += " Professor sentiment features were used to break ties among eligible courses."
 
         if semester_capacity is not None:
             explanation += f" Limited to {semester_capacity} units for this semester."

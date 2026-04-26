@@ -38,6 +38,7 @@ python scripts/import_degree_requirements.py
 python scripts/build_degree_requirement_model.py
 python scripts/import_class_schedules.py
 python scripts/import_course_metadata.py
+python scripts/build_professor_sentiment_features.py
 ```
 
 Expected SQLite file:
@@ -51,6 +52,7 @@ Expected core tables:
 - `class_schedules`
 - `course_descriptions`
 - `professor_profiles`
+- `professor_sentiment_features`
 
 ## Where To Look
 
