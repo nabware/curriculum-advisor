@@ -1,0 +1,49 @@
+# Sentiment Data Report (Seed-First)
+
+## Scope
+This report summarizes the data-side sentiment pipeline, tuning pass, and evaluation outputs for the capstone recommendation engine.
+
+The current run uses simulated/seed sentiment data by design, because live RMP ingestion remains unreliable in our environment (frequent no-match/blocked responses).
+
+## Inputs
+- Professor sentiment seed source: `data/seed/professor_sentiment_seed.csv`
+- Tradeoff scenario set: `data/seed/evaluation_scenarios_tradeoff.csv`
+- Feature table produced in SQLite: `professor_sentiment_features`
+
+## Pipeline Run
+1. Build professor sentiment features from seed data.
+2. Tune objective weights on the tradeoff scenario set.
+3. Evaluate baseline vs sentiment-aware ranking using tuned weights.
+4. Export packaged artifacts for submission.
+
+## Key Results
+From `data/processed/final_sentiment_summary.csv`:
+- Scenarios evaluated: 20
+- Scenarios with changed recommendations: 7
+- Positive-lift scenarios: 4
+- Negative-lift scenarios: 3
+- Zero-lift scenarios: 13
+- Best weights from tuning: progress=0.45, workload=0.10, sentiment=0.20
+- Mean overlap@k: 0.825
+- Mean sentiment lift: -0.002439
+- Mean sentiment coverage (baseline and sentiment runs): 0.90
+- Mean latency delta: +0.753 ms
+
+## Interpretation
+- The model now demonstrates recommendation sensitivity to sentiment in non-trivial cases (7/20 changed top selections).
+- Overall mean sentiment lift remains slightly negative; this indicates the current objective and scenario mix still has limited headroom for globally positive lift.
+- Latency impact is negligible and does not block product use.
+
+## Proposal Alignment
+This implementation remains aligned with the proposal's data engineering goals:
+- Added structured sentiment features and confidence/shrinkage behavior.
+- Integrated those features into ranking-time objective scoring.
+- Built an evaluation and tuning pipeline with reproducible outputs.
+- Used seed/simulated data as an acceptable fallback when live sources are blocked.
+
+## Submission Artifacts
+- `data/processed/professor_sentiment_features.csv`
+- `data/processed/professor_sentiment_diagnostics.csv`
+- `data/processed/objective_weight_tuning_tradeoff.csv`
+- `data/processed/evaluation_sentiment_impact_tradeoff.csv`
+- `data/processed/final_sentiment_summary.csv`

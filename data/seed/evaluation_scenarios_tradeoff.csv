@@ -1,0 +1,21 @@
+scenario_id,major,term,max_units_per_semester,completed_courses,transcript_text,prefer_light_workload
+tradeoff_cs_01,Bachelor of Science in Computer Science,Spring 2026,12,,,false
+tradeoff_cs_02,Bachelor of Science in Computer Science,Spring 2026,9,"CSC 101; MATH 226",,false
+tradeoff_cs_03,Bachelor of Science in Computer Science,Spring 2026,9,"CSC 101; MATH 226",,true
+tradeoff_cs_04,Bachelor of Science in Computer Science,Fall 2026,12,"CSC 210; CSC 220",,false
+tradeoff_cs_05,Bachelor of Science in Computer Science,Fall 2026,9,"CSC 210; CSC 220",,true
+tradeoff_cs_06,Bachelor of Science in Computer Science,Summer 2026,6,"CSC 210; CSC 220",,true
+tradeoff_cs_07,Bachelor of Science in Computer Science,Spring 2026,12,,"Completed: CSC 101, MATH 226, CSC 210, CSC 220",false
+tradeoff_cs_08,Bachelor of Science in Computer Science,Fall 2026,12,,"Completed: CSC 101, MATH 226, CSC 210, CSC 220",true
+tradeoff_ms_cs_01,Master of Science in Computer Science,Spring 2026,9,,,false
+tradeoff_ms_cs_02,Master of Science in Computer Science,Spring 2026,9,,,true
+tradeoff_ms_cs_03,Master of Science in Computer Science,Fall 2026,9,"CSC 220; CSC 340",,false
+tradeoff_ms_cs_04,Master of Science in Computer Science,Fall 2026,9,"CSC 220; CSC 340",,true
+tradeoff_ms_cs_05,Master of Science in Computer Science,Spring 2026,6,"CSC 220; CSC 340",,true
+tradeoff_ms_dsai_01,Master of Science in Data Science and Artificial Intelligence,Spring 2026,9,,,false
+tradeoff_ms_dsai_02,Master of Science in Data Science and Artificial Intelligence,Spring 2026,9,,,true
+tradeoff_ms_dsai_03,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,"MATH 226; CSC 230",,false
+tradeoff_ms_dsai_04,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,"MATH 226; CSC 230",,true
+tradeoff_ms_dsai_05,Master of Science in Data Science and Artificial Intelligence,Spring 2026,6,"MATH 226; CSC 230",,true
+tradeoff_ms_dsai_06,Master of Science in Data Science and Artificial Intelligence,Spring 2026,9,,"Completed: MATH 226, CSC 230, CSC 510",false
+tradeoff_ms_dsai_07,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,,"Completed: MATH 226, CSC 230, CSC 510",true
