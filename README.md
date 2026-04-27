@@ -60,6 +60,7 @@ Expected core tables:
 - Team ownership split: [docs/team-ownership.md](docs/team-ownership.md)
 - Detailed startup and API test commands: [docs/quickstart.md](docs/quickstart.md)
 - Proposal alignment for data pipeline scope: [docs/proposal-data-pipeline-alignment.md](docs/proposal-data-pipeline-alignment.md)
+- Final evaluation comparison table: [docs/final-evaluation-comparison.md](docs/final-evaluation-comparison.md)
 
 ## Suggested Team Workflow
 

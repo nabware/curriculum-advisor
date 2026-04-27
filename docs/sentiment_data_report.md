@@ -3,6 +3,8 @@
 ## Scope
 This report summarizes the data-side sentiment pipeline, tuning pass, and evaluation outputs for the capstone recommendation engine.
 
+For a submission-ready cross-bucket table, see `docs/final-evaluation-comparison.md`.
+
 The current run uses simulated/seed sentiment data by design, because live RMP ingestion remains unreliable in our environment (frequent no-match/blocked responses).
 
 ## Inputs
