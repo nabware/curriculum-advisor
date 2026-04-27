@@ -17,3 +17,6 @@ __pycache__/
 # Data outputs
 data/processed/*
 !data/processed/.gitkeep
+
+# Local generated SQLite
+data/seed/curriculum_advisor.db
