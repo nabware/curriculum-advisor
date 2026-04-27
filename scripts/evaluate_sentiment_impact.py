@@ -152,6 +152,32 @@ def average_sentiment_score(
     return sum(scores) / len(scores)
 
 
+def sentiment_coverage(
+    courses: list[RecommendedCourse],
+    by_full_name: dict[str, float],
+    by_last_initial: dict[str, list[float]],
+    by_last_name: dict[str, list[float]],
+) -> tuple[int, int, float]:
+    total = 0
+    matched = 0
+    for course in courses:
+        instructor_name = course.professor_name or course.instructor
+        if not normalize_name(instructor_name):
+            continue
+        total += 1
+        score = resolve_numeric_name_match(
+            instructor_name,
+            by_full_name,
+            by_last_initial,
+            by_last_name,
+        )
+        if score is not None:
+            matched += 1
+
+    coverage = (matched / total) if total > 0 else 0.0
+    return matched, total, coverage
+
+
 def overlap_at_k(codes_a: list[str], codes_b: list[str], k: int) -> float:
     if k <= 0:
         return 0.0
@@ -204,6 +230,9 @@ def main() -> None:
     )
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--db-path", type=Path, default=get_database_path())
+    parser.add_argument("--objective-progress-weight", type=float, default=None)
+    parser.add_argument("--objective-workload-weight", type=float, default=None)
+    parser.add_argument("--objective-sentiment-weight", type=float, default=None)
     args = parser.parse_args()
 
     scenarios = read_scenarios(args.scenarios_csv)
@@ -234,6 +263,9 @@ def main() -> None:
             career_goals=[],
             prefer_light_workload=prefer_light,
             prefer_high_rated_professors=False,
+            objective_progress_weight=args.objective_progress_weight,
+            objective_workload_weight=args.objective_workload_weight,
+            objective_sentiment_weight=args.objective_sentiment_weight,
             max_units_per_semester=max_units,
             term=term,
         )
@@ -260,6 +292,19 @@ def main() -> None:
             sentiment_by_last_name,
         )
 
+        baseline_matched, baseline_total, baseline_coverage = sentiment_coverage(
+            baseline.recommendations,
+            sentiment_by_professor,
+            sentiment_by_last_initial,
+            sentiment_by_last_name,
+        )
+        sentiment_matched, sentiment_total, sentiment_coverage_ratio = sentiment_coverage(
+            sentiment.recommendations,
+            sentiment_by_professor,
+            sentiment_by_last_initial,
+            sentiment_by_last_name,
+        )
+
         sentiment_lift = None
         if baseline_avg_sentiment is not None and sentiment_avg_sentiment is not None:
             sentiment_lift = sentiment_avg_sentiment - baseline_avg_sentiment
@@ -278,6 +323,12 @@ def main() -> None:
                 "latency_delta_ms": round(sentiment_ms - baseline_ms, 2),
                 "top_k": k,
                 "overlap_at_k": round(overlap, 4),
+                "baseline_sentiment_matches": baseline_matched,
+                "baseline_sentiment_total": baseline_total,
+                "baseline_sentiment_coverage": round(baseline_coverage, 4),
+                "sentiment_sentiment_matches": sentiment_matched,
+                "sentiment_sentiment_total": sentiment_total,
+                "sentiment_sentiment_coverage": round(sentiment_coverage_ratio, 4),
                 "baseline_avg_sentiment": None
                 if baseline_avg_sentiment is None
                 else round(baseline_avg_sentiment, 6),
@@ -294,6 +345,12 @@ def main() -> None:
 
     total = len(report_rows)
     mean_overlap = sum(float(row["overlap_at_k"]) for row in report_rows) / total
+    mean_baseline_coverage = (
+        sum(float(row["baseline_sentiment_coverage"]) for row in report_rows) / total
+    )
+    mean_sentiment_coverage = (
+        sum(float(row["sentiment_sentiment_coverage"]) for row in report_rows) / total
+    )
     measured_lifts = [
         float(row["sentiment_lift"])
         for row in report_rows
@@ -304,6 +361,8 @@ def main() -> None:
 
     print(f"Evaluated scenarios: {total}")
     print(f"Mean overlap@k: {mean_overlap:.4f}")
+    print(f"Mean baseline sentiment coverage: {mean_baseline_coverage:.4f}")
+    print(f"Mean sentiment-run coverage: {mean_sentiment_coverage:.4f}")
     print(f"Mean sentiment lift: {mean_lift:.6f}")
     print(f"Mean latency delta (ms): {mean_latency_delta:.2f}")
     print(f"Report written to: {args.output_csv}")

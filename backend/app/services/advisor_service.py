@@ -320,11 +320,49 @@ class AdvisorService:
         return f"/assets/professor-images/{quote(cleaned, safe='/')}"
 
     @staticmethod
+    def _clamp_01(value: float | None) -> float:
+        if value is None:
+            return 0.0
+        return max(0.0, min(1.0, float(value)))
+
+    @staticmethod
+    def _resolve_course_objective(
+        course: RecommendedCourse,
+        sentiment_score: float | None,
+        prefer_light_workload: bool,
+        prefer_high_rated_professors: bool,
+        progress_weight_override: float | None = None,
+        workload_weight_override: float | None = None,
+        sentiment_weight_override: float | None = None,
+    ) -> float:
+        units = course.units or 0
+        normalized_units = max(0.0, min(1.0, units / 4.0))
+
+        progress_score = normalized_units
+        workload_score = 1.0 - normalized_units
+        sentiment_score_clamped = AdvisorService._clamp_01(sentiment_score)
+
+        progress_weight = max(0.0, progress_weight_override if progress_weight_override is not None else 0.55)
+        workload_base = max(0.0, workload_weight_override if workload_weight_override is not None else 0.30)
+        sentiment_base = max(0.0, sentiment_weight_override if sentiment_weight_override is not None else 0.35)
+
+        workload_weight = workload_base if prefer_light_workload else 0.0
+        sentiment_weight = sentiment_base if prefer_high_rated_professors else 0.0
+        total_weight = progress_weight + workload_weight + sentiment_weight
+
+        weighted_sum = (
+            progress_weight * progress_score
+            + workload_weight * workload_score
+            + sentiment_weight * sentiment_score_clamped
+        )
+        return weighted_sum / total_weight if total_weight > 0 else 0.0
+
+    @staticmethod
     def _select_group_courses(
         courses: list[RecommendedCourse],
         min_units: int | None,
         max_units: int | None,
-        score_by_code: dict[str, float] | None = None,
+        objective_by_code: dict[str, float] | None = None,
     ) -> list[RecommendedCourse]:
         if not courses:
             return []
@@ -356,10 +394,13 @@ class AdvisorService:
                     continue
 
                 if len(new_selection) == len(existing_selection):
-                    if score_by_code:
-                        new_score = sum(score_by_code.get(item.course_code, 0.0) for item in new_selection)
+                    if objective_by_code:
+                        new_score = sum(
+                            objective_by_code.get(item.course_code, 0.0) for item in new_selection
+                        )
                         existing_score = sum(
-                            score_by_code.get(item.course_code, 0.0) for item in existing_selection
+                            objective_by_code.get(item.course_code, 0.0)
+                            for item in existing_selection
                         )
                         if new_score > existing_score:
                             best_by_total[new_total_units] = new_selection
@@ -381,11 +422,29 @@ class AdvisorService:
             else:
                 return []
 
-        satisfying_totals = [total for total in totals if total >= target_units]
-        if satisfying_totals:
-            chosen_total = min(satisfying_totals)
+        candidate_totals = [total for total in totals if total >= target_units]
+        if max_units is not None:
+            bounded = [total for total in candidate_totals if total <= max_units]
+            if bounded:
+                candidate_totals = bounded
+
+        if not candidate_totals:
+            candidate_totals = totals
+
+        def _selection_rank(total: int) -> tuple[float, float, int]:
+            selection = best_by_total[total]
+            objective_score = (
+                sum(objective_by_code.get(item.course_code, 0.0) for item in selection)
+                if objective_by_code
+                else 0.0
+            )
+            overshoot = abs(total - target_units)
+            return (objective_score, -float(overshoot), -len(selection))
+
+        if objective_by_code:
+            chosen_total = max(candidate_totals, key=_selection_rank)
         else:
-            chosen_total = max(totals)
+            chosen_total = min(candidate_totals, key=lambda total: (abs(total - target_units), total))
 
         return best_by_total[chosen_total]
 
@@ -657,17 +716,23 @@ class AdvisorService:
 
         grouped_recommendations: list[RequirementGroupRecommendation] = []
         for group_data in grouped_rows:
-            score_by_code: dict[str, float] | None = None
-            if payload.prefer_high_rated_professors:
-                score_by_code = {}
-                for course in group_data["courses"]:
-                    sentiment_score = AdvisorService._resolve_numeric_name_match(
-                        course.professor_name or course.instructor,
-                        sentiment_by_professor,
-                        sentiment_by_last_initial,
-                        sentiment_by_last_name,
-                    )
-                    score_by_code[course.course_code] = sentiment_score or 0.0
+            objective_by_code: dict[str, float] = {}
+            for course in group_data["courses"]:
+                sentiment_score = AdvisorService._resolve_numeric_name_match(
+                    course.professor_name or course.instructor,
+                    sentiment_by_professor,
+                    sentiment_by_last_initial,
+                    sentiment_by_last_name,
+                )
+                objective_by_code[course.course_code] = AdvisorService._resolve_course_objective(
+                    course,
+                    sentiment_score,
+                    payload.prefer_light_workload,
+                    payload.prefer_high_rated_professors,
+                    payload.objective_progress_weight,
+                    payload.objective_workload_weight,
+                    payload.objective_sentiment_weight,
+                )
 
             grouped_recommendations.append(
                 RequirementGroupRecommendation(
@@ -678,7 +743,7 @@ class AdvisorService:
                         group_data["courses"],
                         group_data["min_units"],
                         group_data["max_units"],
-                        score_by_code=score_by_code,
+                        objective_by_code=objective_by_code,
                     ),
                 )
             )
@@ -768,7 +833,10 @@ class AdvisorService:
                 explanation += f" {transcript_count} course(s) were read from your transcript and marked as completed."
 
         if payload.prefer_high_rated_professors and sentiment_by_professor:
-            explanation += " Professor sentiment features were used to break ties among eligible courses."
+            explanation += " Professor sentiment features were included in ranking."
+
+        if payload.prefer_high_rated_professors or payload.prefer_light_workload:
+            explanation += " Group selections used a weighted objective over progress, workload, and sentiment."
 
         if semester_capacity is not None:
             explanation += f" Limited to {semester_capacity} units for this semester."

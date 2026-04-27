@@ -59,6 +59,7 @@ Expected core tables:
 - Project architecture: [docs/architecture.md](docs/architecture.md)
 - Team ownership split: [docs/team-ownership.md](docs/team-ownership.md)
 - Detailed startup and API test commands: [docs/quickstart.md](docs/quickstart.md)
+- Proposal alignment for data pipeline scope: [docs/proposal-data-pipeline-alignment.md](docs/proposal-data-pipeline-alignment.md)
 
 ## Suggested Team Workflow
 

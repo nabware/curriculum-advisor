@@ -21,6 +21,18 @@ class AdvisorRequest(BaseModel):
     career_goals: list[str] = Field(default_factory=list)
     prefer_light_workload: bool = False
     prefer_high_rated_professors: bool = False
+    objective_progress_weight: float | None = Field(
+        default=None,
+        description="Optional weight for progress objective component",
+    )
+    objective_workload_weight: float | None = Field(
+        default=None,
+        description="Optional weight for workload objective component",
+    )
+    objective_sentiment_weight: float | None = Field(
+        default=None,
+        description="Optional weight for sentiment objective component",
+    )
     max_units_per_semester: int = Field(
         default=12, description="Maximum units willing to take this semester"
     )

@@ -47,3 +47,24 @@ This implementation remains aligned with the proposal's data engineering goals:
 - `data/processed/objective_weight_tuning_tradeoff.csv`
 - `data/processed/evaluation_sentiment_impact_tradeoff.csv`
 - `data/processed/final_sentiment_summary.csv`
+
+## Follow-Up: DSAI Edge-Case Pass
+To stress sentiment-driven tradeoffs specifically for the DSAI degree path, we added and evaluated:
+- `data/seed/evaluation_scenarios_dsai_edge.csv`
+- `data/processed/objective_weight_tuning_dsai_edge.csv`
+- `data/processed/evaluation_sentiment_impact_dsai_edge.csv`
+- `data/processed/final_sentiment_summary_dsai_edge.csv`
+
+From `data/processed/final_sentiment_summary_dsai_edge.csv`:
+- Scenarios evaluated: 16
+- Scenarios with changed recommendations: 12
+- Positive-lift scenarios: 8
+- Negative-lift scenarios: 4
+- Zero-lift scenarios: 4
+- Mean overlap@k: 0.604
+- Mean sentiment lift: -0.000382
+- Mean latency delta: +6.518 ms
+
+Interpretation:
+- This pass substantially increased recommendation sensitivity (12/16 changed selections), indicating the objective is active in meaningful tradeoff settings.
+- Global mean lift is now near-zero and less negative than the broader tradeoff pack, but still not consistently positive.

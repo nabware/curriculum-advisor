@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -18,6 +19,32 @@ from app.services.rmp_service import fetch_professor_rating
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
+
+
+def normalize_name(value: str | None) -> str:
+    return re.sub(r"\s+", " ", (value or "")).strip().lower()
+
+
+def name_tokens(value: str | None) -> list[str]:
+    normalized = normalize_name(value)
+    if not normalized:
+        return []
+    cleaned = re.sub(r"[^a-z\s-]", " ", normalized)
+    return [token for token in re.split(r"[\s-]+", cleaned) if token]
+
+
+def last_name_key(value: str | None) -> str | None:
+    tokens = name_tokens(value)
+    if not tokens:
+        return None
+    return tokens[-1]
+
+
+def last_name_first_initial_key(value: str | None) -> str | None:
+    tokens = name_tokens(value)
+    if len(tokens) < 2:
+        return None
+    return f"{tokens[-1]}|{tokens[0][0]}"
 
 
 def calculate_sentiment_features(
@@ -79,20 +106,125 @@ def calculate_sentiment_features(
     }
 
 
+def candidate_queries(professor_name: str) -> list[str]:
+    name = professor_name.strip()
+    if not name:
+        return []
+
+    parts = [part for part in name.split() if part]
+    queries: list[str] = [name]
+    if len(parts) >= 2:
+        queries.append(f"{parts[0]} {parts[-1]}")
+        queries.append(parts[-1])
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for query in queries:
+        key = query.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(query)
+    return deduped
+
+
+def load_seed_rows(path: Path | None) -> list[dict[str, object]]:
+    if path is None or not path.exists():
+        return []
+
+    rows: list[dict[str, object]] = []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for raw in reader:
+            name = (raw.get("professor_name") or "").strip()
+            rating = (raw.get("rating") or "").strip()
+            num_ratings = (raw.get("num_ratings") or "").strip()
+            if not name or not rating or not num_ratings:
+                continue
+
+            difficulty = (raw.get("difficulty") or "").strip()
+            would_take_again_pct = (raw.get("would_take_again_pct") or "").strip()
+            rmp_url = (raw.get("rmp_url") or "").strip() or None
+
+            rows.append(
+                {
+                    "professor_name": name,
+                    "rating": float(rating),
+                    "difficulty": float(difficulty) if difficulty else None,
+                    "would_take_again_pct": float(would_take_again_pct)
+                    if would_take_again_pct
+                    else None,
+                    "num_ratings": int(num_ratings),
+                    "rmp_url": rmp_url,
+                }
+            )
+    return rows
+
+
+def build_seed_indexes(
+    rows: list[dict[str, object]],
+) -> tuple[dict[str, dict[str, object]], dict[str, list[dict[str, object]]], dict[str, list[dict[str, object]]]]:
+    by_full: dict[str, dict[str, object]] = {}
+    by_last_initial: dict[str, list[dict[str, object]]] = {}
+    by_last_name: dict[str, list[dict[str, object]]] = {}
+
+    for row in rows:
+        name = row.get("professor_name")
+        full_key = normalize_name(str(name))
+        if full_key and full_key not in by_full:
+            by_full[full_key] = row
+
+        last_initial = last_name_first_initial_key(str(name))
+        if last_initial:
+            by_last_initial.setdefault(last_initial, []).append(row)
+
+        last_key = last_name_key(str(name))
+        if last_key:
+            by_last_name.setdefault(last_key, []).append(row)
+
+    return by_full, by_last_initial, by_last_name
+
+
+def resolve_seed_row(
+    professor_name: str,
+    by_full: dict[str, dict[str, object]],
+    by_last_initial: dict[str, list[dict[str, object]]],
+    by_last_name: dict[str, list[dict[str, object]]],
+) -> tuple[dict[str, object] | None, str]:
+    full_key = normalize_name(professor_name)
+    if full_key and full_key in by_full:
+        return by_full[full_key], "full_name"
+
+    last_initial = last_name_first_initial_key(professor_name)
+    if last_initial:
+        matches = by_last_initial.get(last_initial, [])
+        if len(matches) == 1:
+            return matches[0], "last_name_first_initial"
+
+    last_key = last_name_key(professor_name)
+    if last_key:
+        matches = by_last_name.get(last_key, [])
+        if len(matches) == 1:
+            return matches[0], "last_name_unique"
+
+    return None, ""
+
+
 def build_db_row(
     *,
     professor_name: str,
     imported_at: str,
     prior_weight: int,
     prior_rating_mean: float,
-    rmp: dict | None,
-) -> dict[str, object] | None:
-    if rmp:
-        rating = rmp.get("rating")
-        review_count = rmp.get("num_ratings")
+    rating_payload: dict[str, object] | None,
+    source: str | None,
+) -> tuple[dict[str, object], str]:
+    if rating_payload:
+        rating = rating_payload.get("rating")
+        review_count = rating_payload.get("num_ratings")
         if rating is not None and review_count:
-            difficulty = rmp.get("difficulty")
-            would_take_again_pct = rmp.get("would_take_again_pct")
+            difficulty = rating_payload.get("difficulty")
+            would_take_again_pct = rating_payload.get("would_take_again_pct")
             features = calculate_sentiment_features(
                 rating=float(rating),
                 difficulty=float(difficulty) if difficulty is not None else None,
@@ -105,7 +237,7 @@ def build_db_row(
             )
             return {
                 "professor_name": professor_name,
-                "source": "ratemyprofessors",
+                "source": source or "ratemyprofessors",
                 "rating": float(rating),
                 "difficulty": float(difficulty) if difficulty is not None else None,
                 "would_take_again_pct": float(would_take_again_pct)
@@ -125,9 +257,9 @@ def build_db_row(
                 "confidence_adjusted_sentiment_score": features[
                     "confidence_adjusted_sentiment_score"
                 ],
-                "rmp_url": rmp.get("rmp_url"),
+                "rmp_url": rating_payload.get("rmp_url"),
                 "imported_at": imported_at,
-            }
+            }, "matched"
 
     fallback_features = calculate_sentiment_features(
         rating=prior_rating_mean,
@@ -155,7 +287,7 @@ def build_db_row(
         ],
         "rmp_url": None,
         "imported_at": imported_at,
-    }
+    }, "fallback_prior_only"
 
 
 def init_schema(conn: sqlite3.Connection) -> None:
@@ -225,45 +357,119 @@ def write_csv(output_path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
+def write_diagnostics_csv(output_path: Path, rows: list[dict[str, object]]) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = [
+        "professor_name",
+        "attempted_queries",
+        "matched_query",
+        "match_key",
+        "result",
+        "source",
+        "rating",
+        "review_count",
+        "rmp_url",
+    ]
+
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def main() -> None:
     default_db = get_database_path()
     default_csv = PROJECT_ROOT / "data" / "processed" / "professor_sentiment_features.csv"
+    default_seed_csv = PROJECT_ROOT / "data" / "seed" / "professor_sentiment_seed.csv"
+    default_diagnostics_csv = (
+        PROJECT_ROOT / "data" / "processed" / "professor_sentiment_diagnostics.csv"
+    )
 
     parser = argparse.ArgumentParser(
         description="Build professor sentiment features and store them in SQLite + optional CSV."
     )
     parser.add_argument("--db-path", type=Path, default=default_db)
     parser.add_argument("--export-csv", type=Path, default=default_csv)
+    parser.add_argument("--seed-csv", type=Path, default=default_seed_csv)
+    parser.add_argument("--diagnostics-csv", type=Path, default=default_diagnostics_csv)
     parser.add_argument("--prior-weight", type=int, default=10)
     parser.add_argument("--prior-rating-mean", type=float, default=3.8)
     args = parser.parse_args()
 
     imported_at = datetime.now(timezone.utc).isoformat()
+    seed_rows = load_seed_rows(args.seed_csv)
+    seed_by_full, seed_by_last_initial, seed_by_last_name = build_seed_indexes(seed_rows)
 
     with sqlite3.connect(args.db_path) as conn:
         init_schema(conn)
         professor_names = fetch_professor_names(conn)
 
         inserted_rows: list[dict[str, object]] = []
+        diagnostics_rows: list[dict[str, object]] = []
         matched = 0
+        matched_live = 0
+        matched_seed = 0
         fallback = 0
 
         for professor_name in professor_names:
-            rmp = fetch_professor_rating(professor_name)
-            db_row = build_db_row(
+            matched_query = ""
+            match_key = ""
+            rating_payload: dict[str, object] | None = None
+            source = None
+            queries = candidate_queries(professor_name)
+            for query in queries:
+                candidate_rmp = fetch_professor_rating(query)
+                if candidate_rmp:
+                    rating_payload = candidate_rmp
+                    source = "ratemyprofessors_live"
+                    matched_query = query
+                    match_key = "query"
+                    break
+
+            if rating_payload is None and seed_rows:
+                seed_row, seed_key = resolve_seed_row(
+                    professor_name,
+                    seed_by_full,
+                    seed_by_last_initial,
+                    seed_by_last_name,
+                )
+                if seed_row:
+                    rating_payload = seed_row
+                    source = "seed_dataset"
+                    match_key = seed_key
+
+            db_row, result = build_db_row(
                 professor_name=professor_name,
                 imported_at=imported_at,
                 prior_weight=args.prior_weight,
                 prior_rating_mean=args.prior_rating_mean,
-                rmp=rmp,
+                rating_payload=rating_payload,
+                source=source,
             )
-            if db_row is None:
-                continue
 
-            if db_row["source"] == "ratemyprofessors":
+            if db_row["source"] != "prior_only":
                 matched += 1
+                if db_row["source"] == "ratemyprofessors_live":
+                    matched_live += 1
+                elif db_row["source"] == "seed_dataset":
+                    matched_seed += 1
             else:
                 fallback += 1
+
+            diagnostics_rows.append(
+                {
+                    "professor_name": professor_name,
+                    "attempted_queries": " | ".join(queries),
+                    "matched_query": matched_query,
+                    "match_key": match_key,
+                    "result": result,
+                    "source": db_row["source"],
+                    "rating": db_row["rating"],
+                    "review_count": db_row["review_count"],
+                    "rmp_url": db_row["rmp_url"],
+                }
+            )
 
             conn.execute(
                 """
@@ -310,15 +516,20 @@ def main() -> None:
 
     if args.export_csv:
         write_csv(args.export_csv, inserted_rows)
+    if args.diagnostics_csv:
+        write_diagnostics_csv(args.diagnostics_csv, diagnostics_rows)
 
     print(
         "Built professor_sentiment_features: "
         f"candidates={len(professor_names)}, inserted={len(inserted_rows)}, "
-        f"matched={matched}, fallback={fallback}, "
+        f"matched={matched}, matched_live={matched_live}, matched_seed={matched_seed}, "
+        f"fallback={fallback}, "
         f"db={args.db_path}"
     )
     if args.export_csv:
         print(f"CSV export: {args.export_csv}")
+    if args.diagnostics_csv:
+        print(f"Diagnostics export: {args.diagnostics_csv}")
 
 
 if __name__ == "__main__":
