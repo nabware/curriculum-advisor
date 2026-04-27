@@ -1,0 +1,21 @@
+scenario_id,major,term,max_units_per_semester,completed_courses,transcript_text,prefer_light_workload
+cand_small_fall_dsai_001,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,,,false
+cand_small_fall_dsai_002,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,,"Completed: MATH 226, CSC 230, CSC 510",false
+cand_small_fall_dsai_003,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,,"Completed: MATH 226, CSC 230, CSC 510, CSC 805",false
+cand_small_fall_dsai_004,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230,,false
+cand_small_fall_dsai_005,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510,,false
+cand_small_fall_dsai_006,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510; CSC 805,,false
+cand_small_fall_dsai_007,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510; CSC 820,,false
+cand_small_fall_dsai_008,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510; CSC 865,,false
+cand_small_fall_dsai_009,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,,,true
+cand_small_fall_dsai_010,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,,"Completed: MATH 226, CSC 230, CSC 510",true
+cand_small_fall_dsai_011,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,,"Completed: MATH 226, CSC 230, CSC 510, CSC 805",true
+cand_small_fall_dsai_012,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230,,true
+cand_small_fall_dsai_013,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510,,true
+cand_small_fall_dsai_014,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510; CSC 805,,true
+cand_small_fall_dsai_015,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510; CSC 820,,true
+cand_small_fall_dsai_016,Master of Science in Data Science and Artificial Intelligence,Fall 2026,6,MATH 226; CSC 230; CSC 510; CSC 865,,true
+cand_small_fall_dsai_023,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,MATH 226; CSC 230; CSC 510; CSC 820,,false
+cand_small_fall_dsai_024,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,MATH 226; CSC 230; CSC 510; CSC 865,,false
+cand_small_fall_dsai_031,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,MATH 226; CSC 230; CSC 510; CSC 820,,true
+cand_small_fall_dsai_032,Master of Science in Data Science and Artificial Intelligence,Fall 2026,9,MATH 226; CSC 230; CSC 510; CSC 865,,true

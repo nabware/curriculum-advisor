@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.request
 from functools import lru_cache
@@ -100,6 +101,10 @@ def fetch_professor_rating(
 
     Keys: rating, difficulty, num_ratings, would_take_again_pct, rmp_url
     """
+    # Seed/simulated sentiment is the default data path; opt into live calls explicitly.
+    if os.getenv("RMP_ENABLE_LIVE", "0").strip().lower() not in {"1", "true", "yes", "on"}:
+      return None
+
     if not professor_name or not professor_name.strip():
         return None
 

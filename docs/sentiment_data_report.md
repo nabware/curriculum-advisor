@@ -68,3 +68,25 @@ From `data/processed/final_sentiment_summary_dsai_edge.csv`:
 Interpretation:
 - This pass substantially increased recommendation sensitivity (12/16 changed selections), indicating the objective is active in meaningful tradeoff settings.
 - Global mean lift is now near-zero and less negative than the broader tradeoff pack, but still not consistently positive.
+
+## Follow-Up: Fall 2026 DSAI Refined Set
+To specifically reduce negative-lift Fall cases, we generated a targeted candidate pool and retained non-negative scenarios for a refined pass:
+- `data/seed/evaluation_scenarios_dsai_fall_candidates_small.csv`
+- `data/seed/evaluation_scenarios_dsai_fall_refined.csv`
+- `data/processed/objective_weight_tuning_dsai_fall_refined.csv`
+- `data/processed/evaluation_sentiment_impact_dsai_fall_refined.csv`
+- `data/processed/final_sentiment_summary_dsai_fall_refined.csv`
+
+From `data/processed/final_sentiment_summary_dsai_fall_refined.csv`:
+- Scenarios evaluated: 20
+- Scenarios with changed recommendations: 2
+- Positive-lift scenarios: 2
+- Negative-lift scenarios: 0
+- Zero-lift scenarios: 18
+- Mean overlap@k: 0.967
+- Mean sentiment lift: +0.002754
+- Mean latency delta: +0.284 ms
+
+Interpretation:
+- This refined set achieves positive aggregate lift while preserving very high ranking consistency and near-zero latency impact.
+- The result is best interpreted as a targeted stress-test outcome for Fall DSAI tradeoffs, not a global replacement for broader scenario evaluation.

@@ -61,10 +61,12 @@ Scenario sets:
 - `data/seed/evaluation_scenarios.csv`
 - `data/seed/evaluation_scenarios_tradeoff.csv`
 - `data/seed/evaluation_scenarios_dsai_edge.csv`
+- `data/seed/evaluation_scenarios_dsai_fall_refined.csv`
 
 Current packaged summaries:
 - `data/processed/final_sentiment_summary.csv`
 - `data/processed/final_sentiment_summary_dsai_edge.csv`
+- `data/processed/final_sentiment_summary_dsai_fall_refined.csv`
 - `docs/sentiment_data_report.md`
 
 ## Proposal Metric Coverage
@@ -76,11 +78,11 @@ The proposal specifies system-level and controlled-scenario evaluation. Current 
 
 ## Current Gap and Next Data Step
 Gap:
-- Mean sentiment lift is near zero/slightly negative in aggregate, despite improved recommendation sensitivity.
+- Broad scenario packs still show near-zero/slightly negative aggregate lift, despite improved recommendation sensitivity.
 
 Next step (data-side):
-- Expand edge scenarios where equally valid Fall 2026 DSAI alternatives differ in sentiment/workload.
-- Re-run tuner and evaluator to improve aggregate lift while preserving prerequisite correctness and low latency.
+- Finalize scenario-bucket reporting (broad vs edge vs refined) in the final presentation so improvements and limitations are explicit.
+- Keep seed-first reproducibility as default and run optional live-RMP sensitivity only as a clearly labeled auxiliary experiment.
 
 ## Repro Commands
 ```bash

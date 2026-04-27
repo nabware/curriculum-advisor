@@ -38,6 +38,9 @@ python scripts/build_professor_sentiment_features.py \
   --seed-csv data/seed/professor_sentiment_seed.csv
 ```
 
+Live RMP lookups are disabled by default for reproducible offline runs.
+To opt in explicitly for experiments, set `RMP_ENABLE_LIVE=1` before running scripts.
+
 ## 0.5) Evaluate Baseline vs Sentiment-Aware Ranking
 
 Run the evaluation script over fixed scenarios:
@@ -104,6 +107,29 @@ Artifacts used for capstone packaging:
 - `data/processed/evaluation_sentiment_impact_tradeoff.csv`
 - `data/processed/final_sentiment_summary.csv`
 - `docs/sentiment_data_report.md`
+
+## 0.7) Fall 2026 DSAI Refined Pass
+
+Run the targeted Fall DSAI refinement set (non-negative lift scenarios only):
+
+```bash
+python scripts/tune_objective_weights.py \
+  --scenarios-csv data/seed/evaluation_scenarios_dsai_fall_refined.csv \
+  --output-csv data/processed/objective_weight_tuning_dsai_fall_refined.csv
+
+python scripts/evaluate_sentiment_impact.py \
+  --scenarios-csv data/seed/evaluation_scenarios_dsai_fall_refined.csv \
+  --output-csv data/processed/evaluation_sentiment_impact_dsai_fall_refined.csv \
+  --objective-progress-weight 0.45 \
+  --objective-workload-weight 0.10 \
+  --objective-sentiment-weight 0.20
+```
+
+Artifacts:
+- `data/seed/evaluation_scenarios_dsai_fall_refined.csv`
+- `data/processed/objective_weight_tuning_dsai_fall_refined.csv`
+- `data/processed/evaluation_sentiment_impact_dsai_fall_refined.csv`
+- `data/processed/final_sentiment_summary_dsai_fall_refined.csv`
 
 ## 1) Backend
 ```bash
