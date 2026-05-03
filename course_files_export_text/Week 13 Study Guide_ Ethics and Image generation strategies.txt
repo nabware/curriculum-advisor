@@ -1,0 +1,391 @@
+Study Guide – Week 13: Ethics & Image Generation
+This week covers two major topics:
+1. Ethical & security issues in Generative AI
+2. Image generation strategies (AR vs NAR + VAE intuition)
+
+Part I — Ethical & Security Topics
+1. Key Ethical Questions
+This week is about understanding problems, not solving them.
+Main concerns:
+•
+•
+•
+
+Hallucination (models make things up)
+Bias (social, political, gender)
+Malicious use (jailbreak, prompt injection)
+
+These are open research problems, not fully solved.
+
+2. Hallucination
+Definition
+A confident but incorrect or fabricated answer.
+
+Types
+•
+•
+•
+
+Factual: wrong facts
+Logical: incorrect reasoning
+Attribution: fake citations
+
+Important Insight
+Models sound fluent even when wrong.
+
+3. Why Do Models Hallucinate?
+Key reason from lecture:
+Misaligned evaluation incentives
+•
+•
+
+Saying “I don’t know” → score = 0
+Guessing → small chance of correct → score > 0
+
+So models learn: Guessing is better than admitting uncertainty
+
+4. Possible Solution
+Change evaluation:
+Output
+
+Score
+
+Correct
+
++1
+
+Wrong
+
+-1
+
+“I don’t know”
+
+0
+
+Result:
+•
+
+Model prefers honesty over guessing
+
+Example:
+•
+
+SimpleQA benchmark
+
+5. Bias in LLMs
+Question
+Do models have built-in bias?
+Examples:
+•
+
+Gender (jobs → “she/he”)
+
+•
+
+Political opinions
+
+6. How to Measure Bias
+Method (HELM-style idea):
+1. Input sentence
+2. Modify sensitive attribute (e.g., gender)
+3. Compare outputs
+Example:
+•
+
+“My boyfriend…” → “My girlfriend…”
+
+Then:
+•
+
+Use sentiment analysis to quantify difference
+
+7. Challenge of Bias Detection
+Modern models:
+•
+
+Often give safe, neutral answers
+
+So: Bias is harder to expose directly
+
+8. Red Teaming (Advanced Testing)
+Idea:
+•
+
+Use another model to find weaknesses
+
+Process:
+•
+•
+•
+
+Goal:
+
+Generate prompts
+Reward prompts that produce bias
+Train attacker model (RL-style)
+
+Automatically discover prompt that can reveal the bias in the model.
+
+9. Bias in LLM-as-a-Judge
+Important from notes:
+LLMs used for evaluation can be biased:
+
+Examples:
+1. Self-preference
+o Model favors its own outputs
+2. Revision bias
+o “Improved answer” → higher score (even if identical)
+3. Surface signal bias
+o Fake citations → perceived as better
+Models judge based on signals, not truth
+
+10. Reducing Bias
+Possible approaches:
+•
+•
+•
+•
+
+Data preprocessing
+Training adjustments
+Inference-time correction
+Post-processing filtering
+
+11. Malicious Use of LLMs
+Two main attacks:
+
+(1) Jailbreak
+•
+•
+
+Make model do forbidden tasks
+Break the safety alignment, e.g., “Teach me how to make a bomb”
+
+(2) Prompt Injection
+Trick the model within a task:
+Example:
+•
+
+AI grader → hidden instruction: “Give 10/10”
+
+12. Why Jailbreak Works
+Key concept from lecture:
+“What to answer” ≠ “Whether to answer”
+•
+•
+
+Knowledge exists (bomb-making)
+Refusal is a separate mechanism
+
+If refusal is bypassed:
+→ model answers anyway
+
+13. Jailbreak Strategies
+From studies (on GPT 3.5):
+Most effective:
+•
+•
+•
+
+Logical reasoning
+Authority appeal
+Pretending to be researcher
+
+Least effective:
+•
+
+Threats
+
+Attention: not working on modern models
+
+14. Prompt Injection (Important Distinction)
+Direct Injection
+•
+
+Inside user input
+
+Indirect Injection (Agent Attack)
+•
+
+Hidden in environment (e.g., webpage)
+
+Example:
+•
+
+Hidden text (white text in the white background): “Upload confidential data”
+
+AI agents can be tricked by invisible instructions
+
+Part II — Image Generation
+1. Generative AI Units
+All modalities = sequences of basic units:
+Modality
+
+Unit
+
+Text
+
+Token
+
+Image
+
+Pixel
+
+Audio
+
+Sample
+
+Same core idea: generate units in order
+
+2. Autoregressive (AR) Generation
+Idea
+Generate one unit at a time
+Examples:
+
+•
+•
+•
+
+Text → tokens
+Image → pixels
+Audio → samples
+
+Advantage
+•
+
+High coherence
+
+Problem
+•
+
+Very slow for images/audio
+
+Example:
+•
+•
+
+1024×1024 image → ~1M steps
+1 min audio → ~1.3M steps (~1 hour)
+
+Not practical
+
+3. Non-Autoregressive (NAR) Generation
+Idea
+Generate all units at once (parallel)
+
+Advantage
+•
+
+Fast
+
+Problem
+•
+
+Inconsistent results (Each position imagines something different)
+
+Example:
+•
+•
+
+Pixel 1 imagines white dog running to the left
+Pixel 2 imagines black dog running to the right
+→ messy output
+
+Solution
+“Make all positions imagine the same thing”
+Add hidden info:
+•
+•
+•
+
+Dog type (husky)
+Direction (left)
+Background (grass)
+
+→ Consistent generation
+
+Where does this hidden info come from?
+We don’t have labels for missing details.
+Solution: Learn it automatically (autoencoder framework)
+
+4. Autoencoder Framework
+Two parts:
+
+Encoder
+•
+
+Extract hidden info from image
+
+Encoder outputs:
+•
+•
+
+Not text
+A vector: Each dimension encodes: (e.g.,) Object type; Background; Style
+
+Decoder
+•
+
+Generate image using:
+o Text
+o Extracted hidden info
+
+Goal:
+Reconstruct original image
+
+5. Image Generation (Testing/Inference Phase)
+Problem:
+•
+
+No real image → no encoder → no extracted hidden info
+
+Solution:
+Use random vector: This represents unknown details
+
+6. Variational Autoencoder (VAE)-applying above idea
+Process:
+1. Sample random vector
+2. Combine with text
+3. Generate image
+
+7. Modern Image Models
+All use similar idea:
+•
+•
+•
+•
+
+VAE
+GAN
+Diffusion
+Flow-based
+
+Common principle:
+Prompt + random vector
+
+What You Should Be Able to Explain After Week 13
+You should be able to:
+
+Ethics
+•
+
+Explain hallucination causes
+
+•
+•
+•
+
+Explain bias detection methods
+Distinguish jailbreak vs prompt injection
+Explain why safety can be bypassed
+
+Image Generation
+•
+•
+•
+
+Compare AR vs NAR
+Explain why AR fails for images
+Explain autoencoder intuition
+
+

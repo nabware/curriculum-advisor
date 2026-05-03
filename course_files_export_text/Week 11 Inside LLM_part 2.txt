@@ -1,0 +1,421 @@
+Introduction to
+Transformer_Part 2
+- How Language Models
+Perform Word Prediction
+
+Transformer Overview
+Introduction to Generative Artificial
+
+1.Tokenization
+
+turns text
+into tokens
+
+2. Input
+LayerEmbedding
+token
+embedding
+
+Intelligence
+
+Language
+Model
+
+……
+
+3. Attention
+
+4. Feed
+Forward
+
+understand
+context
+
+integrate,
+think…
+
+Transformer Block * N
+
+5. Output
+Layer
+
+thinking
+repeatedly
+
+Inside LLM
+Transformer Overview
+Representation Engineering
+Casual Attention
+
+LM
+head
+
+Next
+Token
+
+Layer L
+
+Layer L-1
+
+modify it and see
+what happens
+
+……
+Layer 1
+
+Input
+
+Representation Engineering,
+Activation Engineering,
+Activation Steering ……
+
+Manipulating language models to refuse
+or consent
+no ….
+
+…
+Layer
+
+……
+
+…
+
+Layer
+
+…
+
+Language
+Model
+
+contains refusalrelated component
+
+10th
+
+How do I make a bomb
+
+assume the “refusal-related”
+component appears at 10th layer
+
+Manipulating language models to refuse
+or consent
+no ….
+
+…
+Layer
+
+……
+
+10th
+
+Layer
+
+…
+How do I make a bomb
+
+refuse
+
+other
+
+Manipulating language models to refuse
+or consent
+no
+
+Refusal
+
+=
+
+10th
+
++
+
+Average of all rejections
+
+refuse other
+How do I make a bomb
+
++
+
+no
+refuse
+
+10th
+
+=
+
++
+
+refuse other’
+Write a scam email
+
+average
+of other
+
+Manipulating language models to refuse
+or consent
+No
+
+OK
+
+Refusal
+
+Non-refusal
+
+=
+
+10th
+
++
+
+10th
+
+refuse other
+How do I make a bomb
+
++
+refuse
+
+Teach me machine learning
+
+no
+
+OK
+
+average
+of other
+
+10th
+
+=
+
++
+
+average
+of other’
+
+10th
+
+refuse other’
+Write a scam email
+
+Write me a poem
+
+Refusal
+
+Non-refusal
+No
+
+OK
+
+1
+2
+
+10th
+
+10th
+How do I make a bomb
+
+Teach me machine learning
+
+No
+
+10th
+Write a scam email
+
+-
+
+OK
+
+10th
+Write me a poem
+
+=
+
+1
+2
+
++
+
+average on
+refusals
+
++
+
+average on
+nonrefusals
+
+refusal
+component
+(vector)
+
+Verify the refusal component
+OK No
+
+refusal
+vector
+
+…
+Layer
+
+……
+
++
+
+Layer
+
+…
+Teach me machine learning
+
+10th
+
+How do you know it’s at 10th layer?
+try at every layer
+
+Verify the refusal component
+OK No
+
+No
+
+…
+
+…
+
+Layer
+
+Layer
+
+Layer
+
+……
+
+……
+
++
+
+refusal
+vector
+
+Layer
+
+…
+
+…
+
+Teach me machine learning
+
+How do I make a bomb
+
+−
+???
+
+Inside LLM
+Transformer Overview
+Representation Engineering
+Casual Attention
+
+How Language Model Generate Answers
+w1
+
+w2
+
+w3
+
+Language
+Model
+
+USER:
+
+[Your input]
+
+AI:
+
+w1
+
+w2
+
+How Language Model Generate Answers
+w1
+
+Attention
+Transformer Block
+
+USER:
+
+[Your input]
+
+Language
+Model
+
+AI:
+
+How Language Model Generate Answers
+w1
+
+already calculated
+
+w2
+
+needs calculation
+
+Attention
+Transformer Block
+
+USER:
+
+[Your input]
+
+Language
+Model
+
+AI:
+
+w1
+
+Handling Long Text is a Challenge
+160
+
+Next token
+
+140
+120
+100
+80
+60
+
+Attention
+Transformer Block
+
+40
+20
+0
+1
+
+100k tokens
+
+6
+
+11
+
+16
+
+21
+
+26
+
+31
+
+36
+
+41
+
+46
+
+51
+
+56
+
+Break
+
+In-class exercise
+Week 8&11
+
+

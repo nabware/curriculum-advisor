@@ -1,0 +1,153 @@
+Study Guide – Week 8: Inside LLM (Part 1 – Transformer
+Basics)
+1. Big Picture: How LLMs Generate Text
+A language model: - Takes an incomplete sentence - Predicts the next token - Repeats
+this process
+Generation = repeated next-token prediction.
+Important: > Everything inside the model supports this single objective.
+
+2. Transformer Pipeline Overview
+Intelligence
+
+Introduction to Generative Artificial
+
+1.Tokenization
+turns text
+into tokens
+
+2. Input
+LayerEmbedding
+token
+embedding
+
+Language
+Model
+
+……
+
+3. Attention
+
+4. Feed
+Forward
+
+understand
+context
+
+integrate,
+think…
+
+A transformer processes text in stages:
+1. Tokenization
+2. Embedding (input layer)
+3. Attention
+4. Feedforward
+5. Output layer
+These steps are repeated across multiple transformer blocks.
+
+5. Output
+Layer
+
+3. Tokenization
+Definition: > Convert text into tokens.
+Example: “introduction of generative ai” → [“int”, “roduction”, “of”, “gener”, “ative”, “ai”]
+Methods: - Byte Pair Encoding (BPE)
+Important: - Tokens are the basic unit for LLMs
+- Tokenization has no trainable parameters
+
+4. Embedding: Turning Tokens into Vectors
+Each token → vector (embedding)
+Embedding table: - Lookup table - Maps token ID → vector - Learned during training
+Key property: > Similar tokens have similar embeddings.
+
+4.1. Limitation of Token Embeddings
+Embeddings: - Capture semantic similarity - Do NOT consider context
+Example: “bank” - Financial bank - River bank
+Same token, different meanings → ambiguity.
+
+4.2. Positional Embedding
+Problem: - Embeddings ignore word order
+Solution: - Add positional embeddings
+Each position has: - A unique vector
+Final input representation: > Token embedding + positional embedding
+
+5. Attention: Core Idea
+Attention allows the model to: - Look at other tokens in the whole sentence (context) Determine relevance - Gather useful information
+Key idea: > Each token decides which other tokens matter.
+
+5.1. How Attention Works (Simplified)
+Steps: 1. Compute relevance scores between tokens 2. Convert to attention
+weights 3. Combine information from relevant tokens (weighted sum)
+Output: - Contextualized embedding
+
+5.2. Attention Matrix
+For a sentence: - Compute relevance for every token pair
+Result: - Attention matrix
+This captures relationships across the sequence.
+
+5.3. Causal Attention
+In language modeling: - Only look at previous tokens
+
+5.4. Multi-Head Attention
+Instead of one attention pattern: - Use multiple heads
+Each head learns: - Different relationships
+
+6. Feedforward Layer
+After attention: - Pass through feedforward network
+
+Role: - Transform representation - Add non-linearity
+
+7. Transformer Blocks
+A transformer block includes: - Attention - Feedforward
+Blocks are stacked: - Repeated processing - Deeper understanding
+“Thinking repeatedly”
+
+8. Output Layer
+Final step:
+1. Convert vector → logits
+2. Apply softmax → probabilities
+Output: - Probability distribution over tokens
+Highest probability → next token
+
+9. Logits vs Probabilities
+Logits: - Raw scores (any value)
+Softmax: - Converts to probabilities (0–1, sum to 1)
+Higher logit → higher probability
+
+10. Temperature
+Controls randomness:
+•
+•
+
+Low temperature → sharp distribution → deterministic
+High temperature → even distribution → creative
+
+11. Unembedding
+Process: - Map final vector back to tokens
+Mechanism: - Dot product with embedding table
+Interpretation: > Reverse of embedding
+
+12. Key Mental Model
+Transformer pipeline:
+Text → Tokens → Vectors → Context → Probabilities → Next token
+Everything is built to support: > Next-token prediction.
+
+What You Should Be Able to Explain After Week 8
+You should be able to:
+•
+•
+•
+•
+•
+•
+
+Explain the full transformer pipeline
+Explain tokenization and embeddings
+Explain why positional embedding is needed
+Explain causal attention
+Explain multi-head attention
+Explain logits vs probabilities
+
+If you cannot explain how attention enables context understanding, revisit this week’s
+slides and recordings.
+
+

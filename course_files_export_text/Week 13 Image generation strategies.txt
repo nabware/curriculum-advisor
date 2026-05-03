@@ -1,0 +1,442 @@
+Image
+Generation
+Strategies
+
+Generative Artificial Intelligence (Generative AI):
+Machines generate complex structured objects
+
+Text
+
+Image
+
+Audio
+
+Text is composed of tokens
+
+https://platform.openai.co
+m/tokenizer
+
+Vocabulary
+Generative AI
+
+Llama 2
+
+……
+32K different token
+
+An image is composed of pixels
+
+The number of colors each pixel can have
+depends on BPP (Bits per Pixel).
+
+8 BPP → 256 colors
+16 BPP → 65,536 colors
+24 BPP → 16.7m colors
+
+https://zh.wikipedia.org/zh-tw/%E5%83%8F%E7%B4%A0#/media/File:Pixel-example.png
+
+https://web.archive.org/web/20211027193750/
+https://deepmind.com/blog/article/wavenet-generative-model-raw-audio
+
+Audio is composed of sample points
+
+Sampling Rate of 16kHz: 16,000 points/second
+
+Bit Resolution
+
+The Nature of Generative AI
+
+Condition
+
+Generative
+AI
+Combine units in
+the correct order
+
+The Nature of Generative AI
+Textgeneration
+AI
+
+Token
+
+Pixel
+
+A dog is running
+
+Imagegeneration
+AI
+
+A song about
+artificial intelligence
+
+Audiogeneration
+AI
+
+What is Machine
+Learning?？
+
+word
+
+Sample
+
+word
+
+word
+
+Autoregressive Generation (AR)
+Generative
+AI
+
+Generative AI
+
+Generative AI
+Generative AI
+
+Very
+successful
+in text
+generation
+
+Autoregressive Generation
+
+What about Image?
+
+https://openai.com/blog/image-gpt/
+
+Autoregressive Generation
+What about
+Audio?
+
+WavNet
+https://arxiv.org/ab
+s/1609.03499
+
+Autoregressive Generation
+• Assuming we need to generate an image with a resolution of
+1024 x 1024 pixels.
+We need to perform 1 million times of pixel prediction!
+• Assuming we need to generate one minute of speech with a
+sampling rate of 22K.
+You need to perform 1.32 million times of sample prediction!
+
+Autoregressive Generation (AR)
+Generative AI
+Generative AI
+Generative AI
+
+Non-autoregressive Generation (NAR)
+position 1
+
+Generative AI
+
+position 2
+
+Generative AI
+
+position 3
+
+Generative AI
+
+Generate all
+basic units at
+once
+Parallel
+computation
+
+Autoregressive Generation (AR)
+
+A running dog
+
+Image
+generation
+
+Non-autoregressive Generation (NAR)
+
+A running dog
+
+Image
+generation
+
+The Quality Issues of Non-Autoregressive
+Generation
+• Given the same input, GenAI may produce different output
+Draw a white dog
+running to the left.
+
+Draw a dog
+that is running
+
+position 1
+
+Generative AI
+Draw a black dog
+running to the right.
+
+Draw a dog
+that is running
+
+position 2
+
+Generative AI
+
+messy
+picture
+
+How to Handle the Quality Issue of
+Non-Autoregressive Generation
+• Make all positions imagine the same thing
+Draw a dog
+that is running
+
+position 1
+
+Generative AI
+
+direction: left; Husky; Grass
+field background
+
+Draw a dog
+that is running
+
+position 2
+
+Generative AI
+
+How to Handle Hallucination Problems
+a running dog
+
+Information
+extraction
+
+a running dog
+
+Husky,
+grass field
+
+a running dog
+
+Information
+extraction
+
+Image
+generation
+a running dog
+
+Shiba Inu,
+city
+
+Image
+generation
+
+a running dog
+
+Information
+extraction
+
+a running dog
+
+Husky,
+grass field
+
+Encoder
+
+Image
+generation
+Decoder
+
+a running dog
+
+AutoEncoder
+
+a running dog
+
+Information
+extraction
+
+Shiba Inu,
+city
+
+Image
+generation
+
+Encoder
+
+Decoder
+
+a running dog
+
+Information
+extraction
+
+Husky,
+grass field
+
+0.5
+1.0
+
+a running dog
+
+Image
+generation
+
+Encoder
+
+Decoder
+
+a running dog
+
+a running dog
+
+Information
+extraction
+
+Encoder
+
+Shiba Inu,
+city
+
+0.7
+0.3
+
+Image
+generation
+
+Decoder
+
+Text-to-Image Model Training
+a running dog
+
+Shiba Inu,
+city
+
+Information
+extraction
+
+0.7
+0.3
+
+Encoder
+
+a running dog
+
+Image
+generation
+
+Decoder
+
+Text-to-Image Model Testing
+give me
+extracted info…
+
+randomly
+generated
+
+?
+?
+
+a running dog
+
+Image
+generation
+
+How to Handle the Quality Issue of
+Non-Autoregressive Generation
+• Make all positions imagine the same thing
+Draw a dog that
+is running
+
+generate
+randomly
+
+0.1
+
+position 1
+
+−0.2 3.1 −2.0
+(vector)
+
+Draw a dog that
+is running
+
+Generative AI
+
+…
+
+position 1
+
+Generative AI
+
+Common image generation models, VAE, GAN, flow-based models,
+and diffusion models, all incorporate this design.
+
+Break
+
+In-Class Activity
+(no submission required)
+
+Image Generation Strategies (Autoregressive
+vs. Non-Autoregressive Models)
+4 students per group
+Round 1: Autoregressive(AR) Generation (4 minutes)
+• Choose one student as the “generator” (writer/artist).
+• The rest of the group acts as the prompt and evaluators.
+• Give the generator a prompt — e.g.,
+• “Draw a dog running on grass.”
+• “Write a short 4-line poem about AI.”
+• The generator must produce one element at a time (one word, one shape, or one
+part of the drawing), waiting for approval before continuing.
+• No going back or editing earlier parts (like token-by-token text generation).
+• Other team members can only give minimal hints like “keep going.”
+
+Round 2: Non-Autoregressive(NAR) Generation (4 minutes)
+• Now all group members create simultaneously - each one draws or
+writes a different part at the same time, without coordination/discussion.
+• For example:
+• One draws the head of the dog, another draws the body of the dog,
+another draws the grass, another adds background, etc.
+• Or for text: each person writes one line of a poem at the same time.
+
+Group Reflection
+Each team discusses:
+• Which version was faster?
+• Which version looked or read more coherent?
+• What challenges did you face in Round 2?
+• How might “making all positions imagine the same thing” help solve
+inconsistency?
+
+Conclusion:
+- AR models produce more consistent but slower
+results
+- NAR models generate faster but can lose coherence.
+
+How to Handle the Quality Issue of
+Non-Autoregressive Generation
+• Make all positions imagine the same thing
+Draw a dog that
+is running
+
+generate
+randomly
+
+0.1
+
+position 1
+
+−0.2 3.1 −2.0
+(vector)
+
+Draw a dog that
+is running
+
+Generative AI
+
+…
+
+position 1
+
+Generative AI
+
+Common image generation models, VAE, GAN, flow-based models,
+and diffusion models, all incorporate this design.
+
+

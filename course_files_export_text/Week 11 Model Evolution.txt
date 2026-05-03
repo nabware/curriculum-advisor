@@ -1,0 +1,792 @@
+Mamba
+
+Evolutions
+- Transformer and
+its friends
+(competitors)
+
+General Machine Learning Model：
+Stage 1 (2018 - 2019)
+Summarization
+Encoder
+
+special
+model
+
+General
+Model
+special
+model
+
+Sesame
+Street family
+
+Translation
+
+ELMO BERT ERNIE
+
+General Machine Learning Model：
+Stage 2 (2020 - 2022)
+𝑓𝜃′
+
+Summarization
+
+General
+Model
+
+𝑓𝜃
+Has text generation capabilities
+
+Same architecture,
+different parameters
+Translation
+
+𝑓𝜃′′
+GPT-3
+
+Fine-tune
+
+General Machine Learning Model：
+Stage 3 (2023 -)
+Summarization
+General
+Model
+General
+Model
+
+Summarize
+this
+
+Can follow input instructions
+
+Same architecture,
+same parameters
+
+General
+Model
+Translate
+this
+
+Translation
+
+Machine Life-long Learning Era
+If you need the machine to have a
+certain ability ….
+
+Past: Learn from
+scratch
+
+Now: has basic
+abilities
+
+Machine Life-long Learning Era
+If you need the machine to have a
+certain ability ….
+→ Change parameters
+
+Is there other ways to reach target?
+Fine-tuning should be your last option.
+
+change
+parameters
+
+Fine-tune/Post-training
+Attention:
+Keep original abilities! Learned new skill, but
+Base model
+forget old skills
+(already has basic
+abilities)
+
+Each architecture exists for a reason
+• Why does a CNN exist?
+Fully Connected Layer
+
+Jack of all trades,
+master of none
+
+Receptive Field
+
+Parameter Sharing
+Convolutional Layer
+
+for image
+
+designed around the characteristics of images, reduce parameters,
+you can also avoid overfitting
+
+Each architecture exists for a reason
+• Why does Residual Connection exist？
+Optimization issue
+
+Overfitting?
+
+Testing Data
+Source of image: http://arxiv.org/abs/1512.03385
+
+Training Data
+
+Each architecture exists for a reason
+
+Why it was
+created?
+What problem it
+tries to solve?
+
+• Why does Residual Connection exist？to make optimization easier
+
+Source of image: https://arxiv.org/abs/1712.09913
+
+Why did the
+Transformer
+appear？
+
+……
+
+Layer
+
+Layer
+
+Layer
+
+Layer
+
+Layer
+
+Layer
+
+Layer
+
+RNN (LSTM)
+Self-attention Layer
+Mamba (and its friends)
+(RNN)
+
+……
+
+Transformer Layer (Block)
+
+Layer
+
+What kind of problem are they designed
+to solve?
+𝒚𝟏
+
+𝒚𝟐
+
+𝒚𝟑
+
+𝒚𝒕
+……
+
+RNN, Self-Attention, Mamba …
+
+……
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝒕
+
+𝒚𝒕
+
+RNN-Style
+
+Hidden
+State
+
+……
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝒕
+
+H𝑡 = 𝑓𝐴 H𝑡−1 + 𝑓𝐵 𝒙𝒕
+
+RNN-Style
+
+H0
+
+𝑓𝐴
+
+Vector,
+Matrix, …
+
+𝒚𝒕 = 𝑓𝐶 H𝑡
+
+𝒚𝟏
+
+𝒚𝟐
+
+𝒚𝟑
+
+𝑓C
+
+𝑓C
+
+𝑓C
+
+𝑓𝐴
+
+H1
+𝑓B
+
+𝑓𝐴
+
+H2
+𝑓B
+
+𝒚𝒕
+……
+
+𝑓C
+……
+
+H3
+𝑓B
+
+𝑓𝐴
+
+H𝑡
+𝑓B
+
+……
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝒕
+
+H𝑡 = 𝑓𝐴,𝑡 H𝑡−1 + 𝑓𝐵,𝑡 𝒙𝒕
+
+RNN-Style
+
+𝒚𝒕 = 𝑓𝐶,𝑡 H𝑡
+
+𝒚𝟏
+𝑓C,1
+
+H0
+
+𝑓𝐴,1
+
+Vector,
+Matrix, …
+
+H1
+𝑓B,1
+
+𝑓𝐴,3
+
+H2
+𝑓B,2
+
+……
+
+𝑓C,3
+
+𝑓C,2
+𝑓𝐴,2
+
+𝒚𝒕
+
+𝒚𝟑
+
+𝒚𝟐
+
+𝑓C,𝑡
+
+……
+
+H3
+
+𝑓B,3
+
+𝑓𝐴,𝑡
+
+H𝑡
+𝑓B,𝑡
+
+……
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝒕
+
+H𝑡 = 𝑓𝐴,𝑡 H𝑡−1 + 𝑓𝐵,𝑡 𝒙𝒕
+
+RNN-Style
+
+𝒚𝒕 = 𝑓𝐶,𝑡 H𝑡
+
+LSTM
+
+yt
+
+yt+1
+
+ct
+
+ct-1
+＋
+
+×
+
+×
+
+ct+1
+＋
+
+×
+
+×
+
+zf
+
+zi
+
+ht-1
+
+×
+
+z
+
+xt
+
+×
+
+zo
+
+zf
+
+zi
+
+ht
+
+z
+
+xt+1
+
+zo
+
+RNN-Style vs. AI Agent’s Memory
+
+RNN-Style vs. AI Agent’s Memory
+𝒚𝟏
+𝑓C,1
+
+Memory
+
+H0
+
+𝑓𝐴,1
+
+Vector,
+Matrix, …
+
+H1
+𝑓B,1
+
+𝑓𝐴,3
+
+H2
+𝑓B,2
+
+……
+
+Read 𝑓C,𝑡
+
+𝑓C,3
+
+𝑓C,2
+𝑓𝐴,2
+
+𝒚𝒕
+
+𝒚𝟑
+
+𝒚𝟐
+
+𝑓𝐴,𝑡
+
+……
+Reflection
+
+H3
+
+𝑓B,3
+
+H𝑡
+
+Write 𝑓B,𝑡
+……
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝒕
+
+𝒚𝟏
+
+𝒚𝟐
+
+𝒚𝟑
+
+𝒚𝟒
+
+𝒚𝟓
+
+𝒚𝟔
+
+RNN
+
+computation
+at each step
+is fixed
+
+H1
+
+RNN cannot 𝒙𝟏
+remember
+large amount 𝒚
+𝟏
+of info?
+
+H2
+
+H3
+
+H4
+
+H5
+
+H6
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝟒
+
+𝒙𝟓
+
+𝒙𝟔
+
+𝒚𝟐
+
+𝒚𝟑
+
+𝒚𝟒
+
+𝒚𝟓
+
+𝒚𝟔
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝟒
+
+𝒙𝟓
+
+𝒙𝟔
+
+Attention
+
+longer input,
+more
+computation
+needed
+
+𝒙𝟏
+
+did not invent Attention; removed everything except Attention
+
+https://arxiv.org/abs/1706.03762
+
+Language Model Training (find parameters)
+• compute the model’s current
+outputs before updating parameters
+𝑧1 , 𝑧2 , … , 𝑧𝑡−1 → 𝑧𝑡
+
+𝑧𝑡
+2. compute the difference
+1. get the out put ???
+
+Language Model 3. Update parameters
+
+……
+
+𝑧1
+
+𝑧2
+
+𝑧3
+
+𝑧𝑡−1
+
+Hello
+
+everyone
+
+𝒚𝟏
+
+𝒚𝟐
+
+𝒚𝟑
+
+𝒚𝟒
+
+𝒚𝟓
+
+𝒚𝟔
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+𝒙𝟒
+
+𝒙𝟓
+
+𝒙𝟔
+
+!
+
+I
+
+am
+
+AI
+
+SelfAttention
+
+LLM
+
+<BOS>
+
+Hello
+
+everyone
+
+!
+
+I
+
+am
+
+RNNs
+
+H0
+
+Hello
+
+everyone
+
+𝒚𝟏
+
+𝒚𝟐
+
+H1
+𝒙𝟏
+
+H2
+𝒙𝟐
+
+!
+
+𝒚𝟑
+
+H3
+𝒙𝟑
+
+I
+
+𝒚𝟒
+
+am
+
+𝒚𝟔
+
+𝒚𝟓
+
+H4
+𝒙𝟒
+
+AI
+
+H6
+H5
+GPU hates waiting
+𝒙𝟔
+
+𝒙𝟓
+
+LLM
+
+<BOS>
+
+Hello
+
+everyone
+
+!
+
+I
+
+am
+
+Self-attention vs. RNN-style
+
+Inference
+
+Training
+
+Self-attention
+RNN
+computation and the
+computation and memory
+memory usage grow as the cost stay fixed
+sequence gets longer
+easier to parallelize
+hard to parallelize(?)
+
+RAG, AI Agent need LLM to
+process long sequences.
+sounds or images token
+sequences are much longer
+than text
+Source of image: https://www.artfish.ai/p/long-context-llms
+
+𝒚𝒕
+
+RNN
+
+Linear
+Attention
+
+𝒚𝒕
+𝑓C,𝑡
+
+𝑓C,𝑡
+
+H𝑡−1
+
+𝑓𝐴,𝑡
+
+H𝑡−1
+
+H𝑡
+𝑓B,𝑡
+𝒙𝒕
+
+H𝑡
+𝑓B,𝑡
+
+𝒙𝒕
+
+• Linear Attention is RNN without “Reflection” 𝑓𝐴,𝑡
+• Linear Attention is Self-attention without Softmax
+
+Linear Attention
+
+When training, it’s like Self-attention (parallel
+training)
+When inference, it’s like RNN (memory-efficient)
+
+Training
+
+𝒚𝟏
+
+Inference
+𝒚𝟐
+
+𝒚𝟑
+
+…
+
+𝒚𝒕
+𝑓C,𝑡
+
+𝒚𝒕
+H𝑡−1
+
+H𝑡
+𝑓B,𝑡
+
+𝒙𝟏
+
+𝒙𝟐
+
+𝒙𝟑
+
+…
+
+𝒙𝒕
+𝒙𝒕
+
+125M to 1.3B
+https://arxiv.org/abs/2312.00752
+
+”For the first time ever, a Linear Attention architecture has truly beaten the Transformer”
+
+“a real Transformer challenger has finally arrived!”
+
+https://arxiv.org/abs/2312.00752
+
+Comparison
+Training
+Phase
+RNN (1986) Slow
+LSTM (1997) Slow
+Transformer Fast
+(2017)
+Mamba
+Fast
+(2024)
+
+Testing
+Phase
+Fast
+Fast
+Slow
+
+Additional Issue
+
+Fast
+
+None (RAM & Time:
+O(n))
+
+Rapid Forgetting
+Forgetting
+RAM & Time: O(n^2)
+
+https://arxiv.org/abs/2408.01129
+
+Minimax-01
+https://arxiv.org/abs/2501.08313
+
+Break
+
+

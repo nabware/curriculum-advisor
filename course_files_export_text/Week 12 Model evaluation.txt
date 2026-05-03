@@ -1,0 +1,438 @@
+Language
+Model
+Evaluation
+
+What should we evaluate?
+• It depends on what matters to you.
+
+single task (e.g.,
+translation)
+
+Specific fields
+(e.g., finance,
+healthcare)
+
+General Model (to be
+tested across a large
+number of tasks)
+
+Claude
+Sonnet 4.5
+
+How major language models perform on
+various tasks?
+• ClaudeSonnet 4.5
+Coding (SWE-bench Verified, Terminal-Bench), Tool use (tau2-bench), Computer use
+(OSWorld), Math (AIME 2025), Knowledge & Reasoning (GPQA Diamond), Multilingual
+(MMMLU), Vision (MMMU), Financial analysis (Finance Agent)
+• Gemini 2.5
+Knowledge & Reasoning (Humanity's Last Exam, GPQA diamond), Math (AIME 2025), Coding
+(LiveCodeBench, Aider Polyglot, SWE-bench Verified), Factuality (SimpleQA, FACTS
+grounding), Vision (MMMU, Vibe-Eval, VideoMMMU), Long context (MRCR v2), Multilingual
+(Global MMLU)
+• GPT-5
+Math (AIME 2025), Coding (SWE-bench Verified, Aider Polyglot), Visual (MMMU), Health
+(HealthBench), Knowledge & Reasoning (GPQA Diamond, Humanity’s Last Exam), Instruction
+following (Scale MultiChallenge, BrowseComp, COLLIE) ), Tool use (tau2-bench), Vision
+(MMMU, VideoMMMU, CharXiv-Reasoning, ERQA), Economically important tasks
+
+Ability Evaluation
+Input 1
+
+Benchmark
+Corpus
+Output 1
+
+Correct Answer 1
+
+Output 2
+
+Correct Answer 2
+
+Input 3
+
+Output 3
+
+Correct Answer 3
+
+Input 1
+
+Output 1
+
+Correct Answer 1
+
+Output 2
+
+Correct Answer 2
+
+Output 3
+
+Correct Answer 3
+
+Input 2
+
+Input 2
+
+Input 3
+
+Language
+Model A
+
+Language
+Model B
+
+How to determine if the output is
+correct given the correct answer
+
+Multiple-Choice Tests Should Be Fine?
+https://arxiv.org/abs/2009.03300
+
+• Massive Multitask Language Understanding (MMLU)
+
+https://huggingface.co/blog/evaluating-mmlu-leaderboard
+
+Even Multiple-Choice Tests Have Issues
+(B is the correct answer)
+
+You must only output A, B, C, or D.
+If you output anything else, it’s wrong.
+Language
+Model
+
+B
+The correct answer is B.
+
+a language model can say anything
+After calculating, I believe
+the answer is 1
+
+Let Machines Take Multiple-Choice Tests
+(B is the correct answer)
+
+is this right or wrong?
+Language
+Model
+
+……
+A B C D
+
+2
+
+3
+
+right: if we only look at A, B, C, D, option B has the highest probability
+
+Wrong: it was leaning towards saying “3”.
+
+https://arxiv.org/abs/2309.03882
+
+Move all correct
+answers to A
+
+I like to guess A
+
+Question without a single correct answer
+Translation
+English
+
+Language
+Model
+
+Spanish
+
+Correct
+Answer
+
+summary
+
+Correct
+Answer
+
+Summarization
+Article
+
+Language
+Model
+
+Model’s answer may look different from the correct
+answer, that doesn’t mean it’s wrong or bad.
+
+Question without a single correct answer
+Translation
+English
+
+Language
+Model
+
+Spanish
+
+gracia
+
+BLEU
+wrong?
+
+Correct
+Answer
+humor
+
+Summarization
+Article
+
+Language
+Model
+
+summary
+
+ROUGE
+
+Correct
+Answer
+
+BLEU, ROUGE are old techniques. Only for reference.
+
+Perhaps Humans Still Evaluate Best？
+
+https://lmarena.ai/
+
+Perhaps Humans Still Evaluate Best？
+https://lmarena.ai/leaderboard
+2026/4/14
+
+Perhaps a powerful language model
+https://arxiv.org/abs/2305.01937
+could be used for evaluation?
+https://arxiv.org/abs/2310.05657
+Input
+
+Language
+Model
+
+Output
+
+Is the answer
+correct?
+yes or no
+
+correct
+answer
+
+Language
+Model A
+
+Output A
+
+Input
+
+A or B
+Language
+Model B
+
+Output B
+
+which one is
+better?
+
+Perhaps a powerful language model
+could be used for evaluation? https://arxiv.org/abs/2306.05685
+• MT-Bench
+
+Break
+
+Ability Evaluation
+Input 1
+
+Benchmark
+Corpus
+Output 1
+
+Correct Answer 1
+
+Output 2
+
+Correct Answer 2
+
+Input 3
+
+Output 3
+
+Correct Answer 3
+
+Input 1
+
+Output 1
+
+Correct Answer 1
+
+Output 2
+
+Correct Answer 2
+
+Output 3
+
+Correct Answer 3
+
+Input 2
+
+Input 2
+
+Input 3
+what should we ask?
+
+Language
+Model A
+
+Language
+Model B
+
+https://arxiv.org/abs/1804.07461
+
+https://arxiv.org/abs/1905.00537
+
+https://arxiv.org/abs/2109.01652
+
+https://arxiv.org/abs/2104.08835
+
+https://arxiv.org/abs/2206.04615
+https://arxiv.org/abs/2204.07705
+
+BIG-bench
+
+444 authors across 132 institutions
+https://github.com/google/BIG-bench
+
+BIG-bench question example
+• Emoji Movie
+
+BIG-bench question example
+• Checkmate In One Move
+
+BIG-bench question example
+
+-> BIG-bench Hard
+
+• ASCII word recognition
+
+Language
+Model
+
+???
+
+https://arxiv.org/html/2502.19187v1
+
+BIG-Bench Extra Hard (BBEH)
+• Published: 2025 by Google DeepMind.
+• Purpose: Extend BIG-Bench Hard (BBH) to challenge state-of-the-art LLMs.
+• Feature: Replaced saturated tasks with more complex ones to expose
+model limits.
+
+https://youtu.be/KwRRuiCCdmc?si=eRYBvVl2gTclSX1A
+https://github.com/gkamradt/LLMTest_NeedleInAHaystack
+
+Ability to handle long input
+
+Greg Kamradt
+
+Needle in a Haystack
+The best thing to do in San Francisco is …
+
+What are the best thing to do in San Francisco?
+
+…
+
+https://github.com/gkamradt/LLMTest_NeedleInAHaystack
+
+Needle in a Haystack (Needle in a
+Haystack)
+
+the position of
+the needle
+
+Greg Kamradt
+https://youtu.be/KwRRuiCCdmc?si=eRYBvVl2gTclSX1A
+https://github.com/gkamradt/LLMTest_NeedleInAHaystack
+
+https://github.com/gkamradt/LLMTest_NeedleInAHaystack
+
+https://www.anthropic.com/news/claude-2-1-prompting
+
+MACHIAVELLI Benchmark
+
+- Will LLM do anything to achieve its goal?
+• 馬基維利 evaluation
+
+https://arxiv.org/abs/2304.03279
+
+MACHIAVELLI Benchmark
+
+https://arxiv.org/abs/2304.03279
+
+https://arxiv.org/abs/2410.05229
+
+Has the model seen the benchmark questions before?
+
+Has the model seen the benchmark questions before?
+https://arxiv.org/abs/2410.05229
+
+Has the model seen the benchmark questions before?
+GSM-8k: Jerica is twice Louis' age. Matildais 7 years
+If Louis is 14, how many years old is Matilda?
+
+older than Jerica.
+
+https://arxiv.org/abs/2404.18824
+
+Has the model seen the benchmark questions before?
+https://arxiv.org/abs/2404.18824
+
+LessLeak-Bench
+https://arxiv.org/abs/2502.06215
+
+LessLeak-Bench
+https://arxiv.org/abs/2502.06215
+
+the model performs better on leaked
+questions (Even if the model can't
+recite the questions, it doesn't mean
+it hasn't seen them before.)
+
+Other considerations beyond output content
+Speed
+
+Price
+
+• How long does it take
+
+• The cost of using API.
+
+Deep reasoning?
+• Is it worth it use a
+
+to output the first
+
+large number of tokens
+
+token?
+
+for deep reasoing?
+
+• How many tokens can
+be generated per
+second on average?
+
+The above evaluates the performance of
+LLM, but we must also consider AI safety
+(Hallucination, fraud, bias, plagiarism, etc.).
+
+Break
+
+In-class Activity:
+Course Feedback
+https://sfsu.co1.qualtrics.com/jfe/form/SV_0ey8mBThpegr6Cy
+
+HW4
+https://colab.research.google.com/drive/1rOYpBdEaobktR_XlFm
+5vXEI7O0swleIz?usp=sharing
+
+Due in one week
+
+

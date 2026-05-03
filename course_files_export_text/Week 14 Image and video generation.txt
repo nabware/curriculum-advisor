@@ -1,0 +1,389 @@
+Study Guide – Week 14: Image & Video Generation
+This week covers:
+1. Image & video generation tasks
+2. How models process images/videos
+3. Text-to-image model training & evaluation
+4. Challenges in video generation
+5. Classic generative models (VAE, Flow, Diffusion, GAN)
+
+Part I — What is Image & Video Generation?
+1. Types of Generation
+Generative AI is not just text. It also includes:
+•
+•
+•
+
+Text → Image / Video
+Image → Video
+Video → Video
+
+Examples:
+•
+•
+•
+
+Video completion
+Style transfer (black & white → color)
+Resolution enhancement
+
+Key idea: same concept, different modalities
+
+2. Core Concept of Generative AI
+From earlier weeks:
+Generative AI = combine basic units in the correct order
+Modality
+
+Unit
+
+Text
+
+Tokens
+
+Modality
+
+Unit
+
+Image
+
+Pixels
+
+Audio
+
+Samples
+
+Video
+
+Frames (sequence of images)
+
+Part II — How Models Process Images & Videos
+3. Image Representation (Important)
+Models do NOT process raw pixels directly.
+Instead:
+1. Split image into patches
+2. Compress (encoder)
+3. Flatten into 1D sequence
+4. Feed into Transformer
+Example:
+•
+
+64×64 → 4×4 patches
+
+Transformer processes sequences, not 2D grids
+
+4. Image Generation Pipeline
+•
+•
+
+Transformer outputs patch sequence
+Decoder reconstructs full image
+
+Same idea as token generation → but with patches
+
+5. Video Representation
+A video = sequence of frames
+
+•
+•
+
+24 FPS (movies)
+60 FPS (games)
+
+6. Video Processing
+Steps:
+1. Encode each frame into patches
+2. Compress across time
+3. Flatten into one long sequence
+Important:
+Video = one long row of patches
+
+7. Example: Sora
+Although not fully disclosed:
+•
+•
+•
+
+Uses patch-based encoding
+Uses Transformer
+Similar to image models but scaled up
+
+Part III — Text-to-Image Model Training
+8. Training Data
+Need:
+•
+
+Text + image pairs
+
+Example dataset:
+•
+
+ImageNet; LAION-5B (large, but copyright concerns)
+
+9. Autoregressive (AR) Approach
+Idea:
+•
+
+Generate patches one by one
+
+Problem:
+Too slow
+Same reason as last week:
+•
+
+Sequential generation
+
+10. Non-Autoregressive (NAR) Approach
+Modern approach:
+•
+
+Generate all patches in parallel
+
+Key point:
+•
+
+Attention still ensures coherence
+
+Faster but still consistent (better than naive NAR)
+
+Part IV — Evaluating Image Models
+11. Evaluation Problem
+Question:
+How do we know if generated image is good?
+Human evaluation:
+•
+
+Best but expensive
+
+12. CLIP Score
+Solution:
+•
+
+Use another model (CLIP)
+
+CLIP learns:
+•
+•
+
+Matching image-text pairs → high score
+Mismatched pairs → low score
+
+Usage:
+•
+•
+
+Input: generated image + prompt
+Output: similarity score
+
+Higher score = better alignment
+
+Part V — Challenges in Video Generation
+13. Why Video is Hard
+Not conceptually different from image — just bigger scale
+Example:
+•
+•
+
+1 minute video
+~6 million patches
+
+Attention cost:
+•
+
+~36 trillion operations
+
+Main challenge = computation
+
+14. Attention Optimization
+Original:
+•
+
+Full spatio-temporal attention (too expensive)
+
+Solution:
+
+(1) Spatial Attention (2D)
+•
+
+Within frame (single picture looks consistent)
+
+(2) Temporal Attention (1D)
+•
+
+Same position across frames (motion moves smoothly)
+
+Combine:
+Pseudo-3D attention
+
+15. Multi-Stage Pipeline (Important Design)
+Instead of one big model:
+Use multiple stages:
+•
+•
+•
+•
+
+Stage 1 → low resolution, few frames
+Stage 2 → increase frames
+Stage 3 → increase resolution
+Stage 4 → improve quality
+
+Example:
+•
+
+Imagen Video
+
+Each model solves a small problem: Frame Rate & Resolution Scaling
+Examples:
+•
+•
+
+2 fps → 4 fps → 24 fps
+40×24 → 1280×768
+
+Gradual refinement improves efficiency
+
+Part VI — Classic Image Generation Models
+16. VAE (Review)
+•
+•
+
+Encoder extracts hidden info
+Decoder generates image
+
+Missing details → encoded as vector
+
+17. Flow-Based Models
+Key idea:
+•
+
+Only one model (invertible)
+
+Decoder ↔ Encoder (inverse)
+Noise:
+•
+
+Not random → contains meaningful info
+
+18. Diffusion Model (Most Important)
+Idea:
+Start with noise → gradually denoise
+Steps:
+1. Start from pure noise
+2. Remove noise step-by-step
+3. Repeat hundreds/thousands times
+Output:
+•
+
+Clear image
+
+19. Training Diffusion
+Problem:
+•
+
+No noisy data
+
+Solution:
+•
+
+Add noise manually
+
+Train model:
+•
+
+Predict clean image from noisy input
+
+20. Key Challenge of Diffusion
+•
+
+Needs many steps (500–1000)
+
+Research goal:
+Reduce number of steps
+
+21. Diffusion + Transformer
+Modern systems:
+•
+
+Use Transformer as denoiser
+
+Repeated:
+•
+
+Same model applied many times
+
+Used in:
+•
+
+Sora
+
+22. Video = Scaled Diffusion
+Same idea:
+
+•
+
+Noise → denoise repeatedly
+
+Difference:
+•
+
+Much larger sequence (video patches)
+
+23. GAN (Different Paradigm)
+Components:
+•
+•
+
+Generator → creates image
+Discriminator → evaluates
+
+24. GAN Training
+Loop:
+1. Generator creates image
+2. Discriminator judges
+3. Generator improves
+Compete against each other
+
+25. GAN vs RLHF
+Similarity:
+•
+
+Discriminator = reward model
+
+Difference:
+•
+•
+
+GAN uses real vs fake
+RLHF uses human preference
+
+26. GAN is an Add-on
+Can combine with:
+
+•
+•
+•
+
+VAE
+Flow
+Diffusion
+
+Improves output quality
+
+Key Takeaways (Week 14)
+You should be able to:
+•
+•
+•
+•
+•
+•
+•
+
+Explain patch-based image/video representation
+Explain AR vs NAR for images
+Explain why video generation is hard
+Explain spatial vs temporal attention
+Explain multi-stage generation pipeline
+Explain CLIP evaluation
+Explain VAE, Flow, Diffusion, GAN differences
+
+

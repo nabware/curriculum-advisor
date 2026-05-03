@@ -1,0 +1,243 @@
+Study Guide – Week 12: Model Evaluation
+1. What Should We Evaluate?
+Key idea: > Evaluation depends on what matters to you.
+Different evaluation goals:
+•
+•
+•
+
+Single task (e.g., translation)
+Domain-specific (finance, healthcare)
+General models (e.g., GPT-5, Llama models, etc.) (many tasks)
+
+There is no single universal metric.
+
+2. Ability Evaluation
+Basic setup:
+•
+•
+
+Input → Model → Output
+Compare output to correct answer
+
+Use:
+•
+
+Benchmark datasets
+
+Goal:
+•
+
+Measure correctness or quality
+
+3. Benchmark Corpora
+Benchmarks:
+•
+•
+
+Provide standardized evaluation
+Enable comparison across models
+
+Example:
+•
+
+MMLU (Massive Multitask Language Understanding)
+
+4. Limitations of Multiple-Choice Tests
+Problem:
+•
+•
+
+Models may output extra text
+Format constraints may mark correct reasoning as wrong
+
+Example issue:
+•
+
+Model says correct answer but includes explanation → marked wrong
+
+Key insight: > Evaluation format can distort performance.
+
+5. Bias in Multiple-Choice Evaluation
+Issues:
+•
+•
+
+Models may prefer certain options (e.g., “A”)
+Dataset design affects results (position of correct answers; labels of options)
+
+Example:
+•
+
+Moving all correct answers to “A” changes performance
+
+6. Open-Ended Tasks (No Single Correct Answer)
+Examples:
+•
+•
+
+Translation
+Summarization
+
+Problem:
+•
+
+Multiple valid answers
+
+Key insight: > Different answers can all be correct.
+
+7. Automatic Metrics (BLEU, ROUGE)
+Used for:
+
+•
+•
+
+Translation
+Summarization
+
+Limitations:
+•
+•
+
+Based on surface similarity
+May penalize valid answers
+
+Conclusion: > Useful but limited.
+
+8. Human Evaluation
+Advantages:
+•
+•
+
+Flexible
+Understands nuance
+
+Examples:
+•
+
+LMArena
+
+Limitations:
+•
+•
+
+Expensive
+Subjective
+
+Solution: LLM-as-a-Judge
+Idea:
+•
+
+Use strong LLMs to evaluate outputs
+
+Tasks:
+•
+•
+
+Score correctness
+Compare models (A vs B)
+
+Examples:
+•
+
+MT-Bench (use LLM as evaluator)
+
+9. What Should We Ask?
+Evaluation depends on:
+•
+•
+•
+
+Task design
+Question difficulty
+Coverage of capabilities
+
+Example:
+•
+
+BIG-bench
+
+10. BIG-bench and Hard Benchmarks
+BIG-bench:
+•
+
+Large, diverse tasks
+
+Extensions:
+•
+•
+
+BIG-bench Hard (BBH)
+BIG-bench Extra Hard (BBEH)
+
+Goal:
+•
+
+Expose model limitations
+
+11. Long Context Evaluation
+Example:
+•
+
+“Needle in a Haystack” test
+
+Measures:
+•
+•
+
+Ability to retrieve relevant info
+Performance with long inputs
+
+Key challenge:
+•
+
+Position of important information
+
+12. Behavioral Evaluation
+Example:
+•
+
+Machiavelli benchmark
+
+Tests:
+•
+•
+
+Decision-making
+Ethical behavior
+
+13. Data Leakage Problem
+Question: > Has the model seen the benchmark before?
+Problem:
+•
+•
+
+Models may memorize benchmark data
+Performance becomes inflated
+
+14. Beyond Accuracy
+Important factors:
+•
+•
+•
+
+Speed (latency, tokens/sec)
+Cost (API usage)
+Reasoning depth (token usage)
+
+Evaluation must consider practical constraints.
+
+What You Should Be Able to Explain After Week 12
+You should be able to:
+•
+•
+•
+•
+
+Explain open-ended evaluation challenges
+Explain benchmark leakage
+Explain long-context evaluation
+Explain what are other factors need to be considered beyond accuracy when
+evaluating models
+
+

@@ -1,0 +1,1362 @@
+Image and
+Video
+Generation
+
+Outline
+What is text-image/video, Image/video-video
+generation?
+Text-image Model training and Evaluation
+Challenges in Text-Video Generation
+Introduction to Classic Image Generation Methods
+
+HW5 Announcement and In-class activity
+
+Text to Video Generation
+
+Generative
+AI
+Condition
+text (description of
+the video)
+
+e.g.,Sora
+
+video / image
+
+Image/Video to Video Generation
+Video
+completion
+3
+
+2
+
+1
+
+Style
+Transfer
+1
+
+2
+
+1
+
+2
+
+Resolution
+Enhancement
+1
+
+2
+
+1
+
+2
+
+3
+
+4
+
+Video Generation - Examples
+text-video & image-vide: Sora vs Veo vs Grok vs Kling
+https://www.youtube.com/watch?v=m6mV3LoiG-4
+
+video-video: Runway Video AI
+https://www.youtube.com/shor
+ts/r_i6wI_KoMg
+
+How AI Models Process Images
+Read Image
+64
+
+Encoder
+
+64
+
+1
+
+7
+
+99
+
+1
+
+43
+
+76
+
+43
+
+1
+
+67
+
+1
+
+7
+
+1
+
+1
+
+43
+
+99
+
+85
+
+(This is the input of the
+transformer)
+1
+
+7
+
+99
+
+64
+
+(This is the output of
+the transformer)
+7
+
+99
+
+1
+
+43
+
+……
+
+Decoder
+
+43
+
+……
+
+Produce Image
+
+1
+
+1
+
+64
+
+Videos are composed of a sequence of
+images
+frame 1
+
+frame 2
+video
+
+• YouTube Videos: 24 FPS
+• Video Games: 60 FPS
+
+frame 3
+
+……
+Frame per second (FPS)
+
+How Modern AI Read Video
+Encoder
+video
+
+79
+
+6
+
+… 56
+
+32
+
+8
+
+… 45
+
+79
+32
+
+6
+8
+
+1
+
+7
+
+… 85
+
+71
+
+99
+
+… 78
+
+7
+
+1
+
+… 99
+
+7
+
+1
+
+… 99
+
+… 56
+
+… 45
+
+Encoder
+
+How Modern AI Read Video - Sora
+
+Outline
+What is text-image/video, Image/video-video
+generation?
+Text-image Model training and Evaluation
+Challenges in Text-Video Generation
+Introduction to Classic Image Generation Methods
+
+HW5 Announcement and In-class activity
+
+Text-to-Image Generation - Training
+A running dog
+
+Training
+Data
+
+Image
+Generation
+
+1
+
+7
+
+99
+
+1
+
+A running dog
+
+A cat in snow
+
+A cat in the sun
+
+A dog by beach
+
+43
+
+……
+
+Text-to-Image Generation – Training
+https://laion.ai/blog/laion-5b/
+
+Training
+Dataset
+LAION
+5.85B
+
+Text-to-Image Generation – Training
+A running dog
+
+1
+
+7
+
+99
+
+1
+
+……
+
+43
+
+Auto-regressive (AR)
+1
+
+Transformer
+
+A running dog
+
+7
+
+Transformer
+
+Transformer
+
+A running dog
+
+99
+
+1
+
+A running dog
+
+1
+
+7
+
+(This is the simplified version)
+
+Example: Text-to-Image
+Parallel Generation
+
+Non-Auto-regressive
+(NAR)
+1
+
+7
+
+99
+
+1
+
+……
+
+85
+
+Has attention
+internally
+
+Transformer
+A running dog
+
+P1
+
+P2
+
+P3
+
+P4
+
+……
+
+P16
+
+(This is the simplified version)
+
+How to Evaluate an Image Generation
+https://arxiv.org/abs/2103.00020
+Model
+A running dog
+
+Image
+generation
+
+How do we know if
+the result is good or
+not?
+
+How to Evaluate an Image Generation
+https://arxiv.org/abs/2103.00020
+Model
+CLIP
+A dog on the
+Beach
+
+CLIP
+
+Low
+score
+
+CLIP
+
+Low
+score
+
+Cat in the Sun
+
+CLIP
+Cat in the Sun
+
+High
+score
+
+High
+score
+A dog on the
+Beach
+
+How to Evaluate an Image Generation
+https://arxiv.org/abs/2103.00020
+Model
+A running dog
+
+How do we know if
+the result is good or
+not?
+
+Image
+generation
+
+CLIP
+
+???
+
+Break
+
+Outline
+What is text-image/video, Image/video-video
+generation?
+Text-image Model training and Evaluation
+Challenges in Text-Video Generation
+Introduction to Classic Image Generation Methods
+
+HW5 Announcement and In-class activity
+
+Challenges in Text-to-Video Generation
+1
+
+7
+
+……
+
+frame 3 ……
+
+frame 2
+
+frame 1
+85
+
+3
+
+7
+
+……
+
+85
+
+1
+
+3
+
+……
+
+81
+
+Assume each second 24 frames, and each frame has 64 x 64 patches
+
+Transformer
+
+1440 frames for 1 minute video, ~ 6 million patches
+
+Assume that attention must be applied
+between every pair of patches.
+
+~ 36 trillion attention?!
+
+……
+
+P1,1
+A running dog
+
+P1,2
+
+……
+
+P1,16
+
+P2,1
+
+P2,2
+
+……
+
+P2,16
+
+P3,1
+
+P3,2
+
+……
+
+P3,16
+
+(This is the simplified version)
+
+Spatio-temporal
+Attention (3D)
+
+Spatial Attention
+(2D)
+
+Temporal
+Attention (1D)
+
+1
+
+7
+
+……
+
+frame 3
+
+frame 2
+
+frame 1
+85
+
+7
+
+3
+
+……
+
+85
+
+1
+
+3
+
+……
+
+81
+
+P3,1
+
+P3,2
+
+……
+
+P3,16
+
+Temporal Attention (1D)
+pseudo
+-3D
+
+Spatial Attention (2D)
+
+P1,1
+
+A running dog
+
+P1,2
+
+……
+
+P1,16
+
+P2,1
+
+P2,2
+
+……
+
+P2,16
+
+(This is the simplified version)
+
+Challenges in Text-to-Video Generation
+Condition
+
+Generative
+AI
+
+Version
+1
+
+Generative
+AI
+
+Version …
+2
+
+Generative
+AI
+
+Version
+N
+
+Model examples:
+
+increase the frame rate
+
+increase the resolution
+
+Version K-1
+
+Version K
+
+2 frame/s
+
+Version K-1
+
+4 frame/s
+
+Version K
+
+Challenges in Text-to-Video Generation
+Condition
+
+Generative
+AI
+
+Version
+1
+
+Generative
+AI
+
+Version …
+2
+
+Generative
+AI
+
+Version
+N
+
+Imagen Video https://arxiv.org/abs/2210.02303
+
+Further Reading
+
+https://arxiv.org/abs/2405.03150
+
+Outline
+What is text-image/video, Image/video-video
+generation?
+Text-image Model training and Evaluation
+Challenges in Text-Video Generation
+Introduction to Classic Image Generation Methods
+
+HW5 Announcement and In-class activity
+
+Introduction to Classic Image Generation
+Methods
+• Variational Auto-encoder (VAE)
+• Flow-based Method
+• Diffusion Method
+• Generative Adversarial Network (GAN)
+
+Sora uses Diffusion Method
+
+Source of image: https://openai.com/index/video-generation-models-as-world-simulators/
+
+Image Generation Method - VAE
+a running dog
+
+Shiba Inu,
+city
+
+Information
+extraction
+
+0.7
+0.3
+
+Encoder
+
+a running dog
+
+Image
+generation
+
+Decoder
+
+Text-to-Image Model Testing
+give me
+extracted info…
+
+randomly
+generated
+
+?
+?
+
+a running dog
+
+Image
+generation
+
+Image Generation Method – VAE & Flow-based
+
+VAE
+
+Encoder
+
+Decoder
+
+noise
+
+Flowbased
+
+Decoder
+𝑓 −1
+
+Decoder
+𝑓
+
+noise
+
+Invertible
+
+Diffusion Model
+Decoder
+
+This is a highly simplified explanation, more detailed
+explanation: https://www.youtube.com/watch?v=azBugJzmzo&list=PLJV_el3uVTsNi7PgekEUFsyVllAJXRsP-
+
+A cat in the snow
+
+A cat in the snow
+
+Denoise
+
+Denoise
+
+500, or 1000 times
+Denoise
+
+Denoise
+
+A cat in the snow
+
+A cat in the snow
+
+This is a highly simplified explanation, more detailed
+explanation: https://www.youtube.com/watch?v=azBugJzmzo&list=PLJV_el3uVTsNi7PgekEUFsyVllAJXRsP-
+
+A cat in the snow
+
+……
++
+
++
+
++
+
+Step 1
+
+Step 1000
+
+Step 2
+
+Denoise
+
+Denoise
+A cat in the
+snow
+
+A cat in the
+snow
+Transformer
+
+Transformer
+
+1
+
+Diffusion Transformer
+text
+
+……
+Transformer (Denoise)
+
+text
+text
+
+P1
+
+P2
+
+……
+
+……
+
+P4
+
+Transformer (Denoise)
+(This is the simplified version)
+
+3
+
+……
+
+3
+
+……
+
+……
+
+……
+
+7
+
+……
+
+Transformer (Denoise)
+
+https://arxiv.org/abs/2212.09748
+
+1
+
+7
+
+text
+
+……
+
+Text-to-Video Model
+1
+
+7
+
+……
+
+frame 3
+
+frame 2
+
+frame 1
+85
+
+3
+
+7
+
+……
+
+85
+
+1
+
+3
+
+XT
+
+81
+
+……
+
+……
+
+……
+
+……
+
+Transformer (Denoise)
+
+……
+P1,1
+a running dog
+
+P1,2
+
+……
+
+……
+
+……
+P1,16
+
+P2,1
+
+P2,2
+
+……
+
+P2,16
+
+P3,1
+
+P3,2
+
+……
+
+P3,16
+
+(This is the simplified version)
+
+VAE
+
+Encoder
+
+Decoder
+
+Flowbased
+
+Decoder
+𝑓 −1
+
+Decoder
+𝑓
+
+Invertible
+
+XT
+
+Diffusion
+
+Add noise
+
+XT
+Forward Process
+
+Decoder
+(Denoise)
+
+Reverse Process
+
+Generative Adversarial Network (GAN)
+a running dog
+
+Image
+Generation
+
+a running dog
+
+Image
+Generation
+
+Discriminator
+
+a running dog
+
+Discriminator
+a running dog
+
+Discriminator
+a cat in the sun
+
+a cat in the sun
+
+a running dog
+
+Discriminator
+
+Image
+Generation
+
+a cat in the sun
+
+Image
+Generation
+
+Generative Adversarial Network (GAN)
+Generator and Discriminator train alternately
+Discriminator
+a running dog
+
+?
+?
+
+Image
+Generation
+
+Reward Model
+(difference: AIgenerated are bad)
+
+Generator
+
+Adjust
+Parameters
+
+Compare with RLHF
+
+GAN is an add-on
+VAE + GAN
+https://arxiv.org/abs/1512.09300
+
+Flow + GAN
+https://arxiv.org/abs/1705.08868
+
+Diffusion + GAN
+https://arxiv.org/abs/2206.02262
+
+Break
+
+HW 5 Fine-tuning
+
+Text-to-Image Model
+●
+
+Text-to-image model can generate images that matches input
+description
+
+a man with a beard and a white
+shirt.
+
+Text-to-Image Model
+
+a man wears a tank top and
+blazer.
+
+Text-to-Image Model
+46
+
+Personalization
+●
+
+Publicly available text-to-image models may not meet everyone’s need.
+E.g., a model generating images of a specific person consistently
+
+a man with a beard and a white
+shirt.
+
+a man wears a tank top and
+blazer.
+
+Personalized Text-toImage Model
+
+Personalized Text-toImage Model
+47
+
+Achieve Personalization Using LoRA
+●
+
+LoRA is a technique to make small changes to a trained model (ref)
+
+Model that generate good images
+
+Text-to-Image
+Model
+a man with a beard and a white shirt.
+
+Add LoRA modules to model
+(model gets additional capacity)
+Then fine-tune it.
+
+Text-to-Image
+Model
+LoRA
+fine-tune
+Data
+
+Model that generate good images
+& do personalization
+
+Text-to-Image
+Model
+LoRA
+a man with a beard and a white shirt.
+
+48
+
+Goal of This Activity
+●
+
+You will learn how to make Stable Diffusion generate consistent facial
+results by fine-tuning it with identical faces (Brad’s faces).
+a man with a beard and a white
+shirt.
+
+Original Model
+fine-tune with LoRA
+
+(images & paired text)
+a man with a beard and a white
+shirt.
+
+Personalized
+Model
+LoRA
+
+49
+
+Goal of This Activity
+●
+
+Given enough training time, Stable Diffusion will start to produce images
+of the same individual (Brad).
+Training Step
+
+a man with a beard and a white shirt.
+50
+
+Model Evaluation
+●
+●
+●
+
+We will give you some text prompts
+You need to submit images generated from the prompts
+Your model is evaluated based on
+○
+○
+○
+
+Are the images similar to training data
+Are the images and text matched
+Do the images contain human faces
+
+Image
+1
+
+Image
+2
+
+Image
+3
+
+Personalized
+Model
+LoRA
+Text prompt 1
+
+Text prompt 2
+
+Text prompt 3
+51
+
+Task Introduction
+
+52
+
+Task Introduction
+1. Fine-tune Stable Diffusion
+
+Using LoRA technique
+
+2. Generate Images
+
+Using provided validation prompts
+
+3. Evaluate Images
+
+Evaluated by GhostFaceNet and
+CLIP
+
+53
+
+TODOs
+●
+
+Try out different hyperparameters to fine-tune your own model.
+
+●
+
+The training time will take about 1 hours. Try different hyperparameters
+(train 2-3 times to see the difference).
+
+●
+
+Please ensure your Google Drive has a minimum of 4GB of available
+space to accommodate 2 stable diffusion checkpoints.
+
+●
+
+We provide 25 different prompts to describe clothing. You have to
+ensure that your model can generate images with same faces as training
+dataset based on these prompts.
+54
+
+Step 1. Fine-tune Stable Diffusion
+
+55
+
+Fine-tune a Stable Diffusion LoRA Model
+●
+
+Choose a model based on Stable Diffusion from Hugging Face and use
+LoRA technique to fine-tune Stable Diffusion. (You don’t need to change
+the model in this exercise)
+
+●
+
+Before fine-tuning, try to understand and adjust hyperparameters of
+LoRA so that your model can have better performance in the end.
+
+●
+
+Fine-tuning will take about 30 minutes
+56
+
+1. Link to Google Drive
+1.
+
+Run the cell
+
+(Optional)
+Change folder name or Dataset folder in
+Google Drive
+
+57
+
+1. Link to Google Drive
+●
+●
+
+We will create folders in your Google drive
+Make sure you have at least 4GB space on the Google drive
+
+58
+
+2. Import required packages for fine-tuning
+
+59
+
+3. Adjust the hyperparameters
+
+60
+
+3. Adjust the hyperparameters
+●
+
+learning_rate (recommended): learning rate of model
+○
+
+Increase this make model focus more on our training data than text prompt
+(Face distance↓(good) and CLIP score↓(bad))
+
+●
+
+max_train_steps: total training step
+
+●
+
+validation_promt_num: the number of validation images
+
+●
+
+validation_step_ratio: ratio between validation step and
+max_train_steps
+
+61
+
+4. Prepare Dataset, LoRA model, and Optimizer
+
+63
+
+5. Start Fine-tuning
+
+64
+
+Step 3. Generate Images
+
+65
+
+Generate Images
+●
+●
+
+Use TA’s validation prompts and your fine-tuned model to generate
+images.
+Testing will take at least 15 minutes
+Image
+1
+
+Image
+2
+
+Image
+3
+
+Personalized
+Model
+LoRA
+Text prompt 1
+
+Text prompt 2
+
+Text prompt 3
+
+66
+
+Generate Images
+
+67
+
+Generate Images
+
+68
+
+Generate Images
+●
+
+The generated images will be saved in Google Cloud
+<project_name>/inference/
+
+69
+
+Step 4. Evaluate Images
+
+70
+
+Evaluation Metrics - Face Distance Score
+●
+●
+●
+
+For each generated face, we find its average distance to training data
+and average this distance across all generated faces.
+Distances between faces determined by a neural network, GhostFaceNet
+Since we want a model that generates a specific person, less average
+distance is better.
+
+Paper reference: GhostFaceNets
+
+71
+
+Evaluation Metrics - Face Distance Score
+●
+
+d1, d2, d3, d4 are computed by GhostFaceNet
+
+●
+
+Face distance score is the average of d1, d2, d3, d4
+The more similar the smaller d is
+(smaller is better)
+
+●
+
+d3
+d1
+
+d2
+
+d4
+
+Evaluation Metrics - CLIP Score
+●
+●
+
+We will calculate CLIP score to ensure that prompts are truly related to
+image.
+CLIP score can measure the similarity between text and image, where
+higher scores indicates greater relevance between the two modalities.
+
+Paper reference: CLIP
+
+73
+
+Evaluation Metrics - CLIP Score
+●
+
+s1, s2 are computed by CLIP
+
+●
+
+CLIP is the average of s1, s2
+The more similar the higher s is (higher is better)
+
+●
+
+a man with a beard and a white
+shirt.
+
+s1
+
+a man wears a tank top and
+blazer.
+
+s2
+
+Disclaimer
+●
+
+●
+
+●
+
+The human faces generated using the stable diffusion model for this
+homework are solely for educational and research purposes. They are
+generated by artificial intelligence algorithms and may not accurately
+represent real individuals.
+It is important to acknowledge that the use of AI-generated images may
+raise ethical considerations, and it is the responsibility of users to use
+them ethically and responsibly.
+The creators of the stable diffusion model and the developers of the
+tools utilized in this homework bear no liability for the use or
+consequences of these generated images.
+75
+
+

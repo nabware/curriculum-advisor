@@ -1,0 +1,132 @@
+Study Guide – Week 11: Inside LLM (Part 2) & Model
+Evolution
+Part I — Inside LLM (part 2)
+1. Where Does Model Behavior Come From?
+Inside a transformer: - Each layer builds intermediate representations - These
+representations encode behaviors (e.g., refusal)
+Key idea: > Model behavior is distributed inside internal vectors (activations).
+
+2. Representation / Activation Engineering
+New research direction: - Modify internal activations - Observe changes in behavior
+Also called: - Activation engineering - Activation steering
+Goal: - Understand and control model behavior
+
+3. Example: Refusal Behavior
+Observation: - Refusal (e.g., “No…”) is encoded in internal layers
+Method: - Identify a “refusal vector” - Extract from difference between: - Refusal responses
+- Non-refusal responses
+Insight: > Safety behavior is not magic — it is encoded as vectors.
+
+4. Where Is the Behavior Stored?
+Approach: - Test different layers - Inject/remove vectors
+Finding: - Certain layers (e.g., ~10th layer) contain strong behavioral signals
+Key takeaway: > Behavior is layer-dependent, not uniform.
+
+5. Manipulating Model Behavior
+By modifying internal vectors can add/remove refusal.
+Example:
+Normal request: - Add refusal vector → refuse your request
+Dangerous request - Remove refusal vector → unsafe outputs
+
+Part II — Model Evolution
+1. Three Stages of Model Evolution
+Stage 1 (2018–2019)
+•
+•
+
+Specialized models
+Different architectures per task
+
+Examples: - BERT, ELMo
+
+Stage 2 (2020–2022)
+•
+•
+
+Same architecture
+Different parameters per task
+
+Example: - GPT-3 + fine-tuning
+
+Stage 3 (2023– )
+•
+•
+•
+
+Same architecture
+Same parameters
+One general model for many tasks
+
+Key capability: - Instruction following
+
+2. Lifelong Learning Era
+Modern models: - Already have base capabilities - Learn new skills via post-training
+Warning: > New learning may destroy old abilities (forgetting). Fine-tuning should be the
+last option
+
+3. Each Architecture Exists for a Reason
+Example: - CNN → designed for images
+- Residual connections → solve optimization issues in deeper networks
+Key mindset: > Always ask: what problem does this new design solve?
+
+4. RNN vs Self-Attention
+RNN: - Sequential - Fixed computation per step - Limited memory - Hard to parallelize
+Self-attention: - Global context - Parallelizable - Higher computational cost
+
+5. Linear Attention & New Models
+Linear attention: - Combines RNN + attention ideas
+- Training: parallel like transformer
+- Inference: efficient like RNN
+Key idea: > Try to get best of both worlds.
+
+6. Mamba (New Architecture, Linear Attention)
+Recent development: - Competes with transformers - Better efficiency - Linear complexity
+(O(n))
+Claim: - First real challenger to transformer
+
+7. Long Context Models
+Modern systems needs to handle millions of tokens
+Need: - Efficient architectures - Memory optimization
+
+8. Comparison table
+Model
+
+Training Inference Issue
+
+RNN
+
+Slow
+
+Fast
+
+Forgetting
+
+Transformer Fast
+
+Slow
+
+O(n²) cost
+
+Mamba
+
+Fast
+
+Efficient
+
+Fast
+
+Key Takeaways (Week 11)
+You should be able to:
+•
+•
+•
+•
+•
+
+Explain evolution from specialized → generalist models
+Describe activation/representation engineering
+Explain how refusal behavior can be manipulated
+Explain why long context is challenging
+Compare RNN vs Transformer vs Mamba
+
+
