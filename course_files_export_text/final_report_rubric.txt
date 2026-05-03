@@ -1,0 +1,70 @@
+Final report/paper (required for 803 students, optional for 603)
+Due: Fri May 22, 2026 11:59pmDue: Fri May 22, 2026 11:59pm
+Ungraded, 0 Possible Points
+0 Points Possible
+Attempt
+Attempt 1
+
+In Progress
+NEXT UP: Submit Assignment
+
+Unlimited Attempts Allowed
+Write a report/paper about your project. The report/paper follows the paper format:
+
+Here are two examples: example-An Assessment of ChatGPT on Log Data.pdfDownload example-An Assessment of ChatGPT on Log Data.pdf
+
+example-DSQA-LLM.pdfDownload example-DSQA-LLM.pdf
+
+ 
+
+Requirements:
+
+Use the provided template ProcSPIETemplate_A4.docx Download ProcSPIETemplate_A4.docx.
+at least 4 pages
+One report/paper per team. 
+Master's student: This assignment is mandatory
+Undergraduate student: This assignment is optional; you can get extra credits (same rubric and contribution factor multiplication, up to 20 pts)
+Grading rubric:
+
+1) Paper quality: 20 points
+
+Category	Description	Points
+1. Problem Definition & Motivation	Clearly states the problem, motivation, and why GenAI is relevant. Explains context and goals.	3 pts
+2. Methodology / System Design	Describes the model, data, or workflow. Explains how GenAI is used and why those design choices were made.	5 pts
+3. Results & Evaluation	Presents outcomes with analysis (quantitative, qualitative, or user feedback). Interprets what the results mean.	5 pts
+4. Discussion & Reflection	Discusses insights, limitations, and future work. Shows understanding of what was learned.	3 pts
+5. Writing & Organization	The paper is well-structured, clear, concise, and properly cited. Figures/tables support understanding.	4 pts
+2) Individual Contribution:
+
+Each member’s grade = Team Paper Score × Contribution Factor
+
+Contribution Level	Description	Contribution Factor
+Solo Worker	Complete the whole paper all by yourself	× 1.20
+Equal Effort	All members contributed comparably.	× 1.00
+Less Effort	Participated less, missed deadlines, or contributed minimal sections.	× 0.6
+Minimal Effort	Participated, but did not complete the agreed work on time.	× 0.30 or lower
+ 
+
+For example:
+
+Team A’s paper earns 17/20 based on the rubric.
+
+Member 1 (Equal effort) → 17.0
+Member 2 (Equal effort) → 17.0
+Member 3 (less effort) → 15.3
+Team B's paper earns 17/20 based on the rubric.
+
+Member 2 (is the master student, who is the only person who wrote the paper) → 20.4
+Member 1&3 didn't participate → 0
+ 
+
+Submission:
+
+Only submitted by the first author:
+
+Manuscript in a Word file
+Peer evaluation table: 
+member name	Contribution Level	notes
+[Your Name]		
+[Member 2]		
+[Member 3]		
