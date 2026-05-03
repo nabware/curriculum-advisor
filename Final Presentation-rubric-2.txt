@@ -1,0 +1,111 @@
+CSC 603/803 – Capstone Project Presenta5on Rubric (30 points total)
+A. Project Quality (21 points)
+Category
+1. Technical
+Soundness & Model
+Use (0–8 pts)
+2. Problem Fit &
+Impact (0–4 pts)
+3. ExecuNon &
+Project
+Completeness (0–7
+pts)
+4. Design & User
+Experience (0–2 pts)
+
+Excellent
+Clear explana5on of models/APIs
+used; demo shows meaningful
+GenAI func5onality; strong
+technical reasoning. (8)
+Problem well-deﬁned; solu5on
+clearly addresses it; strong value.
+(4)
+
+Good
+
+Adequate
+
+Appropriate use of models;
+demo shows working
+features. (5-7)
+
+Basic features shown;
+limited technical depth.
+(2-5)
+
+Problem stated; solu5on
+mostly relevant. (3–4)
+
+Weak
+
+Major gaps; unclear or
+incorrect technical
+descrip5on. (0–2)
+Weak or unclear problem
+Somewhat relevant; lacks deﬁni5on. (0–1)
+depth. (1-2)
+
+Demo shows a working, coherent
+system with core features complete. Demo mostly complete;
+Par5al implementa5on.
+(7)
+minor gaps. (4-6)
+(2–4)
+Interface/ﬂow is clean, intui5ve,
+Mostly clear and usable, but some confusion. (1-2)
+and polished. (2)
+
+Points
+
+/8
+
+/4
+
+Very incomplete or
+nonfunc5onal demo. (0–2)
+/7
+Poor usability or unclear ﬂow.
+(0)
+/2
+
+B. Presenta5on Quality (9 points)
+Category
+
+Excellent
+
+Good
+
+Adequate
+
+Weak
+
+Points
+
+1. Slide Clarity &
+Slides clear, well-structured, visually Mostly clear; minor issues. Understandable but
+Disorganized or confusing. (0–
+OrganizaNon (0–4 pts) professional. (4)
+(3)
+clu]ered. (2)
+1)
+/4
+Smooth demo; clearly shows core
+2. Demo Quality (0–3 func5onality; meaningful test
+Demo works; minor issues. Demo limited or unstable.
+cases.
+(3)
+pts)
+(3.5)
+(2–3.5)
+Demo missing or failed. (0–1) /3
+Accurate, conﬁdent answers;
+3. Q&A Performance demonstrates solid understanding.
+Unable to answer ques5ons.
+(2)
+(0–2 pts)
+Mostly accurate answers. (1-2)
+(0–1)
+/2
+
+
