@@ -526,18 +526,27 @@ class AdvisorService:
             try:
                 sentiment_rows = conn.execute(
                     """
-                    SELECT professor_name, confidence_adjusted_sentiment_score
+                    SELECT professor_name,
+                           COALESCE(final_sentiment_score, confidence_adjusted_sentiment_score) AS sentiment_score
                     FROM professor_sentiment_features
                     """
                 ).fetchall()
             except sqlite3.OperationalError:
-                sentiment_rows = []
+                try:
+                    sentiment_rows = conn.execute(
+                        """
+                        SELECT professor_name, confidence_adjusted_sentiment_score AS sentiment_score
+                        FROM professor_sentiment_features
+                        """
+                    ).fetchall()
+                except sqlite3.OperationalError:
+                    sentiment_rows = []
 
             for row in sentiment_rows:
                 professor_name = (row["professor_name"] or "").strip()
                 if not professor_name:
                     continue
-                score_raw = row["confidence_adjusted_sentiment_score"]
+                score_raw = row["sentiment_score"]
                 if score_raw is None:
                     continue
                 score = float(score_raw)

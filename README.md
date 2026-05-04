@@ -7,6 +7,23 @@ Current stack:
 - Backend: FastAPI
 - Database: SQLite (default for development)
 
+## Prerequisites
+
+Before cloning or running the scripts, ensure you have:
+
+1. **Python 3.8+** - Required for backend and data scripts
+   - macOS: `brew install python3`
+   - Ubuntu/Debian: `sudo apt-get install python3 python3-venv`
+   - Windows: [Download from python.org](https://www.python.org)
+
+2. **Ollama** (optional, for AI-powered sentiment analysis) - One-time setup
+   - **macOS/Linux**: `curl -fsSL https://ollama.ai/install.sh | sh`
+   - **Windows**: [Download installer](https://ollama.ai/download)
+   - After install: `ollama pull llama3.1` (one-time, ~4.9GB download)
+   - Then run `run_backend.sh` - it will auto-start the Ollama service
+
+If you skip Ollama installation, the sentiment analysis falls back to ratings-based scoring (deterministic, no LLM needed).
+
 ## Quick Start
 
 1. Start backend:
@@ -40,6 +57,18 @@ python scripts/import_class_schedules.py
 python scripts/import_course_metadata.py
 python scripts/build_professor_sentiment_features.py
 ```
+
+Optional local Ollama-based sentiment enrichment:
+
+```bash
+ollama pull llama3.1
+ollama serve
+python scripts/build_professor_sentiment_features.py \
+	--review-text-csv data/seed/professor_review_snippets.csv \
+	--sentiment-llm-model llama3.1
+```
+
+If you provide a `professor_review_snippets.csv` file with `professor_name` and `review_text` columns, the pipeline can call Ollama running on `http://localhost:11434/v1/chat/completions` and blend the generated review sentiment into the professor sentiment table. Without those inputs, it falls back to the current ratings-based flow.
 
 Expected SQLite file:
 - `data/seed/curriculum_advisor.db`

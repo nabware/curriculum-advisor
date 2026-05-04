@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import sqlite3
 import sys
@@ -14,6 +15,7 @@ BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.database import get_database_path
+from app.services.llama_sentiment_service import analyze_review_texts
 from app.services.rmp_service import fetch_professor_rating
 
 
@@ -161,6 +163,22 @@ def load_seed_rows(path: Path | None) -> list[dict[str, object]]:
     return rows
 
 
+def load_review_rows(path: Path | None) -> list[dict[str, str]]:
+    if path is None or not path.exists():
+        return []
+
+    rows: list[dict[str, str]] = []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for raw in reader:
+            name = (raw.get("professor_name") or "").strip()
+            review_text = (raw.get("review_text") or raw.get("review_snippet") or "").strip()
+            if not name or not review_text:
+                continue
+            rows.append({"professor_name": name, "review_text": review_text})
+    return rows
+
+
 def build_seed_indexes(
     rows: list[dict[str, object]],
 ) -> tuple[dict[str, dict[str, object]], dict[str, list[dict[str, object]]], dict[str, list[dict[str, object]]]]:
@@ -181,6 +199,34 @@ def build_seed_indexes(
         last_key = last_name_key(str(name))
         if last_key:
             by_last_name.setdefault(last_key, []).append(row)
+
+    return by_full, by_last_initial, by_last_name
+
+
+def build_review_indexes(
+    rows: list[dict[str, str]],
+) -> tuple[dict[str, list[str]], dict[str, list[str]], dict[str, list[str]]]:
+    by_full: dict[str, list[str]] = {}
+    by_last_initial: dict[str, list[str]] = {}
+    by_last_name: dict[str, list[str]] = {}
+
+    for row in rows:
+        name = row.get("professor_name")
+        review_text = row.get("review_text")
+        if not name or not review_text:
+            continue
+
+        full_key = normalize_name(name)
+        if full_key:
+            by_full.setdefault(full_key, []).append(review_text)
+
+        last_initial = last_name_first_initial_key(name)
+        if last_initial:
+            by_last_initial.setdefault(last_initial, []).append(review_text)
+
+        last_key = last_name_key(name)
+        if last_key:
+            by_last_name.setdefault(last_key, []).append(review_text)
 
     return by_full, by_last_initial, by_last_name
 
@@ -210,6 +256,31 @@ def resolve_seed_row(
     return None, ""
 
 
+def resolve_review_texts(
+    professor_name: str,
+    by_full: dict[str, list[str]],
+    by_last_initial: dict[str, list[str]],
+    by_last_name: dict[str, list[str]],
+) -> tuple[list[str], str]:
+    full_key = normalize_name(professor_name)
+    if full_key and full_key in by_full:
+        return by_full[full_key], "full_name"
+
+    last_initial = last_name_first_initial_key(professor_name)
+    if last_initial:
+        matches = by_last_initial.get(last_initial, [])
+        if matches:
+            return matches, "last_name_first_initial"
+
+    last_key = last_name_key(professor_name)
+    if last_key:
+        matches = by_last_name.get(last_key, [])
+        if matches:
+            return matches, "last_name_unique"
+
+    return [], ""
+
+
 def build_db_row(
     *,
     professor_name: str,
@@ -217,12 +288,32 @@ def build_db_row(
     prior_weight: int,
     prior_rating_mean: float,
     rating_payload: dict[str, object] | None,
+    llm_payload: dict[str, object] | None,
+    llm_weight: float,
     source: str | None,
 ) -> tuple[dict[str, object], str]:
+    llm_sentiment_score: float | None = None
+    llm_sentiment_label: str | None = None
+    llm_sentiment_summary: str | None = None
+    llm_sentiment_pros_json: str | None = None
+    llm_sentiment_cons_json: str | None = None
+
+    if llm_payload:
+        try:
+            llm_sentiment_score = float(llm_payload.get("sentiment_score"))
+        except (TypeError, ValueError):
+            llm_sentiment_score = None
+        if llm_sentiment_score is not None:
+            llm_sentiment_score = clamp(llm_sentiment_score, 0.0, 1.0)
+            llm_sentiment_label = str(llm_payload.get("sentiment_label") or "").strip() or None
+            llm_sentiment_summary = str(llm_payload.get("summary") or "").strip() or None
+            llm_sentiment_pros_json = json.dumps(llm_payload.get("pros") or [])
+            llm_sentiment_cons_json = json.dumps(llm_payload.get("cons") or [])
+
     if rating_payload:
         rating = rating_payload.get("rating")
         review_count = rating_payload.get("num_ratings")
-        if rating is not None and review_count:
+        if rating is not None and review_count is not None:
             difficulty = rating_payload.get("difficulty")
             would_take_again_pct = rating_payload.get("would_take_again_pct")
             features = calculate_sentiment_features(
@@ -235,7 +326,13 @@ def build_db_row(
                 prior_weight=prior_weight,
                 prior_rating_mean=prior_rating_mean,
             )
-            return {
+            base_sentiment_score = features["confidence_adjusted_sentiment_score"]
+            final_sentiment_score = base_sentiment_score
+            if llm_sentiment_score is not None:
+                final_sentiment_score = (
+                    (1.0 - llm_weight) * base_sentiment_score + llm_weight * llm_sentiment_score
+                )
+            row = {
                 "professor_name": professor_name,
                 "source": source or "ratemyprofessors",
                 "rating": float(rating),
@@ -254,12 +351,17 @@ def build_db_row(
                 if features["would_take_again_score"] < 0
                 else features["would_take_again_score"],
                 "base_sentiment_score": features["base_sentiment_score"],
-                "confidence_adjusted_sentiment_score": features[
-                    "confidence_adjusted_sentiment_score"
-                ],
+                "confidence_adjusted_sentiment_score": base_sentiment_score,
+                "llm_sentiment_score": llm_sentiment_score,
+                "llm_sentiment_label": llm_sentiment_label,
+                "llm_sentiment_summary": llm_sentiment_summary,
+                "llm_sentiment_pros_json": llm_sentiment_pros_json,
+                "llm_sentiment_cons_json": llm_sentiment_cons_json,
+                "final_sentiment_score": final_sentiment_score,
                 "rmp_url": rating_payload.get("rmp_url"),
                 "imported_at": imported_at,
-            }, "matched"
+            }
+            return row, "matched"
 
     fallback_features = calculate_sentiment_features(
         rating=prior_rating_mean,
@@ -269,9 +371,16 @@ def build_db_row(
         prior_weight=prior_weight,
         prior_rating_mean=prior_rating_mean,
     )
-    return {
+    base_sentiment_score = fallback_features["confidence_adjusted_sentiment_score"]
+    final_sentiment_score = base_sentiment_score
+    if llm_sentiment_score is not None:
+        final_sentiment_score = (
+            (1.0 - llm_weight) * base_sentiment_score + llm_weight * llm_sentiment_score
+        )
+
+    row = {
         "professor_name": professor_name,
-        "source": "prior_only",
+        "source": "llm_review_only" if llm_sentiment_score is not None else "prior_only",
         "rating": None,
         "difficulty": None,
         "would_take_again_pct": None,
@@ -282,12 +391,17 @@ def build_db_row(
         "difficulty_score": None,
         "would_take_again_score": None,
         "base_sentiment_score": fallback_features["base_sentiment_score"],
-        "confidence_adjusted_sentiment_score": fallback_features[
-            "confidence_adjusted_sentiment_score"
-        ],
+        "confidence_adjusted_sentiment_score": base_sentiment_score,
+        "llm_sentiment_score": llm_sentiment_score,
+        "llm_sentiment_label": llm_sentiment_label,
+        "llm_sentiment_summary": llm_sentiment_summary,
+        "llm_sentiment_pros_json": llm_sentiment_pros_json,
+        "llm_sentiment_cons_json": llm_sentiment_cons_json,
+        "final_sentiment_score": final_sentiment_score,
         "rmp_url": None,
         "imported_at": imported_at,
-    }, "fallback_prior_only"
+    }
+    return row, "fallback_llm_review_only" if llm_sentiment_score is not None else "fallback_prior_only"
 
 
 def init_schema(conn: sqlite3.Connection) -> None:
@@ -310,6 +424,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
             would_take_again_score REAL,
             base_sentiment_score REAL NOT NULL,
             confidence_adjusted_sentiment_score REAL NOT NULL,
+            llm_sentiment_score REAL,
+            llm_sentiment_label TEXT,
+            llm_sentiment_summary TEXT,
+            llm_sentiment_pros_json TEXT,
+            llm_sentiment_cons_json TEXT,
+            final_sentiment_score REAL NOT NULL,
             rmp_url TEXT,
             imported_at TEXT NOT NULL
         );
@@ -347,6 +467,12 @@ def write_csv(output_path: Path, rows: list[dict[str, object]]) -> None:
         "would_take_again_score",
         "base_sentiment_score",
         "confidence_adjusted_sentiment_score",
+        "llm_sentiment_score",
+        "llm_sentiment_label",
+        "llm_sentiment_summary",
+        "llm_sentiment_pros_json",
+        "llm_sentiment_cons_json",
+        "final_sentiment_score",
         "rmp_url",
         "imported_at",
     ]
@@ -365,6 +491,8 @@ def write_diagnostics_csv(output_path: Path, rows: list[dict[str, object]]) -> N
         "attempted_queries",
         "matched_query",
         "match_key",
+        "review_match_key",
+        "llm_status",
         "result",
         "source",
         "rating",
@@ -382,6 +510,7 @@ def main() -> None:
     default_db = get_database_path()
     default_csv = PROJECT_ROOT / "data" / "processed" / "professor_sentiment_features.csv"
     default_seed_csv = PROJECT_ROOT / "data" / "seed" / "professor_sentiment_seed.csv"
+    default_review_csv = PROJECT_ROOT / "data" / "seed" / "professor_review_snippets.csv"
     default_diagnostics_csv = (
         PROJECT_ROOT / "data" / "processed" / "professor_sentiment_diagnostics.csv"
     )
@@ -392,14 +521,55 @@ def main() -> None:
     parser.add_argument("--db-path", type=Path, default=default_db)
     parser.add_argument("--export-csv", type=Path, default=default_csv)
     parser.add_argument("--seed-csv", type=Path, default=default_seed_csv)
+    parser.add_argument("--review-text-csv", type=Path, default=default_review_csv)
     parser.add_argument("--diagnostics-csv", type=Path, default=default_diagnostics_csv)
     parser.add_argument("--prior-weight", type=int, default=10)
     parser.add_argument("--prior-rating-mean", type=float, default=3.8)
+    parser.add_argument(
+        "--sentiment-llm-endpoint",
+        type=str,
+        default="http://localhost:11434/v1/chat/completions",
+        help="Local Ollama or compatible HTTP endpoint for optional Llama sentiment analysis",
+    )
+    parser.add_argument(
+        "--sentiment-llm-model",
+        type=str,
+        default="llama3.1",
+        help="Model name to send to the sentiment LLM runtime",
+    )
+    parser.add_argument(
+        "--sentiment-llm-api-key",
+        type=str,
+        default=None,
+        help="Optional bearer token for the sentiment LLM endpoint if it needs one",
+    )
+    parser.add_argument(
+        "--sentiment-llm-timeout",
+        type=int,
+        default=30,
+        help="Timeout in seconds for the Llama request",
+    )
+    parser.add_argument(
+        "--sentiment-llm-max-snippets",
+        type=int,
+        default=8,
+        help="Maximum review snippets to send to Llama per professor",
+    )
+    parser.add_argument(
+        "--sentiment-llm-weight",
+        type=float,
+        default=0.35,
+        help="Blend weight for the Llama sentiment score when available",
+    )
     args = parser.parse_args()
 
     imported_at = datetime.now(timezone.utc).isoformat()
     seed_rows = load_seed_rows(args.seed_csv)
     seed_by_full, seed_by_last_initial, seed_by_last_name = build_seed_indexes(seed_rows)
+    review_rows = load_review_rows(args.review_text_csv)
+    review_by_full, review_by_last_initial, review_by_last_name = build_review_indexes(review_rows)
+
+    sentiment_llm_endpoint = args.sentiment_llm_endpoint or None
 
     with sqlite3.connect(args.db_path) as conn:
         init_schema(conn)
@@ -411,13 +581,24 @@ def main() -> None:
         matched_live = 0
         matched_seed = 0
         fallback = 0
+        llm_enriched = 0
 
         for professor_name in professor_names:
             matched_query = ""
             match_key = ""
+            review_match_key = ""
+            llm_status = "disabled"
             rating_payload: dict[str, object] | None = None
             source = None
             queries = candidate_queries(professor_name)
+
+            review_texts, review_match_key = resolve_review_texts(
+                professor_name,
+                review_by_full,
+                review_by_last_initial,
+                review_by_last_name,
+            )
+
             for query in queries:
                 candidate_rmp = fetch_professor_rating(query)
                 if candidate_rmp:
@@ -439,16 +620,36 @@ def main() -> None:
                     source = "seed_dataset"
                     match_key = seed_key
 
+            llm_payload: dict[str, object] | None = None
+            if review_texts and sentiment_llm_endpoint:
+                snippet_count = max(1, min(len(review_texts), args.sentiment_llm_max_snippets))
+                llm_payload = analyze_review_texts(
+                    review_texts[:snippet_count],
+                    endpoint=sentiment_llm_endpoint,
+                    model=args.sentiment_llm_model,
+                    api_key=args.sentiment_llm_api_key,
+                    timeout=args.sentiment_llm_timeout,
+                )
+                if llm_payload:
+                    llm_status = "used"
+                    llm_enriched += 1
+                else:
+                    llm_status = "failed"
+            elif review_texts:
+                llm_status = "available_but_disabled"
+
             db_row, result = build_db_row(
                 professor_name=professor_name,
                 imported_at=imported_at,
                 prior_weight=args.prior_weight,
                 prior_rating_mean=args.prior_rating_mean,
                 rating_payload=rating_payload,
+                llm_payload=llm_payload,
+                llm_weight=args.sentiment_llm_weight,
                 source=source,
             )
 
-            if db_row["source"] != "prior_only":
+            if db_row["source"] not in {"prior_only", "llm_review_only"}:
                 matched += 1
                 if db_row["source"] == "ratemyprofessors_live":
                     matched_live += 1
@@ -463,6 +664,8 @@ def main() -> None:
                     "attempted_queries": " | ".join(queries),
                     "matched_query": matched_query,
                     "match_key": match_key,
+                    "review_match_key": review_match_key,
+                    "llm_status": llm_status,
                     "result": result,
                     "source": db_row["source"],
                     "rating": db_row["rating"],
@@ -487,9 +690,15 @@ def main() -> None:
                     would_take_again_score,
                     base_sentiment_score,
                     confidence_adjusted_sentiment_score,
+                    llm_sentiment_score,
+                    llm_sentiment_label,
+                    llm_sentiment_summary,
+                    llm_sentiment_pros_json,
+                    llm_sentiment_cons_json,
+                    final_sentiment_score,
                     rmp_url,
                     imported_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     db_row["professor_name"],
@@ -505,6 +714,12 @@ def main() -> None:
                     db_row["would_take_again_score"],
                     db_row["base_sentiment_score"],
                     db_row["confidence_adjusted_sentiment_score"],
+                    db_row["llm_sentiment_score"],
+                    db_row["llm_sentiment_label"],
+                    db_row["llm_sentiment_summary"],
+                    db_row["llm_sentiment_pros_json"],
+                    db_row["llm_sentiment_cons_json"],
+                    db_row["final_sentiment_score"],
                     db_row["rmp_url"],
                     db_row["imported_at"],
                 ),
@@ -523,7 +738,7 @@ def main() -> None:
         "Built professor_sentiment_features: "
         f"candidates={len(professor_names)}, inserted={len(inserted_rows)}, "
         f"matched={matched}, matched_live={matched_live}, matched_seed={matched_seed}, "
-        f"fallback={fallback}, "
+        f"fallback={fallback}, llm_enriched={llm_enriched}, "
         f"db={args.db_path}"
     )
     if args.export_csv:

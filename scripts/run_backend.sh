@@ -46,5 +46,22 @@ else
 	echo "Backend dependencies are up to date"
 fi
 
+# Ensure Ollama service is running
+echo "Checking Ollama service..."
+if ! systemctl is-active --quiet ollama; then
+	echo "Ollama service is not running. Attempting to start it..."
+	if sudo systemctl start ollama 2>/dev/null; then
+		echo "Ollama service started successfully."
+	else
+		echo "WARNING: Could not start Ollama service. Please ensure it's running:"
+		echo "  systemctl status ollama"
+		echo "  sudo systemctl start ollama  # if not running"
+	fi
+fi
+
+# Wait a moment for Ollama to be ready
+sleep 2
+
+echo "Backend dependencies ready. Starting FastAPI server on port 8000..."
 cd "$BACKEND_DIR"
 exec "$VENV_PYTHON" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
