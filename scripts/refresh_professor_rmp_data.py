@@ -795,6 +795,44 @@ def refresh(args: argparse.Namespace) -> None:
 
         upsert_summary_rows(main_conn, profile_rows)
         upsert_sentiment_rows(main_conn, sentiment_rows)
+        main_conn.execute("DELETE FROM professor_rmp_reviews")
+        main_conn.executemany(
+            """
+            INSERT INTO professor_rmp_reviews (
+                professor_name,
+                review_hash,
+                review_date,
+                review_text,
+                quality,
+                difficulty,
+                course_raw,
+                tags_json,
+                details_json,
+                thumbs_up,
+                thumbs_down,
+                source_url,
+                fetched_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    row["professor_name"],
+                    row["review_hash"],
+                    row["review_date"],
+                    row["review_text"],
+                    row["quality"],
+                    row["difficulty"],
+                    row["course_raw"],
+                    row["tags_json"],
+                    row["details_json"],
+                    row["thumbs_up"],
+                    row["thumbs_down"],
+                    row["source_url"],
+                    row["fetched_at"],
+                )
+                for row in review_rows
+            ],
+        )
         main_conn.commit()
 
         cache_conn.execute("DELETE FROM crawl_state")

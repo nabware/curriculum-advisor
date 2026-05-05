@@ -16,13 +16,13 @@ Before cloning or running the scripts, ensure you have:
    - Ubuntu/Debian: `sudo apt-get install python3 python3-venv`
    - Windows: [Download from python.org](https://www.python.org)
 
-2. **Ollama** (optional, for AI-powered sentiment analysis) - One-time setup
+2. **Ollama** (used for professor review summarization and sentiment scoring) - One-time setup
    - **macOS/Linux**: `curl -fsSL https://ollama.ai/install.sh | sh`
    - **Windows**: [Download installer](https://ollama.ai/download)
    - After install: `ollama pull llama3.1` (one-time, ~4.9GB download)
    - Then run `run_backend.sh` - it will auto-start the Ollama service
 
-If you skip Ollama installation, the sentiment analysis falls back to ratings-based scoring (deterministic, no LLM needed).
+If you skip Ollama installation, the sentiment scoring falls back to ratings-based scoring and the review summary fields stay blank.
 
 ## Quick Start
 
@@ -58,45 +58,15 @@ python scripts/import_course_metadata.py
 python scripts/build_professor_sentiment_features.py
 ```
 
-### Option A: Synthetic Reviews (Fast, Recommended for Development)
+### Real Reviews from RateMyProfessors
 
-Generate diverse, realistic-sounding reviews for all professors:
-
-```bash
-python scripts/generate_synthetic_reviews.py
-python scripts/build_professor_sentiment_features.py \
-	--review-text-csv data/seed/professor_review_snippets.csv
-```
-
-Optional: Enrich with Ollama LLM sentiment analysis:
-
-```bash
-ollama pull llama3.1
-ollama serve
-python scripts/build_professor_sentiment_features.py \
-	--review-text-csv data/seed/professor_review_snippets.csv \
-	--sentiment-llm-model llama3.1
-```
-
-Use `--help` to see options:
-```bash
-python scripts/generate_synthetic_reviews.py --help
-```
-
-### Option B: Real Reviews from RateMyProfessors (Advanced)
-
-Collect actual professor reviews from RateMyProfessors using the GraphQL client:
+The refresh job pulls review data for all SFSU professors from the `ratemyprofessors-client` GraphQL API, stores the profiles and raw reviews in SQLite, and then rebuilds professor sentiment features from that database data.
 
 ```bash
 pip install ratemyprofessors-client
-python scripts/collect_professor_reviews.py
-python scripts/build_professor_sentiment_features.py \
-	--review-text-csv data/seed/professor_review_snippets.csv
+python scripts/refresh_professor_rmp_data.py
+python scripts/build_professor_sentiment_features.py
 ```
-
-The `collect_professor_reviews.py` script uses the `rmp_client` GraphQL API with retry and a local cache (`data/seed/professor_review_cache.db`).
-
-**Note**: Requires network access to RateMyProfessors. If a professor cannot be matched in the configured school scope, the script records `no_match` and continues.
 
 To refresh the local database from live RateMyProfessors data and rebuild the sentiment features in one pass, run this maintenance job:
 
@@ -104,14 +74,11 @@ To refresh the local database from live RateMyProfessors data and rebuild the se
 python scripts/refresh_professor_rmp_data.py
 ```
 
-This refreshes `data/seed/curriculum_advisor.db`, the review cache, the review snippets CSV, and the professor RMP profile exports from live `ratemyprofessors-client` data. The app itself reads only from the local SQLite database.
+This refreshes `data/seed/curriculum_advisor.db`, the review cache, the professor RMP profile exports, and the sentiment feature rows from live `ratemyprofessors-client` data. The app itself reads only from the local SQLite database.
 
 ### Sentiment Pipeline
 
-If you provide a `professor_review_snippets.csv` file with `professor_name` and `review_text` columns, the sentiment builder can:
-- Optionally call Ollama running on `http://localhost:11434/v1/chat/completions` for LLM-based sentiment analysis
-- Blend generated review sentiment into the professor sentiment features table
-- Without reviews, falls back to ratings-based flow
+The sentiment builder now reads from `professor_rmp_reviews` in SQLite, calls Ollama at `http://localhost:11434/v1/chat/completions` for LLM-based sentiment analysis, and stores the resulting summaries and scores in `professor_sentiment_features`.
 
 Expected SQLite file:
 - `data/seed/curriculum_advisor.db`

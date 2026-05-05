@@ -56,16 +56,23 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         pass
 
-    start = candidate.find("{")
-    end = candidate.rfind("}")
-    if start < 0 or end <= start:
-        return None
-
-    try:
-        parsed = json.loads(candidate[start : end + 1])
-        return parsed if isinstance(parsed, dict) else None
-    except json.JSONDecodeError:
-        return None
+    # Try to locate the first balanced JSON object (handles multiple JSON objects concatenated)
+    start = None
+    depth = 0
+    for i, ch in enumerate(candidate):
+        if ch == "{":
+            if start is None:
+                start = i
+            depth += 1
+        elif ch == "}" and start is not None:
+            depth -= 1
+            if depth == 0:
+                try:
+                    parsed = json.loads(candidate[start : i + 1])
+                    return parsed if isinstance(parsed, dict) else None
+                except json.JSONDecodeError:
+                    return None
+    return None
 
 
 def _build_prompt(review_texts: list[str]) -> str:

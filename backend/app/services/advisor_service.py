@@ -521,13 +521,15 @@ class AdvisorService:
             ).fetchall()
 
             sentiment_by_professor: dict[str, float] = {}
+            sentiment_summary_by_professor: dict[str, str] = {}
             sentiment_by_last_initial: dict[str, list[float]] = {}
             sentiment_by_last_name: dict[str, list[float]] = {}
             try:
                 sentiment_rows = conn.execute(
                     """
                     SELECT professor_name,
-                           COALESCE(final_sentiment_score, confidence_adjusted_sentiment_score) AS sentiment_score
+                           COALESCE(final_sentiment_score, confidence_adjusted_sentiment_score) AS sentiment_score,
+                           llm_sentiment_summary
                     FROM professor_sentiment_features
                     """
                 ).fetchall()
@@ -535,7 +537,8 @@ class AdvisorService:
                 try:
                     sentiment_rows = conn.execute(
                         """
-                        SELECT professor_name, confidence_adjusted_sentiment_score AS sentiment_score
+                        SELECT professor_name, confidence_adjusted_sentiment_score AS sentiment_score,
+                               llm_sentiment_summary
                         FROM professor_sentiment_features
                         """
                     ).fetchall()
@@ -552,6 +555,16 @@ class AdvisorService:
                 score = float(score_raw)
                 normalized = AdvisorService._normalize_name(professor_name)
                 sentiment_by_professor[normalized] = score
+                # attach any llm-provided summary
+                try:
+                    if isinstance(row, sqlite3.Row):
+                        summary = row["llm_sentiment_summary"]
+                    else:
+                        summary = row[2] if len(row) > 2 else None
+                except Exception:
+                    summary = None
+                if summary:
+                    sentiment_summary_by_professor[normalized] = str(summary).strip()
 
                 last_initial_key = AdvisorService._last_name_first_initial_key(professor_name)
                 if last_initial_key:
@@ -696,6 +709,11 @@ class AdvisorService:
                         sentiment_by_professor,
                         sentiment_by_last_initial,
                         sentiment_by_last_name,
+                    ),
+                    professor_review_summary=(
+                        sentiment_summary_by_professor.get(AdvisorService._normalize_name(
+                            professor_info["professor_name"] if professor_info else (schedule_info.get("instructor") if schedule_info else None)
+                        )) if 'sentiment_summary_by_professor' in locals() else None
                     ),
                 )
             )

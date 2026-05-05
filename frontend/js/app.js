@@ -286,6 +286,14 @@ function renderRecommendations(groups, fallbackCourses = []) {
 
     professorMeta.appendChild(professorPills);
 
+    // Professor review summary (LLM-generated) shown under the pills
+    if (course.professor_review_summary) {
+      const summaryEl = document.createElement("p");
+      summaryEl.className = "professor-summary";
+      summaryEl.textContent = course.professor_review_summary;
+      professorMeta.appendChild(summaryEl);
+    }
+
     professor.append(professorVisual, professorMeta);
 
     article.append(code, courseTitle, meta, schedule, description, professor);
