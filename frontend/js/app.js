@@ -238,18 +238,6 @@ function renderRecommendations(groups, fallbackCourses = []) {
     const professorPills = document.createElement("div");
     professorPills.className = "professor-pill-row";
 
-    const rmpPill = document.createElement("div");
-    rmpPill.className = "professor-rating-pill professor-rating-pill-rmp";
-    if (course.rmp_rating !== null && course.rmp_rating !== undefined) {
-      rmpPill.title = `Based on ${course.rmp_num_ratings ?? "?"} ratings`;
-      rmpPill.textContent = `RMP ${course.rmp_rating.toFixed(1)} / 5`;
-      applyPillTone(rmpPill, getPillTone(course.rmp_rating, "rating"));
-    } else {
-      rmpPill.title = "No live RMP rating available for this professor";
-      rmpPill.textContent = "RMP n/a";
-      applyPillTone(rmpPill, "neutral");
-    }
-
     const sentimentPill = document.createElement("div");
     sentimentPill.className = "professor-rating-pill professor-rating-pill-sentiment";
     if (course.professor_sentiment_score !== null && course.professor_sentiment_score !== undefined) {
@@ -262,7 +250,7 @@ function renderRecommendations(groups, fallbackCourses = []) {
       applyPillTone(sentimentPill, "neutral");
     }
 
-    professorPills.append(rmpPill, sentimentPill);
+    professorPills.append(sentimentPill);
     professorVisual.append(professorImage);
 
     // RMP ratings
