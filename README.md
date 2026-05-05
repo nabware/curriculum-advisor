@@ -85,18 +85,18 @@ python scripts/generate_synthetic_reviews.py --help
 
 ### Option B: Real Reviews from RateMyProfessors (Advanced)
 
-Collect actual professor reviews from RateMyProfessors using Playwright:
+Collect actual professor reviews from RateMyProfessors using the GraphQL client:
 
 ```bash
-python -m playwright install chromium
+pip install ratemyprofessors-client
 python scripts/collect_professor_reviews.py
 python scripts/build_professor_sentiment_features.py \
 	--review-text-csv data/seed/professor_review_snippets.csv
 ```
 
-The `collect_professor_reviews.py` script uses Playwright with retry, rate limiting, and a local cache (`data/seed/professor_review_cache.db`).
+The `collect_professor_reviews.py` script uses the `rmp_client` GraphQL API with retry and a local cache (`data/seed/professor_review_cache.db`).
 
-**Note**: Requires network access to RateMyProfessors. If URLs cannot be resolved, falls back gracefully.
+**Note**: Requires network access to RateMyProfessors. If a professor cannot be matched in the configured school scope, the script records `no_match` and continues.
 
 ### Sentiment Pipeline
 

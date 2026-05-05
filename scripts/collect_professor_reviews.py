@@ -4,16 +4,11 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
-import json
-import os
-import random
 import re
 import sqlite3
 import sys
 import time
-import urllib.parse
-import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +16,7 @@ BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.database import get_database_path
-from app.services.rmp_service import fetch_professor_rating
+from rmp_client import RMPClient
 
 
 def utc_now_iso() -> str:
@@ -113,8 +108,8 @@ def load_cached_reviews(
     if not fetched_at:
         return [], source_url, False
 
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=stale_hours)
-    if fetched_at < cutoff:
+    cutoff = datetime.now(timezone.utc).timestamp() - (stale_hours * 3600)
+    if fetched_at.timestamp() < cutoff:
         return [], source_url, False
 
     if status != "ok":
@@ -178,150 +173,59 @@ def write_cache_result(
         )
 
 
-def resolve_professor_url(professor_name: str) -> str | None:
-    # The existing live RMP helper is gated behind this environment flag.
-    os.environ["RMP_ENABLE_LIVE"] = "1"
-    payload = fetch_professor_rating(professor_name)
-    if not payload:
-        return None
-    url = payload.get("rmp_url")
-    if not url:
-        url = search_rmp_profile_url(professor_name)
-    return str(url) if url else None
-
-
-def search_rmp_profile_url(professor_name: str) -> str | None:
-    query = f'"{professor_name}" "San Francisco State University" "Rate My Professors"'
-    search_url = "https://duckduckgo.com/html/?" + urllib.parse.urlencode({"q": query})
-
-    request = urllib.request.Request(
-        search_url,
-        headers={
-            "User-Agent": "Mozilla/5.0",
-        },
-        method="GET",
+def resolve_professor_match(
+    client: RMPClient,
+    professor_name: str,
+    school_id: str,
+) -> object | None:
+    search_result = client.search_professors(
+        professor_name,
+        school_id=school_id,
+        page_size=10,
     )
+    professors = list(search_result.professors)
+    if not professors:
+        search_result = client.search_professors(professor_name, page_size=10)
+        professors = list(search_result.professors)
 
-    try:
-        with urllib.request.urlopen(request, timeout=12) as response:
-            html_text = response.read().decode("utf-8", errors="ignore")
-    except Exception:
+    if not professors:
         return None
 
-    links = re.findall(r'href="([^"]+)"', html_text, flags=re.IGNORECASE)
-    for raw_link in links:
-        candidate = raw_link
-        if "duckduckgo.com/l/?" in candidate:
-            parsed = urllib.parse.urlparse(candidate)
-            params = urllib.parse.parse_qs(parsed.query)
-            uddg_values = params.get("uddg")
-            if uddg_values:
-                candidate = urllib.parse.unquote(uddg_values[0])
+    target_name = professor_name.strip().casefold()
+    for professor in professors:
+        if getattr(professor, "name", "").strip().casefold() == target_name:
+            return professor
 
-        normalized = candidate.strip()
-        if re.search(r"ratemyprofessors\.com/professor/\d+", normalized, re.IGNORECASE):
-            return normalized
-
-    return None
+    return professors[0]
 
 
-def _extract_review_texts_from_next_data(raw_html: str) -> list[str]:
-    match = re.search(
-        r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-        raw_html,
-        flags=re.DOTALL,
-    )
-    if not match:
-        return []
-
-    try:
-        payload = json.loads(match.group(1))
-    except json.JSONDecodeError:
-        return []
-
-    candidates: list[str] = []
-
-    def walk(node: object) -> None:
-        if isinstance(node, dict):
-            for key, value in node.items():
-                lower_key = key.lower()
-                if lower_key == "comment" and isinstance(value, str):
-                    normalized = normalize_space(value)
-                    if len(normalized) >= 20:
-                        candidates.append(normalized)
-                walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
-
-    walk(payload)
-    return dedupe_preserve_order(candidates)
-
-
-def _extract_review_texts_from_dom(page: object) -> list[str]:
-    selectors = [
-        "[data-qa='comment']",
-        "[data-testid='comments']",
-        "div[class*='Comments__StyledComments']",
-        "div[class*='RatingComments']",
-        "div[class*='RatingComment']",
-    ]
-
-    collected: list[str] = []
-    for selector in selectors:
-        texts = page.locator(selector).all_text_contents()
-        for text in texts:
-            normalized = normalize_space(text)
-            if len(normalized) >= 20:
-                collected.append(normalized)
-
-    return dedupe_preserve_order(collected)
-
-
-def scrape_reviews(
-    page: object,
-    url: str,
-    max_reviews_per_professor: int,
-) -> list[str]:
-    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(1200)
-
-    cookie_buttons = [
-        "button:has-text('Accept')",
-        "button:has-text('I Agree')",
-        "button:has-text('Got it')",
-    ]
-    for selector in cookie_buttons:
-        button = page.locator(selector)
-        if button.count() > 0:
-            try:
-                button.first.click(timeout=1000)
-            except Exception:
-                pass
-
-    dom_reviews = _extract_review_texts_from_dom(page)
-
-    raw_html = page.content()
-    json_reviews = _extract_review_texts_from_next_data(raw_html)
-
-    merged = dedupe_preserve_order(dom_reviews + json_reviews)
-    return merged[:max_reviews_per_professor]
-
-
-def scrape_reviews_with_retry(
-    page: object,
-    url: str,
+def fetch_reviews_for_professor(
+    client: RMPClient,
+    professor_name: str,
+    school_id: str,
     max_reviews_per_professor: int,
     max_retries: int,
-) -> list[str]:
+) -> tuple[str | None, list[str]]:
     last_error: Exception | None = None
     for attempt in range(1, max_retries + 1):
         try:
-            return scrape_reviews(
-                page=page,
-                url=url,
-                max_reviews_per_professor=max_reviews_per_professor,
-            )
+            professor = resolve_professor_match(client, professor_name, school_id)
+            if professor is None:
+                return None, []
+
+            source_url = f"https://www.ratemyprofessors.com/professor/{professor.id}"
+            ratings = list(client.iter_professor_ratings(professor.id, page_size=100))
+            review_texts = [
+                normalize_space(str(rating.comment))
+                for rating in ratings
+                if getattr(rating, "comment", None)
+                and normalize_space(str(rating.comment))
+            ]
+
+            if max_reviews_per_professor > 0:
+                review_texts = review_texts[:max_reviews_per_professor]
+
+            return source_url, dedupe_preserve_order(review_texts)
         except Exception as exc:
             last_error = exc
             backoff_seconds = min(8.0, 1.5 * (2 ** (attempt - 1)))
@@ -329,7 +233,7 @@ def scrape_reviews_with_retry(
 
     if last_error:
         raise last_error
-    return []
+    return None, []
 
 
 def write_output_csv(output_path: Path, rows: list[dict[str, str]]) -> None:
@@ -364,14 +268,6 @@ def collect_reviews(args: argparse.Namespace) -> None:
 
     args.cache_db.parent.mkdir(parents=True, exist_ok=True)
 
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError as exc:
-        raise RuntimeError(
-            "Playwright is not installed. Install dependencies and run: "
-            "python -m playwright install chromium"
-        ) from exc
-
     output_rows: list[dict[str, str]] = []
     report_rows: list[dict[str, str]] = []
     cache_hits = 0
@@ -379,12 +275,9 @@ def collect_reviews(args: argparse.Namespace) -> None:
 
     with sqlite3.connect(args.cache_db) as cache_conn:
         init_cache_schema(cache_conn)
+        client = RMPClient()
 
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=args.headless)
-            context = browser.new_context()
-            page = context.new_page()
-
+        try:
             for idx, professor_name in enumerate(professor_names, start=1):
                 cached_reviews, cached_url, cache_fresh = load_cached_reviews(
                     cache_conn,
@@ -394,7 +287,12 @@ def collect_reviews(args: argparse.Namespace) -> None:
 
                 if cache_fresh and cached_reviews:
                     cache_hits += 1
-                    for review_text in cached_reviews[: args.max_reviews_per_professor]:
+                    selected_reviews = (
+                        cached_reviews[: args.max_reviews_per_professor]
+                        if args.max_reviews_per_professor > 0
+                        else cached_reviews
+                    )
+                    for review_text in selected_reviews:
                         output_rows.append(
                             {
                                 "professor_name": professor_name,
@@ -412,47 +310,43 @@ def collect_reviews(args: argparse.Namespace) -> None:
                         }
                     )
                     print(
-                        f"[{idx}/{len(professor_names)}] {professor_name}: "
-                        f"cache hit ({len(cached_reviews)} reviews)"
+                        f"[{idx}/{len(professor_names)}] {professor_name}: cache hit ({len(cached_reviews)} reviews)"
                     )
                     continue
 
-                source_url = resolve_professor_url(professor_name)
+                source_url, review_texts = fetch_reviews_for_professor(
+                    client=client,
+                    professor_name=professor_name,
+                    school_id=args.school_id,
+                    max_reviews_per_professor=args.max_reviews_per_professor,
+                    max_retries=args.max_retries,
+                )
+
                 if not source_url:
                     write_cache_result(
                         cache_conn,
                         professor_name=professor_name,
                         source_url=None,
-                        status="no_url",
-                        error_message="No matching RMP profile URL found",
+                        status="no_match",
+                        error_message="No matching RMP profile found",
                         review_texts=[],
                     )
                     cache_conn.commit()
                     report_rows.append(
                         {
                             "professor_name": professor_name,
-                            "status": "no_url",
+                            "status": "no_match",
                             "review_count": "0",
                             "source_url": "",
                             "from_cache": "no",
-                            "error_message": "No matching RMP profile URL found",
+                            "error_message": "No matching RMP profile found",
                         }
                     )
-                    print(
-                        f"[{idx}/{len(professor_names)}] {professor_name}: no profile URL"
-                    )
-                    time.sleep(random.uniform(args.min_delay_seconds, args.max_delay_seconds))
+                    print(f"[{idx}/{len(professor_names)}] {professor_name}: no profile match")
                     continue
 
                 try:
-                    review_texts = scrape_reviews_with_retry(
-                        page=page,
-                        url=source_url,
-                        max_reviews_per_professor=args.max_reviews_per_professor,
-                        max_retries=args.max_retries,
-                    )
                     fetched += 1
-
                     status = "ok" if review_texts else "ok_empty"
                     write_cache_result(
                         cache_conn,
@@ -483,8 +377,7 @@ def collect_reviews(args: argparse.Namespace) -> None:
                         }
                     )
                     print(
-                        f"[{idx}/{len(professor_names)}] {professor_name}: "
-                        f"fetched {len(review_texts)} reviews"
+                        f"[{idx}/{len(professor_names)}] {professor_name}: fetched {len(review_texts)} reviews"
                     )
                 except Exception as exc:
                     error_message = normalize_space(str(exc))
@@ -511,11 +404,8 @@ def collect_reviews(args: argparse.Namespace) -> None:
                     print(
                         f"[{idx}/{len(professor_names)}] {professor_name}: error ({error_message})"
                     )
-
-                time.sleep(random.uniform(args.min_delay_seconds, args.max_delay_seconds))
-
-            context.close()
-            browser.close()
+        finally:
+            client.close()
 
     write_output_csv(args.output_csv, output_rows)
     write_report_csv(args.report_csv, report_rows)
@@ -533,7 +423,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Collect professor review snippets for all professors in professor_profiles "
-            "using Playwright with retry, rate limiting, and cache."
+            "using the RateMyProfessors GraphQL client with retry and cache."
         )
     )
     parser.add_argument("--db-path", type=Path, default=get_database_path())
@@ -552,26 +442,25 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "data" / "seed" / "professor_review_cache.db",
     )
-    parser.add_argument("--max-reviews-per-professor", type=int, default=20)
-    parser.add_argument("--max-retries", type=int, default=3)
-    parser.add_argument("--min-delay-seconds", type=float, default=1.5)
-    parser.add_argument("--max-delay-seconds", type=float, default=3.5)
-    parser.add_argument("--stale-hours", type=int, default=24 * 7)
     parser.add_argument(
-        "--headless",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Run browser in headless mode (default: true)",
+        "--school-id",
+        type=str,
+        default="880",
+        help="RateMyProfessors school id to scope professor searches (default: 880)",
     )
+    parser.add_argument(
+        "--max-reviews-per-professor",
+        type=int,
+        default=0,
+        help="Maximum reviews to keep per professor; 0 means keep all reviews",
+    )
+    parser.add_argument("--max-retries", type=int, default=3)
+    parser.add_argument("--stale-hours", type=int, default=24 * 7)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    if args.min_delay_seconds < 0 or args.max_delay_seconds < 0:
-        raise ValueError("Delay values must be non-negative.")
-    if args.max_delay_seconds < args.min_delay_seconds:
-        raise ValueError("max-delay-seconds must be >= min-delay-seconds.")
     collect_reviews(args)
 
 

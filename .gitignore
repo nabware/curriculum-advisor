@@ -20,3 +20,4 @@ data/processed/*
 
 # Local generated SQLite
 data/seed/curriculum_advisor.db
+data/seed/professor_review_cache.db
