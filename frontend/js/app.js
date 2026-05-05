@@ -122,6 +122,40 @@ function getRenderableProfessorImageUrl(imageUrl) {
   return null;
 }
 
+function getPillTone(value, kind) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "neutral";
+  }
+
+  const numericValue = Number(value);
+
+  if (kind === "difficulty") {
+    if (numericValue >= 3.8) return "red";
+    if (numericValue >= 2.8) return "yellow";
+    return "green";
+  }
+
+  if (kind === "sentiment") {
+    if (numericValue >= 0.7) return "green";
+    if (numericValue >= 0.45) return "yellow";
+    return "red";
+  }
+
+  if (kind === "wta") {
+    if (numericValue >= 80) return "green";
+    if (numericValue >= 60) return "yellow";
+    return "red";
+  }
+
+  if (numericValue >= 4.0) return "green";
+  if (numericValue >= 3.0) return "yellow";
+  return "red";
+}
+
+function applyPillTone(element, tone) {
+  element.classList.add(`pill-tone-${tone}`);
+}
+
 function renderRecommendations(groups, fallbackCourses = []) {
   recommendationsEl.innerHTML = "";
 
@@ -180,6 +214,9 @@ function renderRecommendations(groups, fallbackCourses = []) {
     const professor = document.createElement("div");
     professor.className = "professor-card";
 
+    const professorVisual = document.createElement("div");
+    professorVisual.className = "professor-visual";
+
     const professorImage = document.createElement("img");
     professorImage.className = "professor-image";
     professorImage.alt = course.professor_name || course.instructor || "Professor";
@@ -198,6 +235,36 @@ function renderRecommendations(groups, fallbackCourses = []) {
 
     professorMeta.appendChild(professorName);
 
+    const professorPills = document.createElement("div");
+    professorPills.className = "professor-pill-row";
+
+    const rmpPill = document.createElement("div");
+    rmpPill.className = "professor-rating-pill professor-rating-pill-rmp";
+    if (course.rmp_rating !== null && course.rmp_rating !== undefined) {
+      rmpPill.title = `Based on ${course.rmp_num_ratings ?? "?"} ratings`;
+      rmpPill.textContent = `RMP ${course.rmp_rating.toFixed(1)} / 5`;
+      applyPillTone(rmpPill, getPillTone(course.rmp_rating, "rating"));
+    } else {
+      rmpPill.title = "No live RMP rating available for this professor";
+      rmpPill.textContent = "RMP n/a";
+      applyPillTone(rmpPill, "neutral");
+    }
+
+    const sentimentPill = document.createElement("div");
+    sentimentPill.className = "professor-rating-pill professor-rating-pill-sentiment";
+    if (course.professor_sentiment_score !== null && course.professor_sentiment_score !== undefined) {
+      sentimentPill.title = "Sentiment score derived from review text";
+      sentimentPill.textContent = `Sentiment ${(course.professor_sentiment_score * 100).toFixed(0)}%`;
+      applyPillTone(sentimentPill, getPillTone(course.professor_sentiment_score, "sentiment"));
+    } else {
+      sentimentPill.title = "No sentiment score available for this professor";
+      sentimentPill.textContent = "Sentiment n/a";
+      applyPillTone(sentimentPill, "neutral");
+    }
+
+    professorPills.append(rmpPill, sentimentPill);
+    professorVisual.append(professorImage);
+
     // RMP ratings
     if (course.rmp_rating !== null && course.rmp_rating !== undefined) {
       const rmpBadge = document.createElement("div");
@@ -207,11 +274,13 @@ function renderRecommendations(groups, fallbackCourses = []) {
       ratingEl.className = "rmp-rating";
       ratingEl.title = `Based on ${course.rmp_num_ratings ?? "?"} ratings`;
       ratingEl.textContent = `${course.rmp_rating.toFixed(1)} / 5`;
+      applyPillTone(ratingEl, getPillTone(course.rmp_rating, "rating"));
 
       const diffEl = document.createElement("span");
       diffEl.className = "rmp-difficulty";
       diffEl.title = "Avg difficulty (1–5)";
       diffEl.textContent = `Difficulty ${course.rmp_difficulty !== null && course.rmp_difficulty !== undefined ? course.rmp_difficulty.toFixed(1) : "—"}`;
+      applyPillTone(diffEl, getPillTone(course.rmp_difficulty, "difficulty"));
 
       rmpBadge.append(ratingEl, diffEl);
 
@@ -220,23 +289,16 @@ function renderRecommendations(groups, fallbackCourses = []) {
         wtaEl.className = "rmp-wta";
         wtaEl.title = "Would take again";
         wtaEl.textContent = `${Math.round(course.rmp_would_take_again_pct)}% again`;
+        applyPillTone(wtaEl, getPillTone(course.rmp_would_take_again_pct, "wta"));
         rmpBadge.appendChild(wtaEl);
       }
 
-      if (course.rmp_url) {
-        const rmpLink = document.createElement("a");
-        rmpLink.className = "rmp-link";
-        rmpLink.href = course.rmp_url;
-        rmpLink.target = "_blank";
-        rmpLink.rel = "noopener noreferrer";
-        rmpLink.textContent = "RMP";
-        rmpBadge.appendChild(rmpLink);
-      }
-
-      professorMeta.appendChild(rmpBadge);
+      professorPills.appendChild(rmpBadge);
     }
 
-    professor.append(professorImage, professorMeta);
+    professorMeta.appendChild(professorPills);
+
+    professor.append(professorVisual, professorMeta);
 
     article.append(code, courseTitle, meta, schedule, description, professor);
     recommendationsEl.appendChild(article);
@@ -437,6 +499,8 @@ form.addEventListener("submit", async (event) => {
   submitBtn.disabled = true;
   setStatus("Generating recommendations…");
 
+  const preferHighRatedProfessors = document.getElementById("prefer-high-rated-professors").checked;
+
   const payload = {
     major,
     completed_courses: completedCourses,
@@ -445,7 +509,7 @@ form.addEventListener("submit", async (event) => {
     interests: [],
     career_goals: [],
     prefer_light_workload: false,
-    prefer_high_rated_professors: false,
+    prefer_high_rated_professors: preferHighRatedProfessors,
     max_units_per_semester: maxUnits,
     term,
   };

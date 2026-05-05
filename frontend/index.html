@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Curriculum Advisor</title>
-    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/styles.css?v=20260505-1" />
   </head>
   <body>
     <main class="page-shell">
@@ -104,6 +104,14 @@
             </div>
           </div>
 
+          <!-- Preferences -->
+          <div class="form-group form-full">
+            <label>
+              <input id="prefer-high-rated-professors" type="checkbox" />
+              Prefer high-rated professors (uses sentiment analysis from real reviews)
+            </label>
+          </div>
+
           <button id="submit-btn" type="submit" class="form-submit">Recommend Classes</button>
         </form>
 
@@ -135,6 +143,6 @@
     </main>
 
     <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=20260505-1"></script>
   </body>
 </html>

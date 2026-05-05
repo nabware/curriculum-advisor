@@ -691,10 +691,16 @@ class AdvisorService:
                     description=description_lookup.get(course_code),
                     professor_name=professor_info["professor_name"] if professor_info else (schedule_info.get("instructor") if schedule_info else None),
                     professor_image_url=professor_info["professor_image_url"] if professor_info else None,
+                    professor_sentiment_score=AdvisorService._resolve_numeric_name_match(
+                        professor_info["professor_name"] if professor_info else (schedule_info.get("instructor") if schedule_info else None),
+                        sentiment_by_professor,
+                        sentiment_by_last_initial,
+                        sentiment_by_last_name,
+                    ),
                 )
             )
 
-        # Build per-instructor RMP cache so we only call the API once per name
+        # Build per-instructor RMP cache so we only look up each name once
         rmp_cache: dict[str, dict | None] = {}
 
         def _get_rmp(instructor: str | None) -> dict | None:

@@ -52,6 +52,7 @@ class RecommendedCourse(BaseModel):
     description: str | None = None
     professor_name: str | None = None
     professor_image_url: str | None = None
+    professor_sentiment_score: float | None = None
     # RMP fields
     rmp_rating: float | None = None
     rmp_difficulty: float | None = None

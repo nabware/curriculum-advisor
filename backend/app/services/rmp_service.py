@@ -1,86 +1,9 @@
 from __future__ import annotations
 
-import json
-import os
 import re
-import urllib.request
-from functools import lru_cache
+import sqlite3
 
-SCHOOL_ID = "U2FuIEZyYW5jaXNjbyBTdGF0ZSBVbml2ZXJzaXR5"  
-
-_GQL_URL = "https://www.ratemyprofessors.com/graphql"
-
-_SCHOOL_QUERY = """
-query SchoolSearchQuery($query: SchoolSearchQuery!) {
-  newSearch {
-    schools(query: $query) {
-      edges {
-        node {
-          id
-          name
-          city
-          state
-        }
-      }
-    }
-  }
-}
-"""
-
-_PROFESSOR_QUERY = """
-query TeacherSearchQuery($text: String!, $schoolID: ID) {
-  newSearch {
-    teachers(query: { text: $text, schoolID: $schoolID }, first: 5) {
-      edges {
-        node {
-          id
-          firstName
-          lastName
-          department
-          avgRating
-          avgDifficulty
-          numRatings
-          wouldTakeAgainPercent
-          school {
-            id
-            name
-          }
-        }
-      }
-    }
-  }
-}
-"""
-
-
-def _graphql(query: str, variables: dict) -> dict:
-    payload = json.dumps({"query": query, "variables": variables}).encode()
-    req = urllib.request.Request(
-        _GQL_URL,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "Basic dGVzdDp0ZXN0",  # RMP public token
-            "User-Agent": "Mozilla/5.0",
-            "Referer": "https://www.ratemyprofessors.com/",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        return json.loads(resp.read().decode())
-
-
-@lru_cache(maxsize=1)
-def get_school_id(school_name: str) -> str | None:
-    """Look up the base64 school ID by name. Cached after first call."""
-    try:
-        data = _graphql(_SCHOOL_QUERY, {"query": {"text": school_name}})
-        edges = data["data"]["newSearch"]["schools"]["edges"]
-        if not edges:
-            return None
-        return edges[0]["node"]["id"]
-    except Exception:
-        return None
+from app.core.database import get_database_path
 
 
 def _name_similarity(a: str, b: str) -> float:
@@ -92,68 +15,62 @@ def _name_similarity(a: str, b: str) -> float:
     return len(tokens_a & tokens_b) / max(len(tokens_a), len(tokens_b))
 
 
+def _load_local_rmp_rows() -> list[dict[str, object]]:
+    conn = sqlite3.connect(get_database_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """
+            SELECT
+                professor_name,
+                rating,
+                difficulty,
+                would_take_again_pct,
+                review_count,
+                rmp_url
+            FROM professor_sentiment_features
+            WHERE rating IS NOT NULL
+            """
+        ).fetchall()
+    finally:
+        conn.close()
+
+    return [dict(row) for row in rows]
+
+
 def fetch_professor_rating(
     professor_name: str,
-    school_id: str = SCHOOL_ID,
 ) -> dict | None:
     """
-    Returns a dict with RMP data for the best-matching professor, or None.
+    Returns a dict with locally stored RMP data for the best-matching professor, or None.
 
     Keys: rating, difficulty, num_ratings, would_take_again_pct, rmp_url
     """
-    # Seed/simulated sentiment is the default data path; opt into live calls explicitly.
-    if os.getenv("RMP_ENABLE_LIVE", "0").strip().lower() not in {"1", "true", "yes", "on"}:
-      return None
-
     if not professor_name or not professor_name.strip():
         return None
 
-    last_name = professor_name.strip().split()[-1]
-
-    try:
-        data = _graphql(
-            _PROFESSOR_QUERY,
-            {"text": last_name, "schoolID": school_id},
-        )
-        edges = data["data"]["newSearch"]["teachers"]["edges"]
-    except Exception:
-        return None
-
-    if not edges:
-        return None
-
-    best_node = None
+    best_row: dict[str, object] | None = None
     best_score = 0.0
-    for edge in edges:
-        node = edge["node"]
-        full = f"{node['firstName']} {node['lastName']}"
-        score = _name_similarity(professor_name, full)
+    for row in _load_local_rmp_rows():
+        stored_name = str(row.get("professor_name") or "")
+        score = _name_similarity(professor_name, stored_name)
         if score > best_score:
             best_score = score
-            best_node = node
+            best_row = row
 
-    if best_node is None or best_score < 0.4:
+    if best_row is None or best_score < 0.4:
         return None
 
-    try:
-        import base64
-        numeric_id = base64.b64decode(best_node["id"]).decode().split("-")[-1]
-        rmp_url = f"https://www.ratemyprofessors.com/professor/{numeric_id}"
-    except Exception:
-        rmp_url = "https://www.ratemyprofessors.com"
-
-    avg_rating = best_node.get("avgRating")
-    avg_difficulty = best_node.get("avgDifficulty")
-    num_ratings = best_node.get("numRatings", 0)
-    would_take_again = best_node.get("wouldTakeAgainPercent")
-
+    num_ratings = int(best_row.get("review_count") or 0)
     if num_ratings == 0:
         return None
 
     return {
-        "rating": round(float(avg_rating), 1) if avg_rating is not None else None,
-        "difficulty": round(float(avg_difficulty), 1) if avg_difficulty is not None else None,
+        "rating": round(float(best_row.get("rating")), 1) if best_row.get("rating") is not None else None,
+        "difficulty": round(float(best_row.get("difficulty")), 1) if best_row.get("difficulty") is not None else None,
         "num_ratings": num_ratings,
-        "would_take_again_pct": round(float(would_take_again), 1) if would_take_again is not None and would_take_again >= 0 else None,
-        "rmp_url": rmp_url,
+        "would_take_again_pct": round(float(best_row.get("would_take_again_pct")), 1)
+        if best_row.get("would_take_again_pct") is not None
+        else None,
+        "rmp_url": str(best_row.get("rmp_url") or "https://www.ratemyprofessors.com"),
     }

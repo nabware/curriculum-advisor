@@ -201,14 +201,29 @@ input:focus {
 }
 
 .professor-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.85rem 1rem;
   margin-top: 0.75rem;
   padding: 0.75rem;
   background: rgba(28, 107, 87, 0.05);
   border: 1px solid var(--line);
   border-radius: 12px;
+}
+
+.professor-visual {
+  display: flex;
+  align-items: flex-start;
+  flex: 0 0 auto;
+}
+
+.professor-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
 .professor-image {
@@ -220,16 +235,72 @@ input:focus {
   border: 2px solid rgba(28, 107, 87, 0.14);
 }
 
+.professor-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.pill-tone-red,
+.rmp-rating.pill-tone-red,
+.rmp-difficulty.pill-tone-red,
+.rmp-wta.pill-tone-red,
+.professor-rating-pill.pill-tone-red {
+  background: linear-gradient(180deg, #d6453d, #b9261e);
+  border: 1px solid #8f1e18;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(185, 38, 30, 0.18);
+}
+
+.pill-tone-yellow,
+.rmp-rating.pill-tone-yellow,
+.rmp-difficulty.pill-tone-yellow,
+.rmp-wta.pill-tone-yellow,
+.professor-rating-pill.pill-tone-yellow {
+  background: linear-gradient(180deg, #f0bf3c, #d9a21f);
+  border: 1px solid #a77700;
+  color: #3f2d00;
+  box-shadow: 0 2px 6px rgba(214, 159, 42, 0.18);
+}
+
+.pill-tone-green,
+.rmp-rating.pill-tone-green,
+.rmp-difficulty.pill-tone-green,
+.rmp-wta.pill-tone-green,
+.professor-rating-pill.pill-tone-green {
+  background: linear-gradient(180deg, #2d8a6a, #1c6b57);
+  border: 1px solid #15513f;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(28, 107, 87, 0.18);
+}
+
+.pill-tone-neutral,
+.rmp-rating.pill-tone-neutral,
+.rmp-difficulty.pill-tone-neutral,
+.rmp-wta.pill-tone-neutral,
+.professor-rating-pill.pill-tone-neutral {
+  background: linear-gradient(180deg, rgba(78, 28, 110, 0.14), rgba(78, 28, 110, 0.08));
+  border: 1px solid rgba(78, 28, 110, 0.24);
+  color: var(--brand-strong);
+}
+
 .professor-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .professor-name {
   margin: 0;
   font-weight: 700;
   color: var(--text);
+  line-height: 1.2;
 }
 
 
@@ -487,7 +558,7 @@ input:focus {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
-  margin-top: 0.3rem;
+  margin-top: 0;
 }
 
 .rmp-rating {

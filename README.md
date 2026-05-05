@@ -98,6 +98,14 @@ The `collect_professor_reviews.py` script uses the `rmp_client` GraphQL API with
 
 **Note**: Requires network access to RateMyProfessors. If a professor cannot be matched in the configured school scope, the script records `no_match` and continues.
 
+To refresh the local database from live RateMyProfessors data and rebuild the sentiment features in one pass, run this maintenance job:
+
+```bash
+python scripts/refresh_professor_rmp_data.py
+```
+
+This refreshes `data/seed/curriculum_advisor.db`, the review cache, the review snippets CSV, and the professor RMP profile exports from live `ratemyprofessors-client` data. The app itself reads only from the local SQLite database.
+
 ### Sentiment Pipeline
 
 If you provide a `professor_review_snippets.csv` file with `professor_name` and `review_text` columns, the sentiment builder can:
