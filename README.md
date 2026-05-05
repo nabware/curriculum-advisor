@@ -58,7 +58,17 @@ python scripts/import_course_metadata.py
 python scripts/build_professor_sentiment_features.py
 ```
 
-Optional local Ollama-based sentiment enrichment:
+### Option A: Synthetic Reviews (Fast, Recommended for Development)
+
+Generate diverse, realistic-sounding reviews for all professors:
+
+```bash
+python scripts/generate_synthetic_reviews.py
+python scripts/build_professor_sentiment_features.py \
+	--review-text-csv data/seed/professor_review_snippets.csv
+```
+
+Optional: Enrich with Ollama LLM sentiment analysis:
 
 ```bash
 ollama pull llama3.1
@@ -68,7 +78,32 @@ python scripts/build_professor_sentiment_features.py \
 	--sentiment-llm-model llama3.1
 ```
 
-If you provide a `professor_review_snippets.csv` file with `professor_name` and `review_text` columns, the pipeline can call Ollama running on `http://localhost:11434/v1/chat/completions` and blend the generated review sentiment into the professor sentiment table. Without those inputs, it falls back to the current ratings-based flow.
+Use `--help` to see options:
+```bash
+python scripts/generate_synthetic_reviews.py --help
+```
+
+### Option B: Real Reviews from RateMyProfessors (Advanced)
+
+Collect actual professor reviews from RateMyProfessors using Playwright:
+
+```bash
+python -m playwright install chromium
+python scripts/collect_professor_reviews.py
+python scripts/build_professor_sentiment_features.py \
+	--review-text-csv data/seed/professor_review_snippets.csv
+```
+
+The `collect_professor_reviews.py` script uses Playwright with retry, rate limiting, and a local cache (`data/seed/professor_review_cache.db`).
+
+**Note**: Requires network access to RateMyProfessors. If URLs cannot be resolved, falls back gracefully.
+
+### Sentiment Pipeline
+
+If you provide a `professor_review_snippets.csv` file with `professor_name` and `review_text` columns, the sentiment builder can:
+- Optionally call Ollama running on `http://localhost:11434/v1/chat/completions` for LLM-based sentiment analysis
+- Blend generated review sentiment into the professor sentiment features table
+- Without reviews, falls back to ratings-based flow
 
 Expected SQLite file:
 - `data/seed/curriculum_advisor.db`
