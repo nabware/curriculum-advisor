@@ -13,14 +13,16 @@ def _build_json_schema_prompt(review_texts: list[str]) -> str:
         for index, review in enumerate(review_texts)
     )
     return (
-        "Analyze the following professor reviews and return strict JSON only. "
-        "Use the reviews, not any outside knowledge. "
-        "Return this schema exactly: "
-        '{"sentiment_label":"positive|neutral|negative","sentiment_score":0.0,"summary":"...",'
-        '"pros":["..."],"cons":["..."]}. '
-        "sentiment_score must be a number from 0.0 to 1.0 where 1.0 means very positive. "
-        "Keep summary to one or two sentences. "
-        "If the reviews are mixed, label them neutral and keep the score near 0.5.\n\n"
+        "Analyze the following professor reviews about TEACHING QUALITY ONLY. "
+        "ONLY mention what the PROFESSOR does/teaches, not student behaviors (attendance, homework, grades, personal struggles). "
+        "Extract: teaching effectiveness, clarity of explanations, classroom engagement, course organization, grading practices, accessibility/responsiveness. "
+        "Return strict JSON only: "
+        '{"sentiment_label":"positive|neutral|negative","sentiment_score":0.0,"summary":"...","pros":["..."],"cons":["..."]}. '
+        "sentiment_score: 0.0-1.0 where 1.0 = very positive teaching. "
+        "summary: 1-2 sentences about PROFESSOR'S TEACHING APPROACH AND CLASSROOM STYLE (e.g., 'Explains concepts clearly with engaging examples' or 'Lectures are organized and provides good feedback'). "
+        "pros: 2-3 teaching strengths (e.g., 'Clear explanations', 'Engaging classroom', 'Provides good support', 'Well-organized course'). "
+        "cons: 2-3 teaching weaknesses if mentioned (e.g., 'Moves too fast', 'Limited feedback', 'Unclear expectations'). "
+        "IMPORTANT: Ignore student attendance, homework difficulty, grades, or personal situations - focus only on professor's teaching qualities.\n\n"
         f"Reviews:\n{joined_reviews}"
     )
 
