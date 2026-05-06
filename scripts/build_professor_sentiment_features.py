@@ -13,7 +13,7 @@ BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.database import get_database_path
-from app.services.llama_sentiment_service import analyze_review_texts
+from app.services.llama_sentiment_service import summarize_review_texts
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -177,7 +177,7 @@ def main() -> None:
         conn.execute("DELETE FROM professor_sentiment_features")
 
         inserted_rows: list[dict[str, object]] = []
-        llm_enriched = 0
+        llm_summarized = 0
 
         for row in professor_rows:
             professor_name = str(row["professor_name"] or "").strip()
@@ -188,7 +188,7 @@ def main() -> None:
             llm_payload: dict[str, object] | None = None
             if review_texts and sentiment_llm_endpoint:
                 snippet_count = max(1, min(len(review_texts), args.sentiment_llm_max_snippets))
-                llm_payload = analyze_review_texts(
+                llm_payload = summarize_review_texts(
                     review_texts[:snippet_count],
                     endpoint=sentiment_llm_endpoint,
                     model=args.sentiment_llm_model,
@@ -196,7 +196,7 @@ def main() -> None:
                     timeout=args.sentiment_llm_timeout,
                 )
                 if llm_payload:
-                    llm_enriched += 1
+                    llm_summarized += 1
 
             features = calculate_sentiment_features(
                 rating=float(row["overall_rating"] or 0.0),
@@ -216,18 +216,10 @@ def main() -> None:
             llm_sentiment_cons_json = None
 
             if llm_payload:
-                try:
-                    llm_sentiment_score = clamp(float(llm_payload.get("sentiment_score")), 0.0, 1.0)
-                    llm_sentiment_label = str(llm_payload.get("sentiment_label") or "").strip() or None
-                    llm_sentiment_summary = str(llm_payload.get("summary") or "").strip() or None
-                    llm_sentiment_pros_json = json.dumps(llm_payload.get("pros") or [])
-                    llm_sentiment_cons_json = json.dumps(llm_payload.get("cons") or [])
-                    final_sentiment_score = (
-                        (1.0 - args.sentiment_llm_weight) * base_sentiment_score
-                        + args.sentiment_llm_weight * llm_sentiment_score
-                    )
-                except (TypeError, ValueError):
-                    llm_sentiment_score = None
+                llm_sentiment_summary = str(llm_payload.get("summary") or "").strip() or None
+                llm_sentiment_pros_json = json.dumps(llm_payload.get("pros") or [])
+                llm_sentiment_cons_json = json.dumps(llm_payload.get("cons") or [])
+                final_sentiment_score = base_sentiment_score
 
             db_row = {
                 "professor_name": professor_name,
@@ -310,7 +302,7 @@ def main() -> None:
     print(
         "Built professor_sentiment_features: "
         f"candidates={len(professor_rows)}, inserted={len(inserted_rows)}, "
-        f"llm_enriched={llm_enriched}, db={args.db_path}"
+        f"llm_summarized={llm_summarized}, db={args.db_path}"
     )
 
 

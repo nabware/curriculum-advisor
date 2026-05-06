@@ -16,7 +16,7 @@ BACKEND_DIR = PROJECT_ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.database import get_database_path
-from app.services.llama_sentiment_service import analyze_review_texts
+from app.services.llama_sentiment_service import summarize_review_texts
 from rmp_client import RMPClient
 
 
@@ -656,7 +656,7 @@ def refresh(args: argparse.Namespace) -> None:
                 review_texts = [str(record["review_text"]) for record in review_records if record.get("review_text")]
                 llm_payload: dict[str, object] | None = None
                 if review_texts and args.sentiment_llm_endpoint:
-                    llm_payload = analyze_review_texts(
+                    llm_payload = summarize_review_texts(
                         review_texts[: max(1, min(len(review_texts), args.sentiment_llm_max_snippets))],
                         endpoint=args.sentiment_llm_endpoint,
                         model=args.sentiment_llm_model,
@@ -685,19 +685,10 @@ def refresh(args: argparse.Namespace) -> None:
                 llm_sentiment_pros_json = None
                 llm_sentiment_cons_json = None
                 if llm_payload:
-                    try:
-                        llm_sentiment_score = float(llm_payload.get("sentiment_score"))
-                        llm_sentiment_score = clamp(llm_sentiment_score, 0.0, 1.0)
-                        llm_sentiment_label = str(llm_payload.get("sentiment_label") or "").strip() or None
-                        llm_sentiment_summary = str(llm_payload.get("summary") or "").strip() or None
-                        llm_sentiment_pros_json = json.dumps(llm_payload.get("pros") or [])
-                        llm_sentiment_cons_json = json.dumps(llm_payload.get("cons") or [])
-                        final_sentiment_score = (
-                            (1.0 - args.sentiment_llm_weight) * base_sentiment_score
-                            + args.sentiment_llm_weight * llm_sentiment_score
-                        )
-                    except (TypeError, ValueError):
-                        llm_sentiment_score = None
+                    llm_sentiment_summary = str(llm_payload.get("summary") or "").strip() or None
+                    llm_sentiment_pros_json = json.dumps(llm_payload.get("pros") or [])
+                    llm_sentiment_cons_json = json.dumps(llm_payload.get("cons") or [])
+                    final_sentiment_score = base_sentiment_score
 
                 profile_rows.append(
                     {
