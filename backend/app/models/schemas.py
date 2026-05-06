@@ -10,6 +10,10 @@ class BlockedTimeWindow(BaseModel):
 class AdvisorRequest(BaseModel):
     major: str = Field(..., description="Student major")
     completed_courses: list[str] = Field(default_factory=list)
+    preferences_text: str | None = Field(
+        default=None,
+        description="Free-form preferences such as 'include an operating systems class' or 'avoid difficult teachers'",
+    )
     transcript_text: str | None = Field(
         default=None, description="Raw transcript text; course codes are parsed automatically"
     )

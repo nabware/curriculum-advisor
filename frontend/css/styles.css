@@ -520,7 +520,8 @@ input:focus {
 }
 
 .transcript-textarea,
-.completed-textarea {
+.completed-textarea,
+.preferences-textarea {
   width: 100%;
   padding: 0.65rem 0.85rem;
   border-radius: 10px;
@@ -534,7 +535,8 @@ input:focus {
 }
 
 .transcript-textarea:focus,
-.completed-textarea:focus {
+.completed-textarea:focus,
+.preferences-textarea:focus {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(78, 28, 110, 0.1);

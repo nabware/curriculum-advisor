@@ -36,6 +36,51 @@ def _build_chat_prompt(review_texts: list[str]) -> str:
     return _build_json_schema_prompt(review_texts)
 
 
+def _build_preference_prompt(preferences_text: str) -> str:
+    cleaned_preferences = _trim_text(preferences_text, 1200)
+    parts = [
+        "Convert this student course preference text into strict JSON only. Treat requests like 'include an operating systems class' as must-include topic hints when possible. Treat requests like 'I don't want any difficult teachers' as a preference for lower-difficulty professors.",
+        "IMPORTANT: Treat common abbreviations case-insensitively as canonical topics: 'AI' or 'ai' -> 'artificial intelligence'; 'ML' or 'ml' -> 'machine learning'; 'OS' or 'os' -> 'operating systems'. Map any abbreviation used by the user to the full topic name in the output.",
+        'Return exactly this JSON schema (no extra keys, no surrounding text, no markdown): {"must_include_topics":[],"exclude_topics":[],"exclude_instructors":[],"prefer_light_workload":false,"prefer_high_rated_professors":false,"prefer_easy_teachers":false,"min_professor_rating":null,"max_professor_difficulty":null,"summary":"..."}.',
+        "Provide one short example below (few-shot) for clarity.",
+        "Example input: 'i want ai classes'",
+        'Example output: {\n  "must_include_topics": ["artificial intelligence"],\n  "exclude_topics": [],\n  "exclude_instructors": [],\n  "prefer_light_workload": false,\n  "prefer_high_rated_professors": false,\n  "prefer_easy_teachers": false,\n  "min_professor_rating": null,\n  "max_professor_difficulty": null,\n  "summary": "Prefer courses about Artificial Intelligence."\n}',
+        f"Preferences:\n{cleaned_preferences}",
+    ]
+    return "\n\n".join(parts)
+
+
+def _build_catalog_preference_prompt(
+    preferences_text: str,
+    candidate_courses: list[dict[str, Any]],
+) -> str:
+    cleaned_preferences = _trim_text(preferences_text, 1200)
+    course_lines: list[str] = []
+    for index, course in enumerate(candidate_courses, start=1):
+        course_lines.append(
+            f"{index}. code={course.get('course_code','')} | title={course.get('title','')} | "
+            f"group={course.get('group_name','')} | instructor={course.get('instructor','')} | "
+            f"rmp_rating={course.get('rmp_rating')} | rmp_difficulty={course.get('rmp_difficulty')} | "
+            f"sentiment={course.get('professor_sentiment_score')} | description={_trim_text(str(course.get('description') or ''), 220)}"
+        )
+    joined_courses = "\n".join(course_lines)
+
+    parts = [
+        "You are selecting courses from a fixed candidate list. Interpret the student's preference text and return strict JSON only. Only choose course codes that appear in the candidate list.",
+        "IMPORTANT: Treat common abbreviations case-insensitively as canonical topics: 'AI'->'artificial intelligence' (and include related subtopics like 'generative AI', 'machine learning', 'deep learning', 'pattern analysis'), 'ML'->'machine learning', 'OS'->'operating systems'. Map any abbreviation to the full topic name in the output.",
+        "Use professor metrics when preferences mention difficult/easy/high-rated teachers.",
+        'Return this schema exactly (no extra keys, no surrounding text, no markdown): {"preferred_course_codes":[],"excluded_course_codes":[],"excluded_instructors":[],"prefer_light_workload":false,"prefer_high_rated_professors":false,"prefer_easy_teachers":false,"min_professor_rating":null,"max_professor_difficulty":null,"must_include_topics":[],"summary":"..."}.',
+        "summary must be one concise sentence. Provide one short example below.",
+        "Example input: 'i want ai classes'",
+        '{\n  "preferred_course_codes": ["CSC 665"],\n  "excluded_course_codes": [],\n  "excluded_instructors": [],\n  "prefer_light_workload": false,\n  "prefer_high_rated_professors": false,\n  "prefer_easy_teachers": false,\n  "min_professor_rating": null,\n  "max_professor_difficulty": null,\n  "must_include_topics": ["artificial intelligence"],\n  "summary": "Prefer courses about Artificial Intelligence."\n}',
+        "Student Preferences:",
+        cleaned_preferences,
+        "Candidate Courses:",
+        joined_courses,
+    ]
+    return "\n\n".join(parts)
+
+
 def _trim_text(value: str, limit: int) -> str:
     cleaned = re.sub(r"\s+", " ", value).strip()
     if len(cleaned) <= limit:
@@ -110,7 +155,8 @@ def _call_json_llm(
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.1,
+        "stream": False,
+            "temperature": 0.0,
     }
 
     request = urllib.request.Request(
@@ -139,6 +185,10 @@ def _call_json_llm(
                     content = str(message.get("content") or "")
                 else:
                     content = str(first_choice.get("text") or "")
+        if not content:
+            message = response_payload.get("message")
+            if isinstance(message, dict):
+                content = str(message.get("content") or "")
         if not content and isinstance(response_payload.get("response"), str):
             content = str(response_payload["response"])
 
@@ -217,6 +267,91 @@ def summarize_review_texts(
         "summary": summary,
         "pros": [_normalize_sentiment_text(str(item)) for item in pros if str(item).strip()],
         "cons": [_normalize_sentiment_text(str(item)) for item in cons if str(item).strip()],
+    }
+
+
+def parse_course_preferences(
+    preferences_text: str,
+    *,
+    endpoint: str | None,
+    model: str,
+    api_key: str | None = None,
+    timeout: int = 5,
+) -> dict[str, Any] | None:
+    cleaned_preferences = re.sub(r"\s+", " ", preferences_text).strip()
+    if not cleaned_preferences:
+        return None
+
+    parsed = _call_json_llm(
+        _build_preference_prompt(cleaned_preferences),
+        endpoint=endpoint,
+        model=model,
+        api_key=api_key,
+        timeout=timeout,
+    )
+    if not parsed:
+        return None
+
+    return {
+        "must_include_topics": [str(item).strip().lower() for item in parsed.get("must_include_topics", []) if str(item).strip()],
+        "exclude_topics": [str(item).strip().lower() for item in parsed.get("exclude_topics", []) if str(item).strip()],
+        "exclude_instructors": [str(item).strip().lower() for item in parsed.get("exclude_instructors", []) if str(item).strip()],
+        "prefer_light_workload": bool(parsed.get("prefer_light_workload", False)),
+        "prefer_high_rated_professors": bool(parsed.get("prefer_high_rated_professors", False)),
+        "prefer_easy_teachers": bool(parsed.get("prefer_easy_teachers", False)),
+        "min_professor_rating": parsed.get("min_professor_rating"),
+        "max_professor_difficulty": parsed.get("max_professor_difficulty"),
+        "summary": str(parsed.get("summary") or "").strip(),
+    }
+
+
+def parse_course_preferences_with_catalog(
+    preferences_text: str,
+    candidate_courses: list[dict[str, Any]],
+    *,
+    endpoint: str | None,
+    model: str,
+    api_key: str | None = None,
+    timeout: int = 20,
+) -> dict[str, Any] | None:
+    cleaned_preferences = re.sub(r"\s+", " ", preferences_text).strip()
+    if not cleaned_preferences or not candidate_courses:
+        return None
+
+    parsed = _call_json_llm(
+        _build_catalog_preference_prompt(cleaned_preferences, candidate_courses),
+        endpoint=endpoint,
+        model=model,
+        api_key=api_key,
+        timeout=timeout,
+    )
+    if not parsed:
+        return None
+
+    valid_codes = {str(course.get("course_code") or "").strip().upper() for course in candidate_courses}
+
+    preferred_codes = [
+        code
+        for code in [str(item).strip().upper() for item in parsed.get("preferred_course_codes", []) if str(item).strip()]
+        if code in valid_codes
+    ]
+    excluded_codes = [
+        code
+        for code in [str(item).strip().upper() for item in parsed.get("excluded_course_codes", []) if str(item).strip()]
+        if code in valid_codes
+    ]
+
+    return {
+        "preferred_course_codes": preferred_codes,
+        "excluded_course_codes": excluded_codes,
+        "excluded_instructors": [str(item).strip().lower() for item in parsed.get("excluded_instructors", []) if str(item).strip()],
+        "prefer_light_workload": bool(parsed.get("prefer_light_workload", False)),
+        "prefer_high_rated_professors": bool(parsed.get("prefer_high_rated_professors", False)),
+        "prefer_easy_teachers": bool(parsed.get("prefer_easy_teachers", False)),
+        "min_professor_rating": parsed.get("min_professor_rating"),
+        "max_professor_difficulty": parsed.get("max_professor_difficulty"),
+        "must_include_topics": [str(item).strip().lower() for item in parsed.get("must_include_topics", []) if str(item).strip()],
+        "summary": str(parsed.get("summary") or "").strip(),
     }
 
 

@@ -565,6 +565,8 @@ form.addEventListener("submit", async (event) => {
     end: formatTime24To12(w.end),
   }));
 
+  const preferencesText = (document.getElementById("preferences-text").value || "").trim();
+
   submitBtn.disabled = true;
   setStatus("Generating recommendations…");
 
@@ -575,6 +577,7 @@ form.addEventListener("submit", async (event) => {
     completed_courses: completedCourses,
     transcript_text: transcriptText,
     blocked_time_windows: blocked,
+    preferences_text: preferencesText || null,
     interests: [],
     career_goals: [],
     prefer_light_workload: false,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import re
 import sqlite3
@@ -16,6 +17,7 @@ from app.models.schemas import (
     RequirementGroupRecommendation,
     RecommendedCourse,
 )
+from app.services.llama_sentiment_service import parse_course_preferences_with_catalog
 from app.services.rmp_service import fetch_professor_rating
 
 
@@ -326,14 +328,116 @@ class AdvisorService:
         return max(0.0, min(1.0, float(value)))
 
     @staticmethod
+    def _clamp_difficulty(value: float | None) -> float:
+        if value is None:
+            return 0.5
+        return max(0.0, min(1.0, float(value) / 5.0))
+
+    @staticmethod
+    def _normalize_phrase(value: str | None) -> str:
+        if not value:
+            return ""
+        return re.sub(r"\s+", " ", value).strip().lower()
+
+    @staticmethod
+    def _pre_normalize_preferences(text: str | None) -> str | None:
+        if not text or not text.strip():
+            return text
+        abbr_map = {
+            r"\bai\b": "artificial intelligence",
+            r"\bml\b": "machine learning",
+            r"\bos\b": "operating systems",
+        }
+        normalized = str(text)
+        for pat, repl in abbr_map.items():
+            normalized = re.sub(pat, repl, normalized, flags=re.IGNORECASE)
+        return normalized
+
+    @staticmethod
+    def _preference_tokens(value: str | None) -> list[str]:
+        normalized = AdvisorService._normalize_phrase(value)
+        if not normalized:
+            return []
+
+        tokens = [token for token in re.split(r"\s+", re.sub(r"[^a-z0-9\s-]", " ", normalized)) if token]
+        return [token[:-1] if token.endswith("s") and len(token) > 3 else token for token in tokens]
+
+    @staticmethod
+    def _course_search_text(course: RecommendedCourse) -> str:
+        parts = [
+            course.course_code,
+            course.title,
+            course.group_name,
+            course.description,
+            course.instructor,
+            course.professor_name,
+        ]
+        return AdvisorService._normalize_phrase(" ".join(part for part in parts if part))
+
+    @staticmethod
+    def _matches_phrase(text: str, phrase: str) -> bool:
+        phrase_tokens = AdvisorService._preference_tokens(phrase)
+        if not phrase_tokens:
+            return False
+
+        text_tokens = set(AdvisorService._preference_tokens(text))
+        if phrase_tokens and set(phrase_tokens).issubset(text_tokens):
+            return True
+
+        normalized_phrase = AdvisorService._normalize_phrase(phrase)
+        if normalized_phrase in text:
+            return True
+        return bool(phrase_tokens) and all(token in text_tokens for token in phrase_tokens)
+
+    @staticmethod
+    def _matches_instructor(course: RecommendedCourse, phrase: str) -> bool:
+        target = AdvisorService._normalize_phrase(" ".join(filter(None, [course.instructor, course.professor_name])))
+        return bool(target and AdvisorService._matches_phrase(target, phrase))
+
+    @staticmethod
+    def _build_preference_constraints(preferences_text: str | None) -> dict[str, Any]:
+        if not preferences_text or not preferences_text.strip():
+            return {
+                "must_include_topics": [],
+                "must_include_course_codes": [],
+                "exclude_course_codes": [],
+                "exclude_topics": [],
+                "exclude_instructors": [],
+                "prefer_light_workload": False,
+                "prefer_high_rated_professors": False,
+                "prefer_easy_teachers": False,
+                "min_professor_rating": None,
+                "max_professor_difficulty": None,
+                "summary": "",
+            }
+
+        # Ollama-only preference path: initialize empty constraints and apply only
+        # if catalog-aware Ollama parsing succeeds.
+        return {
+            "must_include_topics": [],
+            "must_include_course_codes": [],
+            "exclude_course_codes": [],
+            "exclude_topics": [],
+            "exclude_instructors": [],
+            "prefer_light_workload": False,
+            "prefer_high_rated_professors": False,
+            "prefer_easy_teachers": False,
+            "min_professor_rating": None,
+            "max_professor_difficulty": None,
+            "summary": "",
+        }
+
+    @staticmethod
     def _resolve_course_objective(
         course: RecommendedCourse,
         sentiment_score: float | None,
         prefer_light_workload: bool,
         prefer_high_rated_professors: bool,
+        prefer_easy_teachers: bool,
         progress_weight_override: float | None = None,
         workload_weight_override: float | None = None,
         sentiment_weight_override: float | None = None,
+        difficulty_weight_override: float | None = None,
     ) -> float:
         units = course.units or 0
         normalized_units = max(0.0, min(1.0, units / 4.0))
@@ -341,21 +445,72 @@ class AdvisorService:
         progress_score = normalized_units
         workload_score = 1.0 - normalized_units
         sentiment_score_clamped = AdvisorService._clamp_01(sentiment_score)
+        difficulty_score = 1.0 - AdvisorService._clamp_difficulty(course.rmp_difficulty)
 
         progress_weight = max(0.0, progress_weight_override if progress_weight_override is not None else 0.55)
         workload_base = max(0.0, workload_weight_override if workload_weight_override is not None else 0.30)
         sentiment_base = max(0.0, sentiment_weight_override if sentiment_weight_override is not None else 0.35)
+        difficulty_base = max(0.0, difficulty_weight_override if difficulty_weight_override is not None else 0.25)
 
         workload_weight = workload_base if prefer_light_workload else 0.0
         sentiment_weight = sentiment_base if prefer_high_rated_professors else 0.0
-        total_weight = progress_weight + workload_weight + sentiment_weight
+        difficulty_weight = difficulty_base if prefer_easy_teachers else 0.0
+        total_weight = progress_weight + workload_weight + sentiment_weight + difficulty_weight
 
         weighted_sum = (
             progress_weight * progress_score
             + workload_weight * workload_score
             + sentiment_weight * sentiment_score_clamped
+            + difficulty_weight * difficulty_score
         )
         return weighted_sum / total_weight if total_weight > 0 else 0.0
+
+    @staticmethod
+    def _course_matches_preferences(
+        course: RecommendedCourse,
+        constraints: dict[str, Any],
+    ) -> tuple[bool, list[str]]:
+        course_text = AdvisorService._course_search_text(course)
+        reasons: list[str] = []
+
+        include_topics = [str(item).strip().lower() for item in constraints.get("must_include_topics", []) if str(item).strip()]
+        if include_topics:
+            matched_topics = [topic for topic in include_topics if AdvisorService._matches_phrase(course_text, topic)]
+            if not matched_topics:
+                return False, reasons
+            reasons.append(f"matches requested topic(s): {', '.join(matched_topics)}")
+
+        exclude_topics = [str(item).strip().lower() for item in constraints.get("exclude_topics", []) if str(item).strip()]
+        if any(AdvisorService._matches_phrase(course_text, topic) for topic in exclude_topics):
+            return False, reasons
+
+        exclude_instructors = [str(item).strip().lower() for item in constraints.get("exclude_instructors", []) if str(item).strip()]
+        if any(AdvisorService._matches_instructor(course, instructor) for instructor in exclude_instructors):
+            return False, reasons
+
+        exclude_course_codes = {
+            str(item).strip().upper() for item in constraints.get("exclude_course_codes", []) if str(item).strip()
+        }
+        if course.course_code.upper() in exclude_course_codes:
+            return False, reasons
+
+        min_rating = constraints.get("min_professor_rating")
+        if min_rating is not None and course.rmp_rating is not None:
+            try:
+                if float(course.rmp_rating) < float(min_rating):
+                    return False, reasons
+            except (TypeError, ValueError):
+                pass
+
+        max_difficulty = constraints.get("max_professor_difficulty")
+        if max_difficulty is not None and course.rmp_difficulty is not None:
+            try:
+                if float(course.rmp_difficulty) > float(max_difficulty):
+                    return False, reasons
+            except (TypeError, ValueError):
+                pass
+
+        return True, reasons
 
     @staticmethod
     def _select_group_courses(
@@ -545,6 +700,13 @@ class AdvisorService:
                 except sqlite3.OperationalError:
                     sentiment_rows = []
 
+            preference_constraints = AdvisorService._build_preference_constraints(payload.preferences_text)
+            prefer_light_workload = payload.prefer_light_workload or bool(preference_constraints.get("prefer_light_workload"))
+            prefer_high_rated_professors = payload.prefer_high_rated_professors or bool(
+                preference_constraints.get("prefer_high_rated_professors")
+            )
+            prefer_easy_teachers = bool(preference_constraints.get("prefer_easy_teachers"))
+
             for row in sentiment_rows:
                 professor_name = (row["professor_name"] or "").strip()
                 if not professor_name:
@@ -616,17 +778,16 @@ class AdvisorService:
                         SELECT 1 FROM class_schedules cs
                         WHERE cs.course_code = rgc.course_code
                         AND cs.term = ?
-                        AND cs.status = 'Open'
                     )
                 """
                 query_params.append(payload.term)
-                
-                # Fetch schedule info for all courses in this term
+
+                # Fetch schedule info for all courses in this term (ignore status)
                 schedule_rows = conn.execute(
                     """
                     SELECT course_code, days_times, instructor
                     FROM class_schedules
-                    WHERE term = ? AND status = 'Open'
+                    WHERE term = ?
                     ORDER BY course_code, class_number, section, id
                     """,
                     (payload.term,),
@@ -654,6 +815,22 @@ class AdvisorService:
                 ORDER BY rg.id, rgc.id
                 """,
                 query_params,
+            ).fetchall()
+
+            all_req_rows = conn.execute(
+                """
+                SELECT
+                    rg.id AS group_id,
+                    rg.group_name,
+                    rgc.course_code,
+                    rgc.course_name,
+                    rgc.units
+                FROM requirement_groups rg
+                JOIN requirement_group_courses rgc ON rg.id = rgc.group_id
+                WHERE rg.degree_id = ?
+                ORDER BY rg.id, rgc.id
+                """,
+                (degree_id,),
             ).fetchall()
 
         grouped_rows: list[dict[str, Any]] = [
@@ -750,10 +927,231 @@ class AdvisorService:
                 enriched.append(course)
             group_data["courses"] = enriched
 
+        ollama_used_for_preferences = False
+        ollama_failed_for_preferences = False
+        if payload.preferences_text and payload.preferences_text.strip():
+            candidate_courses: list[dict[str, Any]] = []
+            seen_codes: set[str] = set()
+            for group_data in grouped_rows:
+                for course in group_data["courses"]:
+                    code = course.course_code.strip().upper()
+                    if not code or code in seen_codes:
+                        continue
+                    seen_codes.add(code)
+                    candidate_courses.append(
+                        {
+                            "course_code": code,
+                            "title": course.title,
+                            "group_name": course.group_name,
+                            "description": course.description,
+                            "instructor": course.instructor or course.professor_name,
+                            "rmp_rating": course.rmp_rating,
+                            "rmp_difficulty": course.rmp_difficulty,
+                            "professor_sentiment_score": course.professor_sentiment_score,
+                        }
+                    )
+
+            ollama_base = os.environ.get("OLLAMA_CHAT_ENDPOINT") or os.environ.get("OLLAMA_BASE_URL")
+            if ollama_base:
+                if ollama_base.rstrip("/").endswith("/api/chat"):
+                    ollama_endpoint = ollama_base
+                else:
+                    ollama_endpoint = f"{ollama_base.rstrip('/')}/api/chat"
+            else:
+                ollama_endpoint = "http://localhost:11434/api/chat"
+
+            ollama_model = os.environ.get("OLLAMA_MODEL", "llama3.1")
+            ollama_api_key = os.environ.get("OLLAMA_API_KEY")
+
+            # Optionally pre-normalize common abbreviations before calling Ollama.
+            normalized_prefs = AdvisorService._pre_normalize_preferences(payload.preferences_text)
+            llm_constraints = parse_course_preferences_with_catalog(
+                normalized_prefs or "",
+                candidate_courses,
+                endpoint=ollama_endpoint,
+                model=ollama_model,
+                api_key=ollama_api_key,
+                timeout=20,
+            )
+
+            # Post-parse validation: if the user explicitly used an abbreviation (e.g. 'ai')
+            # ensure the LLM returned the canonical mapped topic. If not, treat as parsing failure
+            # (user requested no deterministic fallback).
+            raw_text = (payload.preferences_text or "")
+            abbr_to_canonical = {
+                "ai": "artificial intelligence",
+                "ml": "machine learning",
+                "os": "operating systems",
+            }
+            if llm_constraints and raw_text:
+                lower_raw = raw_text.lower()
+                for abbr, canonical in abbr_to_canonical.items():
+                    if re.search(rf"\b{re.escape(abbr)}\b", lower_raw):
+                        must_topics = [str(t).strip().lower() for t in llm_constraints.get("must_include_topics", []) if str(t).strip()]
+                        summary_text = str(llm_constraints.get("summary") or "").lower()
+                        if canonical not in must_topics and canonical not in summary_text:
+                            # LLM did not map abbreviation to expected canonical topic — consider it a failure
+                            llm_constraints = None
+                            ollama_failed_for_preferences = True
+                            break
+
+            if llm_constraints:
+                ollama_used_for_preferences = True
+                preferred_codes_from_llm = [
+                    str(code).strip().upper()
+                    for code in llm_constraints.get("preferred_course_codes", [])
+                    if str(code).strip()
+                ]
+                exclude_codes_from_llm = [
+                    str(code).strip().upper()
+                    for code in llm_constraints.get("excluded_course_codes", [])
+                    if str(code).strip()
+                ]
+
+                # Guardrail: if local topic hints exist, only keep LLM-picked codes that actually match those topics.
+                local_topics = [
+                    str(topic).strip().lower()
+                    for topic in preference_constraints.get("must_include_topics", [])
+                    if str(topic).strip()
+                ]
+                if local_topics:
+                    by_code = {str(course.get("course_code") or "").strip().upper(): course for course in candidate_courses}
+                    filtered_preferred_codes: list[str] = []
+                    for code in preferred_codes_from_llm:
+                        course = by_code.get(code)
+                        if not course:
+                            continue
+                        course_text = AdvisorService._normalize_phrase(
+                            " ".join(
+                                [
+                                    str(course.get("course_code") or ""),
+                                    str(course.get("title") or ""),
+                                    str(course.get("group_name") or ""),
+                                    str(course.get("description") or ""),
+                                ]
+                            )
+                        )
+                        if any(AdvisorService._matches_phrase(course_text, topic) for topic in local_topics):
+                            filtered_preferred_codes.append(code)
+                    preferred_codes_from_llm = filtered_preferred_codes
+
+                preference_constraints["must_include_course_codes"] = preferred_codes_from_llm
+                preference_constraints["exclude_course_codes"] = llm_constraints.get("excluded_course_codes", [])
+                preference_constraints["exclude_course_codes"] = exclude_codes_from_llm
+                if llm_constraints.get("excluded_instructors"):
+                    merged_instructors = set(preference_constraints.get("exclude_instructors", []))
+                    merged_instructors.update(llm_constraints.get("excluded_instructors", []))
+                    preference_constraints["exclude_instructors"] = sorted(merged_instructors)
+                if llm_constraints.get("must_include_topics"):
+                    merged_topics = set(preference_constraints.get("must_include_topics", []))
+                    merged_topics.update(llm_constraints.get("must_include_topics", []))
+                    # Expand canonical topics into related synonyms so terse user tokens like
+                    # 'ai' will match courses titled 'Generative AI', 'Machine Learning', etc.
+                    synonyms_map = {
+                        "artificial intelligence": [
+                            "generative ai",
+                            "machine learning",
+                            "deep learning",
+                            "pattern analysis",
+                            "pattern analysis and machine intelligence",
+                        ],
+                        "machine learning": ["deep learning", "pattern analysis"],
+                    }
+                    expanded = set(merged_topics)
+                    for t in list(merged_topics):
+                        t_l = str(t).strip().lower()
+                        for syn in synonyms_map.get(t_l, []):
+                            expanded.add(syn)
+                    preference_constraints["must_include_topics"] = sorted(expanded)
+                normalized_preferences_text = AdvisorService._normalize_phrase(payload.preferences_text)
+                explicit_light_workload = any(
+                    token in normalized_preferences_text
+                    for token in ["light workload", "easy workload", "less work", "easier classes"]
+                )
+                explicit_high_rating = any(
+                    token in normalized_preferences_text
+                    for token in ["high rated", "high-rated", "best professor", "good professor", "top professor"]
+                )
+                explicit_easy_teachers = any(
+                    token in normalized_preferences_text
+                    for token in ["difficult teacher", "hard teacher", "tough teacher", "easy teacher", "easy professor"]
+                )
+
+                if llm_constraints.get("prefer_light_workload") and explicit_light_workload:
+                    preference_constraints["prefer_light_workload"] = True
+                if llm_constraints.get("prefer_high_rated_professors") and explicit_high_rating:
+                    preference_constraints["prefer_high_rated_professors"] = True
+                if llm_constraints.get("prefer_easy_teachers") and explicit_easy_teachers:
+                    preference_constraints["prefer_easy_teachers"] = True
+                for key in ["min_professor_rating", "max_professor_difficulty"]:
+                    if llm_constraints.get(key) is not None:
+                        preference_constraints[key] = llm_constraints.get(key)
+                if llm_constraints.get("summary"):
+                    preference_constraints["summary"] = llm_constraints.get("summary")
+
+                prefer_light_workload = prefer_light_workload or bool(preference_constraints.get("prefer_light_workload"))
+                prefer_high_rated_professors = prefer_high_rated_professors or bool(
+                    preference_constraints.get("prefer_high_rated_professors")
+                )
+                prefer_easy_teachers = prefer_easy_teachers or bool(preference_constraints.get("prefer_easy_teachers"))
+            else:
+                ollama_failed_for_preferences = True
+
         grouped_recommendations: list[RequirementGroupRecommendation] = []
+        preference_notes: list[str] = []
+        unmet_preference_notes: list[str] = []
+        matched_include_topics: set[str] = set()
+        matched_preferred_codes: set[str] = set()
         for group_data in grouped_rows:
-            objective_by_code: dict[str, float] = {}
+            eligible_courses: list[RecommendedCourse] = []
+            include_topics = [
+                str(item).strip().lower()
+                for item in preference_constraints.get("must_include_topics", [])
+                if str(item).strip()
+            ]
+            preferred_codes = {
+                str(item).strip().upper()
+                for item in preference_constraints.get("must_include_course_codes", [])
+                if str(item).strip()
+            }
+
+            filtered_constraints = dict(preference_constraints)
+            filtered_constraints["must_include_topics"] = []
+
             for course in group_data["courses"]:
+                matches, _ = AdvisorService._course_matches_preferences(course, filtered_constraints)
+                if matches:
+                    eligible_courses.append(course)
+
+            if preferred_codes:
+                preferred_matches = [course for course in eligible_courses if course.course_code.upper() in preferred_codes]
+                if preferred_matches:
+                    eligible_courses = preferred_matches
+                    matched_preferred_codes.update(course.course_code.upper() for course in preferred_matches)
+
+            if include_topics:
+                topic_matches: list[RecommendedCourse] = []
+                matched_topics_for_group: list[str] = []
+                for course in eligible_courses:
+                    course_text = AdvisorService._course_search_text(course)
+                    matching_topics = [topic for topic in include_topics if AdvisorService._matches_phrase(course_text, topic)]
+                    if matching_topics:
+                        topic_matches.append(course)
+                        matched_topics_for_group.extend(matching_topics)
+
+                if topic_matches:
+                    eligible_courses = topic_matches
+                    matched_include_topics.update(matched_topics_for_group)
+
+            if not eligible_courses:
+                eligible_courses = list(group_data["courses"])
+                if include_topics:
+                    unmet_preference_notes.append(
+                        f"No remaining courses matched the requested topic(s) in {group_data['group_name']}."
+                    )
+
+            objective_by_code: dict[str, float] = {}
+            for course in eligible_courses:
                 sentiment_score = AdvisorService._resolve_numeric_name_match(
                     course.professor_name or course.instructor,
                     sentiment_by_professor,
@@ -763,12 +1161,20 @@ class AdvisorService:
                 objective_by_code[course.course_code] = AdvisorService._resolve_course_objective(
                     course,
                     sentiment_score,
-                    payload.prefer_light_workload,
-                    payload.prefer_high_rated_professors,
+                    prefer_light_workload,
+                    prefer_high_rated_professors,
+                    prefer_easy_teachers,
                     payload.objective_progress_weight,
                     payload.objective_workload_weight,
                     payload.objective_sentiment_weight,
                 )
+
+            if prefer_light_workload:
+                preference_notes.append("preferred lighter workload courses")
+            if prefer_high_rated_professors:
+                preference_notes.append("preferred higher-rated professors")
+            if prefer_easy_teachers:
+                preference_notes.append("favored lower-difficulty professors")
 
             grouped_recommendations.append(
                 RequirementGroupRecommendation(
@@ -776,7 +1182,7 @@ class AdvisorService:
                     min_units=group_data["min_units"],
                     max_units=group_data["max_units"],
                     courses=AdvisorService._select_group_courses(
-                        group_data["courses"],
+                        eligible_courses,
                         group_data["min_units"],
                         group_data["max_units"],
                         objective_by_code=objective_by_code,
@@ -784,7 +1190,54 @@ class AdvisorService:
                 )
             )
 
+        if preference_constraints.get("must_include_topics"):
+            for topic in preference_constraints.get("must_include_topics", []):
+                if topic in matched_include_topics:
+                    continue
+
+                topic_matches_catalog = any(
+                    AdvisorService._matches_phrase((row["course_name"] or "") + " " + (description_lookup.get((row["course_code"] or "").strip().upper(), "")), topic)
+                    for row in all_req_rows
+                )
+                if topic_matches_catalog:
+                    unmet_preference_notes.append(
+                        f"{topic.title()} is part of this degree, but it is not open in {payload.term}."
+                    )
+                else:
+                    unmet_preference_notes.append(f"Could not find an available course matching '{topic}'.")
+
+        if preference_constraints.get("must_include_course_codes"):
+            for code in [str(item).strip().upper() for item in preference_constraints.get("must_include_course_codes", []) if str(item).strip()]:
+                if code not in matched_preferred_codes:
+                    unmet_preference_notes.append(f"Requested course {code} could not be included with current constraints.")
+
         recommendations = [course for group in grouped_recommendations for course in group.courses]
+
+        if preference_constraints.get("must_include_topics") or preference_constraints.get("must_include_course_codes"):
+            include_topics = [
+                str(item).strip().lower()
+                for item in preference_constraints.get("must_include_topics", [])
+                if str(item).strip()
+            ]
+            include_codes = {
+                str(item).strip().upper()
+                for item in preference_constraints.get("must_include_course_codes", [])
+                if str(item).strip()
+            }
+            prioritized_recommendations = [
+                course
+                for course in recommendations
+                if course.course_code.upper() in include_codes or any(
+                    AdvisorService._matches_phrase(AdvisorService._course_search_text(course), topic)
+                    for topic in include_topics
+                )
+            ]
+            prioritized_recommendations.extend(
+                course
+                for course in recommendations
+                if course not in prioritized_recommendations
+            )
+            recommendations = prioritized_recommendations
 
         # Remove courses that fall inside a blocked time window
         if payload.blocked_time_windows:
@@ -857,6 +1310,20 @@ class AdvisorService:
             "transcript and scheduling constraints can be layered in later."
         )
 
+        if preference_constraints.get("summary"):
+            explanation += f" Preference note interpreted as: {preference_constraints['summary']}"
+
+        if ollama_used_for_preferences:
+            explanation += " Preference interpretation used Ollama against available course and professor metadata."
+        elif payload.preferences_text and ollama_failed_for_preferences:
+            explanation += " Preference interpretation was skipped because Ollama was unavailable or returned an invalid response."
+
+        if preference_notes:
+            explanation += " " + " ".join(dict.fromkeys(preference_notes))
+
+        if unmet_preference_notes:
+            explanation += " " + " ".join(dict.fromkeys(unmet_preference_notes))
+
         if skipped_conflicts:
             explanation += " Some overlapping sections were removed to avoid time conflicts."
 
@@ -868,11 +1335,14 @@ class AdvisorService:
             if transcript_count:
                 explanation += f" {transcript_count} course(s) were read from your transcript and marked as completed."
 
-        if payload.prefer_high_rated_professors and sentiment_by_professor:
+        if prefer_high_rated_professors and sentiment_by_professor:
             explanation += " Professor sentiment features were included in ranking."
 
-        if payload.prefer_high_rated_professors or payload.prefer_light_workload:
-            explanation += " Group selections used a weighted objective over progress, workload, and sentiment."
+        if prefer_high_rated_professors or prefer_light_workload or prefer_easy_teachers:
+            explanation += " Group selections used a weighted objective over progress, workload, sentiment, and difficulty."
+
+        if prefer_easy_teachers:
+            explanation += " Lower-difficulty professors were also considered in ranking."
 
         if semester_capacity is not None:
             explanation += f" Limited to {semester_capacity} units for this semester."
