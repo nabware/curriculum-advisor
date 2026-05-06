@@ -3,7 +3,9 @@ const degreeSelect = document.getElementById("degree-select");
 const statusEl = document.getElementById("status");
 const explanationEl = document.getElementById("explanation");
 const recommendationsEl = document.getElementById("recommendations");
+// Professor lookup UI removed; backend lookup endpoint retained for hydration
 const submitBtn = document.getElementById("submit-btn");
+const professorRmpCache = new Map();
 
 // ── Blocked time windows state ───────────────────────────────────────────────
 const blockedWindows = []; // { day, start, end } objects
@@ -156,7 +158,35 @@ function applyPillTone(element, tone) {
   element.classList.add(`pill-tone-${tone}`);
 }
 
-function renderRecommendations(groups, fallbackCourses = []) {
+function normalizeProfessorKey(name) {
+  return (name || "").trim().toLowerCase();
+}
+
+async function getProfessorRmpData(course) {
+  const professorName = course.professor_name || course.instructor;
+  const cacheKey = normalizeProfessorKey(professorName);
+
+  if (!cacheKey) {
+    return null;
+  }
+
+  if (professorRmpCache.has(cacheKey)) {
+    return professorRmpCache.get(cacheKey);
+  }
+
+  try {
+    const rating = await fetchProfessorRating(professorName);
+    professorRmpCache.set(cacheKey, rating);
+    return rating;
+  } catch {
+    professorRmpCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+// lookup UI removed: related render/interaction functions deleted
+
+async function renderRecommendations(groups, fallbackCourses = []) {
   recommendationsEl.innerHTML = "";
 
   // Flatten all courses from groups
@@ -185,7 +215,35 @@ function renderRecommendations(groups, fallbackCourses = []) {
     return;
   }
 
-  allCourses.forEach((course) => {
+  const enrichedCourses = await Promise.all(allCourses.map(async (course) => {
+    const needsRmpData = course.rmp_rating === null || course.rmp_rating === undefined
+      || course.rmp_difficulty === null || course.rmp_difficulty === undefined
+      || course.rmp_would_take_again_pct === null || course.rmp_would_take_again_pct === undefined
+      || !course.rmp_top_tag;
+
+    if (!needsRmpData) {
+      return course;
+    }
+
+    const rmpData = await getProfessorRmpData(course);
+    if (!rmpData) {
+      return course;
+    }
+
+    return {
+      ...course,
+      rmp_rating: course.rmp_rating ?? rmpData.rating,
+      rmp_difficulty: course.rmp_difficulty ?? rmpData.difficulty,
+      rmp_would_take_again_pct: course.rmp_would_take_again_pct ?? rmpData.would_take_again_pct,
+      rmp_url: course.rmp_url ?? rmpData.rmp_url,
+      rmp_num_ratings: course.rmp_num_ratings ?? rmpData.num_ratings,
+      rmp_top_tag: course.rmp_top_tag ?? rmpData.top_tag,
+      rmp_top_tag_count: course.rmp_top_tag_count ?? rmpData.top_tag_count,
+      rmp_top_tag_tone: course.rmp_top_tag_tone ?? rmpData.top_tag_tone,
+    };
+  }));
+
+  enrichedCourses.forEach((course) => {
     const article = document.createElement("article");
     article.className = "recommendation-card";
 
@@ -251,6 +309,21 @@ function renderRecommendations(groups, fallbackCourses = []) {
     }
 
     professorPills.append(sentimentPill);
+
+    if (course.rmp_top_tag) {
+      const tagPill = document.createElement("div");
+      tagPill.className = "professor-rating-pill professor-rating-pill-tag";
+      const tagCount = Number.isFinite(Number(course.rmp_top_tag_count)) ? Number(course.rmp_top_tag_count) : null;
+      tagPill.title = tagCount && tagCount > 1
+        ? `Most repeated tag across reviews: ${course.rmp_top_tag} (${tagCount} reviews)`
+        : `Most repeated tag across reviews: ${course.rmp_top_tag}`;
+      tagPill.textContent = tagCount && tagCount > 1
+        ? `Top tag: ${course.rmp_top_tag} (${tagCount})`
+        : `Top tag: ${course.rmp_top_tag}`;
+      applyPillTone(tagPill, course.rmp_top_tag_tone || "neutral");
+      professorPills.append(tagPill);
+    }
+
     professorVisual.append(professorImage);
 
     // RMP ratings
@@ -512,7 +585,7 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const data = await fetchRecommendations(payload);
-    renderRecommendations(data.grouped_recommendations || [], data.recommendations || []);
+    await renderRecommendations(data.grouped_recommendations || [], data.recommendations || []);
     
     // Render schedule
     const allCourses = data.recommendations || [];
@@ -542,7 +615,7 @@ form.addEventListener("submit", async (event) => {
     explanationEl.textContent = data.explanation || "No explanation provided.";
     setStatus("Recommendations ready.");
   } catch (error) {
-    renderRecommendations([]);
+    await renderRecommendations([]);
     renderSchedule([]);
     explanationEl.textContent = "Could not fetch recommendations.";
     setStatus(`Error: ${error.message}`, true);
@@ -551,5 +624,7 @@ form.addEventListener("submit", async (event) => {
     submitBtn.disabled = false;
   }
 });
+
+// lookup UI removed: no event listeners to attach
 
 loadDegrees();

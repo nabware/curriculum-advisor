@@ -15,7 +15,7 @@
           Start by selecting your degree program. This version assumes you are
           just getting started with no transcript uploaded yet.
         </p>
-        <button id="submit-btn" type="submit" class="form-submit">Upload Transcript</button>
+        <button id="upload-transcript-btn" type="button" class="form-submit">Upload Transcript</button>
       </section>
 
       <section class="panel">
@@ -118,6 +118,8 @@
         <p id="status" class="status">Choose a degree to begin.</p>
       </section>
 
+      <!-- Professor lookup removed: functionality retained server-side for hydration -->
+
       <section class="panel results-panel">
         <div id="progress-container" class="progress-container" style="display: none">
           <div class="progress-bar">
@@ -142,7 +144,7 @@
       </section>
     </main>
 
-    <script src="js/api.js"></script>
-    <script src="js/app.js?v=20260505-1"></script>
+    <script src="js/api.js?v=20260505-2"></script>
+    <script src="js/app.js?v=20260505-2"></script>
   </body>
 </html>

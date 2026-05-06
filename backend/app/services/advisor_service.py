@@ -743,6 +743,9 @@ class AdvisorService:
                         "rmp_would_take_again_pct": rmp.get("would_take_again_pct"),
                         "rmp_url": rmp.get("rmp_url"),
                         "rmp_num_ratings": rmp.get("num_ratings"),
+                        "rmp_top_tag": rmp.get("top_tag"),
+                        "rmp_top_tag_count": rmp.get("top_tag_count"),
+                        "rmp_top_tag_tone": rmp.get("top_tag_tone"),
                     })
                 enriched.append(course)
             group_data["courses"] = enriched

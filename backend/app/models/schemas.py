@@ -54,12 +54,27 @@ class RecommendedCourse(BaseModel):
     professor_image_url: str | None = None
     professor_sentiment_score: float | None = None
     professor_review_summary: str | None = None
+    rmp_top_tag: str | None = None
+    rmp_top_tag_count: int | None = None
+    rmp_top_tag_tone: str | None = None
     # RMP fields
     rmp_rating: float | None = None
     rmp_difficulty: float | None = None
     rmp_would_take_again_pct: float | None = None
     rmp_url: str | None = None
     rmp_num_ratings: int | None = None
+
+
+class ProfessorRatingLookupResponse(BaseModel):
+    professor_name: str
+    rating: float | None = None
+    difficulty: float | None = None
+    num_ratings: int | None = None
+    would_take_again_pct: float | None = None
+    rmp_url: str | None = None
+    top_tag: str | None = None
+    top_tag_count: int | None = None
+    top_tag_tone: str | None = None
 
 
 class RequirementGroupRecommendation(BaseModel):

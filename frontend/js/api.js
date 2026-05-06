@@ -30,3 +30,20 @@ async function fetchRecommendations(payload) {
 
   return response.json();
 }
+
+async function fetchProfessorRating(name) {
+  const response = await fetch(`${API_BASE_URL}/advisor/professor-rating?name=${encodeURIComponent(name)}`);
+
+  if (!response.ok) {
+    let details = "";
+    try {
+      const body = await response.json();
+      details = body?.detail ? `: ${body.detail}` : "";
+    } catch {
+      details = "";
+    }
+    throw new Error(`Request failed (${response.status})${details}`);
+  }
+
+  return response.json();
+}

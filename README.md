@@ -62,6 +62,8 @@ python scripts/build_professor_sentiment_features.py
 
 The refresh job pulls review data for all SFSU professors from the `ratemyprofessors-client` GraphQL API, stores the profiles and raw reviews in SQLite, and then rebuilds professor sentiment features from that database data.
 
+Review text still drives the AI summary. RMP review tags are now scored as a separate signal and blended into the final sentiment score, instead of being merged into the text summary.
+
 ```bash
 pip install ratemyprofessors-client
 python scripts/refresh_professor_rmp_data.py

@@ -80,6 +80,85 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.lookup-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lookup-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.lookup-eyebrow {
+  margin: 0 0 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.lookup-header h2 {
+  margin-bottom: 0;
+}
+
+.lookup-help {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.lookup-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.lookup-submit {
+  grid-column: auto;
+  align-self: stretch;
+}
+
+.lookup-result {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(78, 28, 110, 0.05), rgba(78, 28, 110, 0.02));
+  padding: 1rem;
+}
+
+.lookup-result .professor-card {
+  margin-top: 0;
+}
+
+.lookup-result .professor-meta {
+  gap: 0.45rem;
+}
+
+.rmp-link {
+  align-self: flex-start;
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rmp-link:hover {
+  text-decoration: underline;
+}
+
+.lookup-result .professor-rating-pill-tag {
+  padding-inline: 0.75rem;
+}
+
+.lookup-result-empty {
+  color: var(--muted);
+}
+
 .advisor-form {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -19,6 +19,24 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
 
 
+def ensure_sentiment_feature_columns(conn: sqlite3.Connection) -> None:
+    existing_columns = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(professor_sentiment_features)").fetchall()
+    }
+    required_columns = {
+        "tag_count": "INTEGER",
+        "tag_positive_count": "INTEGER",
+        "tag_negative_count": "INTEGER",
+        "tag_sentiment_score": "REAL",
+        "tag_sentiment_adjustment": "REAL",
+        "tag_adjusted_sentiment_score": "REAL",
+    }
+    for column_name, column_type in required_columns.items():
+        if column_name not in existing_columns:
+            conn.execute(f"ALTER TABLE professor_sentiment_features ADD COLUMN {column_name} {column_type}")
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
@@ -35,6 +53,12 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             rating_score REAL NOT NULL,
             difficulty_score REAL,
             would_take_again_score REAL,
+            tag_count INTEGER,
+            tag_positive_count INTEGER,
+            tag_negative_count INTEGER,
+            tag_sentiment_score REAL,
+            tag_sentiment_adjustment REAL,
+            tag_adjusted_sentiment_score REAL,
             base_sentiment_score REAL NOT NULL,
             confidence_adjusted_sentiment_score REAL NOT NULL,
             llm_sentiment_score REAL,
@@ -74,6 +98,7 @@ def main() -> None:
     with sqlite3.connect(args.db_path) as conn:
         conn.row_factory = sqlite3.Row
         ensure_schema(conn)
+        ensure_sentiment_feature_columns(conn)
 
         rows = conn.execute(
             """
@@ -83,6 +108,12 @@ def main() -> None:
                 difficulty,
                 would_take_again_pct,
                 review_count,
+                tag_count,
+                tag_positive_count,
+                tag_negative_count,
+                tag_sentiment_score,
+                tag_sentiment_adjustment,
+                tag_adjusted_sentiment_score,
                 base_sentiment_score,
                 confidence_adjusted_sentiment_score,
                 llm_sentiment_summary,
@@ -121,7 +152,12 @@ def main() -> None:
 
             llm_sentiment_score = clamp(float(score_payload["sentiment_score"]), 0.0, 1.0)
             llm_sentiment_label = str(score_payload["sentiment_label"])
-            base_sentiment_score = float(row["confidence_adjusted_sentiment_score"] or row["base_sentiment_score"] or 0.0)
+            tag_adjusted_base = row["tag_adjusted_sentiment_score"]
+            if tag_adjusted_base is None:
+                tag_adjusted_base = row["confidence_adjusted_sentiment_score"]
+            if tag_adjusted_base is None:
+                tag_adjusted_base = row["base_sentiment_score"]
+            base_sentiment_score = float(tag_adjusted_base if tag_adjusted_base is not None else 0.0)
             final_sentiment_score = (
                 (1.0 - args.sentiment_llm_weight) * base_sentiment_score
                 + args.sentiment_llm_weight * llm_sentiment_score

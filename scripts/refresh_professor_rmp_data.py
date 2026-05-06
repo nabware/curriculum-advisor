@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+from collections import Counter
 import json
 import re
 import sqlite3
@@ -66,6 +67,102 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
 
 
+TAG_SENTIMENT_WEIGHTS: dict[str, float] = {
+    "amazing lectures": 1.0,
+    "clear grading criteria": 0.85,
+    "gives good feedback": 0.75,
+    "accessible outside class": 0.6,
+    "caring": 0.55,
+    "respected": 0.5,
+    "engaging lectures": 0.5,
+    "lecture slides": 0.3,
+    "tough grader": -0.85,
+    "lots of homework": -0.5,
+    "graded by few things": -0.45,
+    "test heavy": -0.4,
+    "participation matters": -0.2,
+}
+TAG_SCORE_BLEND = 0.08
+TAG_EVIDENCE_SATURATION = 8.0
+
+
+def normalize_tag(value: str | None) -> str:
+    return normalize_space(value or "").lower()
+
+
+def extract_tags_from_json(tags_json: object) -> list[str]:
+    raw_tags: object = tags_json
+    if isinstance(tags_json, str):
+        try:
+            raw_tags = json.loads(tags_json)
+        except json.JSONDecodeError:
+            raw_tags = []
+
+    if not isinstance(raw_tags, list):
+        return []
+
+    tags = [normalize_tag(str(tag)) for tag in raw_tags]
+    return [tag for tag in tags if tag]
+
+
+def calculate_tag_signal(review_records: list[dict[str, object]]) -> dict[str, float | int]:
+    matched_tags: list[str] = []
+    for record in review_records:
+        matched_tags.extend(extract_tags_from_json(record.get("tags_json")))
+
+    if not matched_tags:
+        return {
+            "tag_count": 0,
+            "tag_positive_count": 0,
+            "tag_negative_count": 0,
+            "tag_sentiment_score": 0.0,
+            "tag_sentiment_adjustment": 0.0,
+            "tag_adjusted_sentiment_score": 0.0,
+        }
+
+    tag_counts = Counter(tag for tag in matched_tags if tag in TAG_SENTIMENT_WEIGHTS)
+    if not tag_counts:
+        return {
+            "tag_count": 0,
+            "tag_positive_count": 0,
+            "tag_negative_count": 0,
+            "tag_sentiment_score": 0.0,
+            "tag_sentiment_adjustment": 0.0,
+            "tag_adjusted_sentiment_score": 0.0,
+        }
+
+    weighted_sum = 0.0
+    weighted_total = 0.0
+    positive_count = 0
+    negative_count = 0
+    for tag, count in tag_counts.items():
+        weight = TAG_SENTIMENT_WEIGHTS[tag]
+        weighted_sum += weight * count
+        weighted_total += abs(weight) * count
+        if weight > 0:
+            positive_count += count
+        elif weight < 0:
+            negative_count += count
+
+    raw_tag_score = (weighted_sum / weighted_total) if weighted_total > 0 else 0.0
+    evidence_weight = min(1.0, len(tag_counts) / TAG_EVIDENCE_SATURATION)
+    tag_sentiment_score = raw_tag_score * evidence_weight
+    tag_sentiment_adjustment = tag_sentiment_score * TAG_SCORE_BLEND
+
+    return {
+        "tag_count": int(sum(tag_counts.values())),
+        "tag_positive_count": positive_count,
+        "tag_negative_count": negative_count,
+        "tag_sentiment_score": tag_sentiment_score,
+        "tag_sentiment_adjustment": tag_sentiment_adjustment,
+        "tag_adjusted_sentiment_score": 0.0,
+    }
+
+
+def apply_tag_adjustment(base_score: float, tag_adjustment: float) -> float:
+    return clamp(base_score + tag_adjustment, 0.0, 1.0)
+
+
 def calculate_sentiment_features(
     rating: float,
     difficulty: float | None,
@@ -123,6 +220,24 @@ def calculate_sentiment_features(
         "base_sentiment_score": base_sentiment_score,
         "confidence_adjusted_sentiment_score": confidence_adjusted_sentiment_score,
     }
+
+
+def ensure_sentiment_feature_columns(conn: sqlite3.Connection) -> None:
+    existing_columns = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(professor_sentiment_features)").fetchall()
+    }
+    required_columns = {
+        "tag_count": "INTEGER",
+        "tag_positive_count": "INTEGER",
+        "tag_negative_count": "INTEGER",
+        "tag_sentiment_score": "REAL",
+        "tag_sentiment_adjustment": "REAL",
+        "tag_adjusted_sentiment_score": "REAL",
+    }
+    for column_name, column_type in required_columns.items():
+        if column_name not in existing_columns:
+            conn.execute(f"ALTER TABLE professor_sentiment_features ADD COLUMN {column_name} {column_type}")
 
 
 def fetch_professor_names(conn: sqlite3.Connection) -> list[str]:
@@ -300,6 +415,12 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             rating_score REAL NOT NULL,
             difficulty_score REAL,
             would_take_again_score REAL,
+            tag_count INTEGER,
+            tag_positive_count INTEGER,
+            tag_negative_count INTEGER,
+            tag_sentiment_score REAL,
+            tag_sentiment_adjustment REAL,
+            tag_adjusted_sentiment_score REAL,
             base_sentiment_score REAL NOT NULL,
             confidence_adjusted_sentiment_score REAL NOT NULL,
             llm_sentiment_score REAL,
@@ -451,6 +572,12 @@ def upsert_sentiment_rows(
             rating_score,
             difficulty_score,
             would_take_again_score,
+            tag_count,
+            tag_positive_count,
+            tag_negative_count,
+            tag_sentiment_score,
+            tag_sentiment_adjustment,
+            tag_adjusted_sentiment_score,
             base_sentiment_score,
             confidence_adjusted_sentiment_score,
             llm_sentiment_score,
@@ -461,7 +588,7 @@ def upsert_sentiment_rows(
             final_sentiment_score,
             rmp_url,
             imported_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             (
@@ -476,6 +603,12 @@ def upsert_sentiment_rows(
                 row["rating_score"],
                 row["difficulty_score"],
                 row["would_take_again_score"],
+                row["tag_count"],
+                row["tag_positive_count"],
+                row["tag_negative_count"],
+                row["tag_sentiment_score"],
+                row["tag_sentiment_adjustment"],
+                row["tag_adjusted_sentiment_score"],
                 row["base_sentiment_score"],
                 row["confidence_adjusted_sentiment_score"],
                 row["llm_sentiment_score"],
@@ -538,6 +671,7 @@ def refresh(args: argparse.Namespace) -> None:
             """
         )
         ensure_review_cache_columns(cache_conn)
+        ensure_sentiment_feature_columns(main_conn)
 
         main_conn.execute("DELETE FROM professor_rmp_profiles")
         main_conn.execute("DELETE FROM professor_rmp_reviews")
@@ -585,6 +719,16 @@ def refresh(args: argparse.Namespace) -> None:
                             "rating_score": float(fallback_row["rating_score"]),
                             "difficulty_score": fallback_row["difficulty_score"],
                             "would_take_again_score": fallback_row["would_take_again_score"],
+                            "tag_count": int(fallback_row.get("tag_count") or 0),
+                            "tag_positive_count": int(fallback_row.get("tag_positive_count") or 0),
+                            "tag_negative_count": int(fallback_row.get("tag_negative_count") or 0),
+                            "tag_sentiment_score": float(fallback_row.get("tag_sentiment_score") or 0.0),
+                            "tag_sentiment_adjustment": float(fallback_row.get("tag_sentiment_adjustment") or 0.0),
+                            "tag_adjusted_sentiment_score": float(
+                                fallback_row["tag_adjusted_sentiment_score"]
+                                if fallback_row.get("tag_adjusted_sentiment_score") is not None
+                                else fallback_row["confidence_adjusted_sentiment_score"]
+                            ),
                             "base_sentiment_score": float(fallback_row["base_sentiment_score"]),
                             "confidence_adjusted_sentiment_score": float(
                                 fallback_row["confidence_adjusted_sentiment_score"]
@@ -609,6 +753,12 @@ def refresh(args: argparse.Namespace) -> None:
                                 "rating_score": sentiment_features["rating_score"],
                                 "difficulty_score": sentiment_features["difficulty_score"],
                                 "would_take_again_score": sentiment_features["would_take_again_score"],
+                                "tag_count": sentiment_features["tag_count"],
+                                "tag_positive_count": sentiment_features["tag_positive_count"],
+                                "tag_negative_count": sentiment_features["tag_negative_count"],
+                                "tag_sentiment_score": sentiment_features["tag_sentiment_score"],
+                                "tag_sentiment_adjustment": sentiment_features["tag_sentiment_adjustment"],
+                                "tag_adjusted_sentiment_score": sentiment_features["tag_adjusted_sentiment_score"],
                                 "base_sentiment_score": sentiment_features["base_sentiment_score"],
                                 "confidence_adjusted_sentiment_score": sentiment_features[
                                     "confidence_adjusted_sentiment_score"
@@ -664,6 +814,8 @@ def refresh(args: argparse.Namespace) -> None:
                         timeout=args.sentiment_llm_timeout,
                     )
 
+                tag_signal = calculate_tag_signal(review_records)
+
                 features = calculate_sentiment_features(
                     rating=float(summary["overall_rating"] or 0.0),
                     difficulty=float(summary["level_of_difficulty"])
@@ -678,7 +830,11 @@ def refresh(args: argparse.Namespace) -> None:
                 )
 
                 base_sentiment_score = features["confidence_adjusted_sentiment_score"]
-                final_sentiment_score = base_sentiment_score
+                tag_adjusted_sentiment_score = apply_tag_adjustment(
+                    base_sentiment_score,
+                    float(tag_signal["tag_sentiment_adjustment"]),
+                )
+                final_sentiment_score = tag_adjusted_sentiment_score
                 llm_sentiment_score = None
                 llm_sentiment_label = None
                 llm_sentiment_summary = None
@@ -688,7 +844,7 @@ def refresh(args: argparse.Namespace) -> None:
                     llm_sentiment_summary = str(llm_payload.get("summary") or "").strip() or None
                     llm_sentiment_pros_json = json.dumps(llm_payload.get("pros") or [])
                     llm_sentiment_cons_json = json.dumps(llm_payload.get("cons") or [])
-                    final_sentiment_score = base_sentiment_score
+                    final_sentiment_score = tag_adjusted_sentiment_score
 
                 profile_rows.append(
                     {
@@ -710,6 +866,12 @@ def refresh(args: argparse.Namespace) -> None:
                         "rating_score": features["rating_score"],
                         "difficulty_score": None if features["difficulty_score"] < 0 else features["difficulty_score"],
                         "would_take_again_score": None if features["would_take_again_score"] < 0 else features["would_take_again_score"],
+                        "tag_count": tag_signal["tag_count"],
+                        "tag_positive_count": tag_signal["tag_positive_count"],
+                        "tag_negative_count": tag_signal["tag_negative_count"],
+                        "tag_sentiment_score": tag_signal["tag_sentiment_score"],
+                        "tag_sentiment_adjustment": tag_signal["tag_sentiment_adjustment"],
+                        "tag_adjusted_sentiment_score": tag_adjusted_sentiment_score,
                         "base_sentiment_score": features["base_sentiment_score"],
                         "confidence_adjusted_sentiment_score": base_sentiment_score,
                         "llm_sentiment_score": llm_sentiment_score,
