@@ -16,11 +16,13 @@ Before cloning or running the scripts, ensure you have:
    - Ubuntu/Debian: `sudo apt-get install python3 python3-venv`
    - Windows: [Download from python.org](https://www.python.org)
 
-2. **Ollama** (used for professor review summarization and sentiment scoring) - One-time setup
+2. **Ollama** (optional, used only for professor review sentiment scoring) - One-time setup
    - **macOS/Linux**: `curl -fsSL https://ollama.ai/install.sh | sh`
    - **Windows**: [Download installer](https://ollama.ai/download)
    - After install: `ollama pull llama3.1` (one-time, ~4.9GB download)
    - Then run `run_backend.sh` - it will auto-start the Ollama service
+
+**Course preference parsing now uses fast keyword-based matching** (e.g., specify "ai" or "os" for those topic areas) — no external LLM calls needed.
 
 If you skip Ollama installation, the sentiment scoring falls back to ratings-based scoring and the review summary fields stay blank.
 

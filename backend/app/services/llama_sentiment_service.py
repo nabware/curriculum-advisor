@@ -309,50 +309,119 @@ def parse_course_preferences_with_catalog(
     preferences_text: str,
     candidate_courses: list[dict[str, Any]],
     *,
-    endpoint: str | None,
-    model: str,
+    endpoint: str | None = None,
+    model: str = None,
     api_key: str | None = None,
     timeout: int = 20,
 ) -> dict[str, Any] | None:
+    """
+    Parse course preferences using keyword matching (no Ollama).
+    Fast local algorithm that recognizes common keywords like "ai", "os", "ml".
+    """
     cleaned_preferences = re.sub(r"\s+", " ", preferences_text).strip()
     if not cleaned_preferences or not candidate_courses:
         return None
 
-    parsed = _call_json_llm(
-        _build_catalog_preference_prompt(cleaned_preferences, candidate_courses),
-        endpoint=endpoint,
-        model=model,
-        api_key=api_key,
-        timeout=timeout,
-    )
-    if not parsed:
-        return None
-
+    lower_prefs = cleaned_preferences.lower()
+    
+    # Keyword mappings for topics
+    keyword_to_topic = {
+        r"\bai\b": "artificial intelligence",
+        r"\bartificial\s+intelligence\b": "artificial intelligence",
+        r"\bgenai\b": "artificial intelligence",
+        r"\bml\b": "machine learning",
+        r"\bmachine\s+learning\b": "machine learning",
+        r"\bos\b": "operating systems",
+        r"\boperating\s+systems\b": "operating systems",
+    }
+    
+    # Find matching topics
+    must_include_topics = set()
+    for pattern, topic in keyword_to_topic.items():
+        if re.search(pattern, lower_prefs, re.IGNORECASE):
+            must_include_topics.add(topic)
+    
+    # Check for workload preferences
+    prefer_light_workload = bool(re.search(
+        r"\b(light\s+workload|easy\s+workload|less\s+work|lighter\s+load|easier\s+classes?)\b",
+        lower_prefs, re.IGNORECASE
+    ))
+    
+    # Check for professor rating preferences
+    prefer_high_rated_professors = bool(re.search(
+        r"\b(high.?rated|best\s+professor|good\s+professor|top\s+professor|excellent\s+professor)s?\b",
+        lower_prefs, re.IGNORECASE
+    ))
+    
+    # Check for easy/difficult teacher preferences
+    prefer_easy_teachers = bool(re.search(
+        r"\b(difficult\s+teachers?|hard\s+teachers?|tough\s+teachers?|strict\s+teachers?|easy\s+teachers?|easy\s+professors?)\b",
+        lower_prefs, re.IGNORECASE
+    ))
+    
+    # Find preferred course codes by matching topics in titles and descriptions
     valid_codes = {str(course.get("course_code") or "").strip().upper() for course in candidate_courses}
-
-    preferred_codes = [
-        code
-        for code in [str(item).strip().upper() for item in parsed.get("preferred_course_codes", []) if str(item).strip()]
-        if code in valid_codes
-    ]
-    excluded_codes = [
-        code
-        for code in [str(item).strip().upper() for item in parsed.get("excluded_course_codes", []) if str(item).strip()]
-        if code in valid_codes
-    ]
+    preferred_codes = []
+    
+    if must_include_topics:
+        for course in candidate_courses:
+            code = str(course.get("course_code") or "").strip().upper()
+            title = str(course.get("title") or "").lower()
+            description = str(course.get("description") or "").lower()
+            course_text = title + " " + description
+            
+            for topic in must_include_topics:
+                # Match topic keywords in title or description
+                topic_matches = re.search(rf"\b{re.escape(topic)}\b", course_text, re.IGNORECASE)
+                # Special handling for AI: also match "generative ai", etc.
+                if topic == "artificial intelligence":
+                    topic_matches = topic_matches or re.search(r"\b(generative\s+)?ai\b", course_text, re.IGNORECASE)
+                
+                if topic_matches and code not in preferred_codes:
+                    preferred_codes.append(code)
+                    break
 
     return {
         "preferred_course_codes": preferred_codes,
-        "excluded_course_codes": excluded_codes,
-        "excluded_instructors": [str(item).strip().lower() for item in parsed.get("excluded_instructors", []) if str(item).strip()],
-        "prefer_light_workload": bool(parsed.get("prefer_light_workload", False)),
-        "prefer_high_rated_professors": bool(parsed.get("prefer_high_rated_professors", False)),
-        "prefer_easy_teachers": bool(parsed.get("prefer_easy_teachers", False)),
-        "min_professor_rating": parsed.get("min_professor_rating"),
-        "max_professor_difficulty": parsed.get("max_professor_difficulty"),
-        "must_include_topics": [str(item).strip().lower() for item in parsed.get("must_include_topics", []) if str(item).strip()],
-        "summary": str(parsed.get("summary") or "").strip(),
+        "excluded_course_codes": [],
+        "excluded_instructors": [],
+        "prefer_light_workload": prefer_light_workload,
+        "prefer_high_rated_professors": prefer_high_rated_professors,
+        "prefer_easy_teachers": prefer_easy_teachers,
+        "min_professor_rating": None,
+        "max_professor_difficulty": None,
+        "must_include_topics": list(must_include_topics),
+        "summary": _build_keyword_summary(must_include_topics, prefer_light_workload, 
+                                         prefer_high_rated_professors, prefer_easy_teachers),
     }
+
+
+def _build_keyword_summary(
+    topics: set[str],
+    light_workload: bool,
+    high_rated: bool,
+    easy_teachers: bool,
+) -> str:
+    """Build a summary string from detected preferences."""
+    parts = []
+    
+    if topics:
+        topic_list = ", ".join(sorted(topics))
+        parts.append(f"Prefer courses about {topic_list}")
+    
+    if light_workload:
+        parts.append("prefer light workload")
+    
+    if high_rated:
+        parts.append("prefer highly-rated professors")
+    
+    if easy_teachers:
+        parts.append("prefer easier teachers")
+    
+    if not parts:
+        return ""
+    
+    return "; ".join(parts) + "." if len(parts) > 1 else (parts[0] + "." if parts else "")
 
 
 def score_summary_text(

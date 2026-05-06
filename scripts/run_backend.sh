@@ -8,6 +8,29 @@ VENV_DIR="$BACKEND_DIR/.venv"
 REQUIREMENTS_FILE="$BACKEND_DIR/requirements.txt"
 STAMP_FILE="$VENV_DIR/.requirements.sha256"
 
+# Parse command line arguments
+ENABLE_OLLAMA=0
+for arg in "$@"; do
+	case "$arg" in
+		--with-ollama)
+			ENABLE_OLLAMA=1
+			;;
+		--help|-h)
+			echo "Usage: $0 [OPTIONS]"
+			echo ""
+			echo "Options:"
+			echo "  --with-ollama    Start Ollama service (for professor sentiment scoring)"
+			echo "  --help, -h       Show this help message"
+			exit 0
+			;;
+		*)
+			echo "Unknown option: $arg"
+			echo "Use --help for usage information"
+			exit 1
+			;;
+	esac
+done
+
 NEW_VENV=0
 
 if [ ! -x "$VENV_DIR/bin/python" ]; then
@@ -46,21 +69,26 @@ else
 	echo "Backend dependencies are up to date"
 fi
 
-# Ensure Ollama service is running
-echo "Checking Ollama service..."
-if ! systemctl is-active --quiet ollama; then
-	echo "Ollama service is not running. Attempting to start it..."
-	if sudo systemctl start ollama 2>/dev/null; then
-		echo "Ollama service started successfully."
+# Handle Ollama service if requested
+if [ "$ENABLE_OLLAMA" -eq 1 ]; then
+	echo "Starting Ollama service..."
+	if ! systemctl is-active --quiet ollama; then
+		echo "Ollama service is not running. Attempting to start it..."
+		if sudo systemctl start ollama 2>/dev/null; then
+			echo "Ollama service started successfully."
+		else
+			echo "WARNING: Could not start Ollama service. Please ensure it's running:"
+			echo "  systemctl status ollama"
+			echo "  sudo systemctl start ollama  # if not running"
+		fi
 	else
-		echo "WARNING: Could not start Ollama service. Please ensure it's running:"
-		echo "  systemctl status ollama"
-		echo "  sudo systemctl start ollama  # if not running"
+		echo "Ollama service is already running."
 	fi
+	# Wait a moment for Ollama to be ready
+	sleep 2
+else
+	echo "Ollama service disabled. Use --with-ollama to enable sentiment scoring features."
 fi
-
-# Wait a moment for Ollama to be ready
-sleep 2
 
 echo "Backend dependencies ready. Starting FastAPI server on port 8000..."
 cd "$BACKEND_DIR"

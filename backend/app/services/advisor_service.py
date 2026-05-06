@@ -927,8 +927,7 @@ class AdvisorService:
                 enriched.append(course)
             group_data["courses"] = enriched
 
-        ollama_used_for_preferences = False
-        ollama_failed_for_preferences = False
+        keyword_used_for_preferences = False
         if payload.preferences_text and payload.preferences_text.strip():
             candidate_courses: list[dict[str, Any]] = []
             seen_codes: set[str] = set()
@@ -951,52 +950,14 @@ class AdvisorService:
                         }
                     )
 
-            ollama_base = os.environ.get("OLLAMA_CHAT_ENDPOINT") or os.environ.get("OLLAMA_BASE_URL")
-            if ollama_base:
-                if ollama_base.rstrip("/").endswith("/api/chat"):
-                    ollama_endpoint = ollama_base
-                else:
-                    ollama_endpoint = f"{ollama_base.rstrip('/')}/api/chat"
-            else:
-                ollama_endpoint = "http://localhost:11434/api/chat"
-
-            ollama_model = os.environ.get("OLLAMA_MODEL", "llama3.1")
-            ollama_api_key = os.environ.get("OLLAMA_API_KEY")
-
-            # Optionally pre-normalize common abbreviations before calling Ollama.
-            normalized_prefs = AdvisorService._pre_normalize_preferences(payload.preferences_text)
+            # Use keyword-based preference parsing (fast, no external calls)
             llm_constraints = parse_course_preferences_with_catalog(
-                normalized_prefs or "",
+                payload.preferences_text,
                 candidate_courses,
-                endpoint=ollama_endpoint,
-                model=ollama_model,
-                api_key=ollama_api_key,
-                timeout=20,
             )
 
-            # Post-parse validation: if the user explicitly used an abbreviation (e.g. 'ai')
-            # ensure the LLM returned the canonical mapped topic. If not, treat as parsing failure
-            # (user requested no deterministic fallback).
-            raw_text = (payload.preferences_text or "")
-            abbr_to_canonical = {
-                "ai": "artificial intelligence",
-                "ml": "machine learning",
-                "os": "operating systems",
-            }
-            if llm_constraints and raw_text:
-                lower_raw = raw_text.lower()
-                for abbr, canonical in abbr_to_canonical.items():
-                    if re.search(rf"\b{re.escape(abbr)}\b", lower_raw):
-                        must_topics = [str(t).strip().lower() for t in llm_constraints.get("must_include_topics", []) if str(t).strip()]
-                        summary_text = str(llm_constraints.get("summary") or "").lower()
-                        if canonical not in must_topics and canonical not in summary_text:
-                            # LLM did not map abbreviation to expected canonical topic — consider it a failure
-                            llm_constraints = None
-                            ollama_failed_for_preferences = True
-                            break
-
             if llm_constraints:
-                ollama_used_for_preferences = True
+                keyword_used_for_preferences = True
                 preferred_codes_from_llm = [
                     str(code).strip().upper()
                     for code in llm_constraints.get("preferred_course_codes", [])
@@ -1094,8 +1055,6 @@ class AdvisorService:
                     preference_constraints.get("prefer_high_rated_professors")
                 )
                 prefer_easy_teachers = prefer_easy_teachers or bool(preference_constraints.get("prefer_easy_teachers"))
-            else:
-                ollama_failed_for_preferences = True
 
         grouped_recommendations: list[RequirementGroupRecommendation] = []
         preference_notes: list[str] = []
@@ -1313,10 +1272,8 @@ class AdvisorService:
         if preference_constraints.get("summary"):
             explanation += f" Preference note interpreted as: {preference_constraints['summary']}"
 
-        if ollama_used_for_preferences:
-            explanation += " Preference interpretation used Ollama against available course and professor metadata."
-        elif payload.preferences_text and ollama_failed_for_preferences:
-            explanation += " Preference interpretation was skipped because Ollama was unavailable or returned an invalid response."
+        if keyword_used_for_preferences:
+            explanation += " Preference interpretation used keyword matching against available course catalog."
 
         if preference_notes:
             explanation += " " + " ".join(dict.fromkeys(preference_notes))
