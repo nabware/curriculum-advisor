@@ -140,16 +140,25 @@ multi-objective — workload is not just a hard cap.
 **Prompt:**
 
 ```text
-I can't do anything before 11am on Mondays or Wednesdays.
+Actually, I can't do evening classes.
 ```
 
+(Why this prompt: drops only CSC 317 — the lone TuTh evening class —
+while preserving the AI elective and the algorithms class from
+Scenario 3. Other prompts to avoid: "before 11am MoWe" knocks out the
+AI elective; "no Tuesdays" removes both TuTh classes and leaves you
+with one course. The evening-block prompt is the cleanest demo of
+constraint propagation without nuking the previous beat.)
+
 **Point out:**
+- The schedule grid's evening rows (5 PM onwards) empty out for every
+  weekday.
+- The recommendation panel re-ranks: CSC 317 disappears, CSC 665 (AI
+  elective) and CSC 510 (algorithms) stay.
 - Click **Blocked times** to reveal that the windows are now populated.
-- The schedule grid on the right has no morning MoWe blocks.
-- Any course that *only* offered MoWe morning sections got swapped out.
-- The conversation state debug panel still shows the major, term, and
-  completed courses from the previous turn — only `blocked_time_windows`
-  was added.
+- The conversation state debug panel still shows the major, term,
+  completed courses, and AI-elective preference from the previous turn
+  — only `blocked_time_windows` was added. Multi-turn state persistence.
 
 **Proposal claim demonstrated:** Real constraint satisfaction, not
 LLM-imagined "vibes."

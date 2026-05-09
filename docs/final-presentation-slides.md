@@ -237,15 +237,19 @@ Point out:
 Type into the same chat:
 
 ```text
-I can't do anything before 11am on Mondays or Wednesdays.
+Actually, I can't do evening classes.
 ```
 
 Point out:
-- Schedule grid on the right empties of MoWe morning blocks.
-- Different courses (or different sections) appear in the panel.
-- Open the **Conversation state (debug)** panel to show that major,
-  term, completed courses, and preferences from Scenario A are still
-  in state — only `blocked_time_windows` was added by this turn.
+- The schedule grid's evening rows empty out (5 PM onwards for every
+  weekday is now blocked).
+- The recommendation panel drops CSC 317 (TuTh 5–6:15 PM with the
+  unrated Nina Mir) — the only evening class — and keeps CSC 665
+  (the AI elective) and CSC 510.
+- Open the **Conversation state (debug)** panel: major, term, completed
+  courses, and the AI-elective preference from Scenario A are all still
+  in state. Only `blocked_time_windows` was added by this turn — that's
+  multi-turn state persistence working.
 
 ### Scenario C — LLM live, then graceful failover (~45s)
 

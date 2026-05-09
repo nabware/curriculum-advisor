@@ -132,6 +132,146 @@ def _load_template_rationales(course_codes: list[str]) -> dict[str, str]:
         return {}
 
 
+_DAY_KEYWORDS = {
+    "monday": "Monday",
+    "mondays": "Monday",
+    "mon": "Monday",
+    "tuesday": "Tuesday",
+    "tuesdays": "Tuesday",
+    "tue": "Tuesday",
+    "tues": "Tuesday",
+    "wednesday": "Wednesday",
+    "wednesdays": "Wednesday",
+    "wed": "Wednesday",
+    "thursday": "Thursday",
+    "thursdays": "Thursday",
+    "thu": "Thursday",
+    "thur": "Thursday",
+    "thurs": "Thursday",
+    "friday": "Friday",
+    "fridays": "Friday",
+    "fri": "Friday",
+}
+
+
+def _extract_blocked_time_windows(text: str) -> list[dict[str, str]]:
+    """Heuristic extraction of blocked-time windows from natural language.
+
+    Recognizes phrasings like:
+      - "I can't make Tuesdays" / "no Tuesdays"
+      - "I can't do anything before 11am on Mondays"
+      - "I have to leave by 4pm on Wednesday"
+      - "no Friday afternoons"
+
+    Day-only mentions are interpreted as the entire 8 AM - 9 PM window.
+    Time-only mentions ("before 11am", "after 5pm") apply to all five
+    weekdays. Combined day+time mentions narrow the window appropriately.
+    """
+    if not text:
+        return []
+    lower = text.lower()
+    # Skip extraction unless the message is clearly about availability.
+    availability_signal = re.search(
+        r"\b(can(?:'|\s+|\u2019)?t|cannot|can\s*not|won(?:'|\s+|\u2019)?t|"
+        r"unavailable|busy|no(?:t)?\s+free|not\s+available|"
+        r"before|after|until|by|leave\s+by|until|prior\s+to|"
+        r"need\s+to\s+leave|need\s+to\s+(?:be\s+)?(?:home|out|done))\b",
+        lower,
+    )
+    explicit_no_day = re.search(
+        r"\bno\s+(monday|tuesday|wednesday|thursday|friday)s?\b", lower
+    )
+    if not availability_signal and not explicit_no_day:
+        return []
+
+    detected_days: list[str] = []
+    seen: set[str] = set()
+    for token, canonical in _DAY_KEYWORDS.items():
+        if re.search(rf"\b{token}\b", lower) and canonical not in seen:
+            detected_days.append(canonical)
+            seen.add(canonical)
+    if not detected_days:
+        # No specific day mentioned. Apply across all weekdays.
+        detected_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    # Detect time-of-day window. Defaults to entire school day.
+    start_time = "8:00AM"
+    end_time = "9:00PM"
+
+    def _format_clock(hour: int, minute: int) -> str:
+        period = "AM" if hour < 12 else "PM"
+        display_hour = hour % 12 or 12
+        return f"{display_hour}:{minute:02d}{period}"
+
+    def _parse_clock(match_hour: str, match_minute: str | None, match_period: str | None) -> tuple[int, int] | None:
+        try:
+            hour = int(match_hour)
+        except ValueError:
+            return None
+        minute = int(match_minute) if match_minute else 0
+        period = (match_period or "").lower()
+        if period == "pm" and hour < 12:
+            hour += 12
+        elif period == "am" and hour == 12:
+            hour = 0
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            return None
+        return hour, minute
+
+    before_match = re.search(
+        r"\b(?:before|by|until|prior\s+to|need\s+to\s+leave\s+by|leave\s+by|done\s+by)\s+"
+        r"(\d{1,2})(?::(\d{2}))?\s*(am|pm|noon|midnight)?",
+        lower,
+    )
+    after_match = re.search(
+        r"\bafter\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm|noon|midnight)?",
+        lower,
+    )
+    if "noon" in lower and "before noon" in lower:
+        end_time = "12:00PM"
+        start_time = "8:00AM"
+    elif before_match:
+        period = before_match.group(3)
+        if period == "noon":
+            end_time = "12:00PM"
+        elif period == "midnight":
+            end_time = "11:59PM"
+        else:
+            parsed = _parse_clock(before_match.group(1), before_match.group(2), period)
+            if parsed:
+                hour, minute = parsed
+                end_time = _format_clock(hour, minute)
+                start_time = "8:00AM"
+    elif after_match:
+        period = after_match.group(3)
+        if period == "noon":
+            start_time = "12:00PM"
+            end_time = "9:00PM"
+        elif period == "midnight":
+            start_time = "11:59PM"
+            end_time = "11:59PM"
+        else:
+            parsed = _parse_clock(after_match.group(1), after_match.group(2), period)
+            if parsed:
+                hour, minute = parsed
+                start_time = _format_clock(hour, minute)
+                end_time = "9:00PM"
+    elif re.search(r"\bmorning(s)?\b", lower):
+        start_time = "8:00AM"
+        end_time = "12:00PM"
+    elif re.search(r"\bafternoon(s)?\b", lower):
+        start_time = "12:00PM"
+        end_time = "5:00PM"
+    elif re.search(r"\bevening(s)?\b|\bnight(s)?\b", lower):
+        start_time = "5:00PM"
+        end_time = "9:00PM"
+
+    return [
+        {"day": day, "start": start_time, "end": end_time}
+        for day in detected_days
+    ]
+
+
 def _fallback_intent(message: str, state: ChatState, available_degrees: list[str]) -> dict[str, Any]:
     text = (message or "").strip()
     lower_text = text.lower()
@@ -222,6 +362,8 @@ def _fallback_intent(message: str, state: ChatState, available_degrees: list[str
     # "operating systems", etc.) and additional sentiment cues. Previously we
     # dropped this whenever a major or course code was detected, which lost
     # everything the student said about what they actually wanted.
+    detected_blocked_windows = _extract_blocked_time_windows(text)
+
     return {
         "major": detected_major,
         "term": detected_term,
@@ -230,6 +372,7 @@ def _fallback_intent(message: str, state: ChatState, available_degrees: list[str
         "preferences_text": text or None,
         "prefer_high_rated_professors": prefer_high_rated,
         "prefer_light_workload": prefer_light_workload,
+        "blocked_time_windows": detected_blocked_windows,
         "intent": intent,
         "missing_required_fields": missing,
         "assistant_reply": " ".join(reply_parts),
@@ -245,9 +388,43 @@ def _merge_intent_into_state(state: ChatState, intent: dict[str, Any]) -> ChatSt
     new_term = intent.get("term") or state.term
     new_max_units = intent.get("max_units_per_semester") or state.max_units_per_semester
 
+    # Accumulate preferences across turns so Turn 1's "AI elective" preference
+    # isn't lost when Turn 2 only adds "I can't make Tuesdays". Avoid
+    # appending if the new text is already a substring of the previous.
     new_prefs_text = state.preferences_text
-    if intent.get("preferences_text"):
-        new_prefs_text = intent.get("preferences_text")
+    incoming_prefs = (intent.get("preferences_text") or "").strip()
+    if incoming_prefs:
+        existing = (state.preferences_text or "").strip()
+        if not existing:
+            new_prefs_text = incoming_prefs
+        elif incoming_prefs in existing or existing in incoming_prefs:
+            new_prefs_text = existing if len(existing) >= len(incoming_prefs) else incoming_prefs
+        else:
+            new_prefs_text = (existing + "\n" + incoming_prefs).strip()
+
+    # Merge blocked-time windows by (day, start, end) so Turn 2's "Tuesdays"
+    # adds to (rather than replaces) anything already in state.
+    seen_windows: set[tuple[str, str, str]] = set()
+    merged_windows: list[BlockedTimeWindow] = []
+    for window in list(state.blocked_time_windows):
+        key = (window.day.strip(), window.start.strip(), window.end.strip())
+        if key in seen_windows:
+            continue
+        seen_windows.add(key)
+        merged_windows.append(window)
+    for window_dict in intent.get("blocked_time_windows") or []:
+        if not isinstance(window_dict, dict):
+            continue
+        day = str(window_dict.get("day") or "").strip()
+        start = str(window_dict.get("start") or "").strip()
+        end = str(window_dict.get("end") or "").strip()
+        if not day or not start or not end:
+            continue
+        key = (day, start, end)
+        if key in seen_windows:
+            continue
+        seen_windows.add(key)
+        merged_windows.append(BlockedTimeWindow(day=day, start=start, end=end))
 
     return ChatState(
         major=new_major,
@@ -258,7 +435,7 @@ def _merge_intent_into_state(state: ChatState, intent: dict[str, Any]) -> ChatSt
         prefer_high_rated_professors=bool(intent.get("prefer_high_rated_professors") or state.prefer_high_rated_professors),
         prefer_light_workload=bool(intent.get("prefer_light_workload") or state.prefer_light_workload),
         max_units_per_semester=new_max_units,
-        blocked_time_windows=list(state.blocked_time_windows),
+        blocked_time_windows=merged_windows,
     )
 
 
