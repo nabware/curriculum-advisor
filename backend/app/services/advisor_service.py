@@ -220,6 +220,79 @@ class AdvisorService:
         return selected, skipped
 
     @staticmethod
+    def _swap_section_on_course(
+        course: RecommendedCourse,
+        new_section: dict[str, str],
+        *,
+        professor_by_full_name: dict[str, dict[str, str | None]],
+        professor_by_last_initial: dict[str, list[dict[str, str | None]]],
+        professor_by_last_name: dict[str, list[dict[str, str | None]]],
+        sentiment_by_professor: dict[str, float],
+        sentiment_by_last_initial: dict[str, list[float]],
+        sentiment_by_last_name: dict[str, list[float]],
+        sentiment_summary_by_professor: dict[str, str],
+        rmp_cache: dict[str, dict | None],
+    ) -> RecommendedCourse:
+        """Return a copy of `course` with its schedule + instructor metadata
+        swapped to `new_section`, re-resolving professor profile, RMP, and
+        sentiment lookups since they all key off the instructor name."""
+        new_days_times = (new_section.get("days_times") or "").strip() or None
+        new_instructor = (new_section.get("instructor") or "").strip() or None
+
+        professor_info = AdvisorService._resolve_professor_info(
+            new_instructor,
+            professor_by_full_name,
+            professor_by_last_initial,
+            professor_by_last_name,
+        )
+        professor_name = (
+            professor_info["professor_name"] if professor_info else new_instructor
+        )
+        professor_image_url = (
+            professor_info["professor_image_url"] if professor_info else None
+        )
+
+        sentiment_score = AdvisorService._resolve_numeric_name_match(
+            professor_name,
+            sentiment_by_professor,
+            sentiment_by_last_initial,
+            sentiment_by_last_name,
+        )
+        review_summary = (
+            sentiment_summary_by_professor.get(AdvisorService._normalize_name(professor_name))
+            if professor_name
+            else None
+        )
+
+        rmp = None
+        rmp_lookup_name = new_instructor or professor_name
+        if rmp_lookup_name:
+            if rmp_lookup_name not in rmp_cache:
+                try:
+                    rmp_cache[rmp_lookup_name] = fetch_professor_rating(rmp_lookup_name)
+                except Exception:
+                    rmp_cache[rmp_lookup_name] = None
+            rmp = rmp_cache.get(rmp_lookup_name)
+
+        update: dict[str, Any] = {
+            "days_times": new_days_times,
+            "instructor": new_instructor,
+            "professor_name": professor_name,
+            "professor_image_url": professor_image_url,
+            "professor_sentiment_score": sentiment_score,
+            "professor_review_summary": review_summary,
+            "rmp_rating": rmp.get("rating") if rmp else None,
+            "rmp_difficulty": rmp.get("difficulty") if rmp else None,
+            "rmp_would_take_again_pct": rmp.get("would_take_again_pct") if rmp else None,
+            "rmp_url": rmp.get("rmp_url") if rmp else None,
+            "rmp_num_ratings": rmp.get("num_ratings") if rmp else None,
+            "rmp_top_tag": rmp.get("top_tag") if rmp else None,
+            "rmp_top_tag_count": rmp.get("top_tag_count") if rmp else None,
+            "rmp_top_tag_tone": rmp.get("top_tag_tone") if rmp else None,
+        }
+        return course.model_copy(update=update)
+
+    @staticmethod
     def _normalize_name(value: str | None) -> str:
         return re.sub(r"\s+", " ", (value or "")).strip().lower()
 
@@ -791,7 +864,11 @@ class AdvisorService:
             # Build term filter and schedule lookup if provided
             term_filter = ""
             query_params: list[Any] = [degree_id]
-            schedule_lookup: dict[str, dict[str, str]] = {}  # course_code -> schedule metadata
+            # course_code -> ordered list of (deduped) section metadata so we
+            # can swap to an alternative section if the initially-picked one
+            # later conflicts with a blocked time window.
+            schedule_lookup: dict[str, list[dict[str, str]]] = {}
+            seen_section_keys: dict[str, set[tuple[str, str]]] = {}
             description_lookup = {
                 (row["course_code"] or "").strip().upper(): (row["description"] or "").strip()
                 for row in description_rows
@@ -846,12 +923,18 @@ class AdvisorService:
                 ).fetchall()
                 for row in schedule_rows:
                     course_code = (row["course_code"] or "").strip().upper()
-                    if not course_code or course_code in schedule_lookup:
+                    if not course_code:
                         continue
-                    schedule_lookup[course_code] = {
-                        "days_times": (row["days_times"] or "").strip(),
-                        "instructor": (row["instructor"] or "").strip(),
-                    }
+                    days_times = (row["days_times"] or "").strip()
+                    instructor = (row["instructor"] or "").strip()
+                    section_key = (days_times, instructor)
+                    if section_key in seen_section_keys.setdefault(course_code, set()):
+                        continue
+                    seen_section_keys[course_code].add(section_key)
+                    schedule_lookup.setdefault(course_code, []).append({
+                        "days_times": days_times,
+                        "instructor": instructor,
+                    })
 
             req_rows = conn.execute(
                 f"""
@@ -936,7 +1019,8 @@ class AdvisorService:
                 continue
 
             group_name = str(group_entry["group_name"])
-            schedule_info = schedule_lookup.get(course_code) if payload.term else None
+            schedule_sections = schedule_lookup.get(course_code) if payload.term else None
+            schedule_info = schedule_sections[0] if schedule_sections else None
             professor_info = None
             if schedule_info and schedule_info.get("instructor"):
                 professor_info = AdvisorService._resolve_professor_info(
@@ -1292,30 +1376,89 @@ class AdvisorService:
             )
             recommendations = prioritized_recommendations
 
-        # Remove courses that fall inside a blocked time window
+        # Remove courses that fall inside a blocked time window. Before
+        # dropping a course, try to swap it to an alternative section of the
+        # same course that doesn't conflict with the blocked windows or with
+        # any already-selected non-conflicting course slots. This preserves
+        # the requested unit budget when an alternative section exists.
         if payload.blocked_time_windows:
-            blocked_filtered: list[RecommendedCourse] = []
-            blocked_removed: list[RecommendedCourse] = []
+            non_conflicting: list[RecommendedCourse] = []
+            conflicting: list[RecommendedCourse] = []
             for course in recommendations:
                 if AdvisorService._conflicts_with_blocked_windows(
                     course.days_times, payload.blocked_time_windows
                 ):
-                    blocked_removed.append(course)
+                    conflicting.append(course)
                 else:
-                    blocked_filtered.append(course)
+                    non_conflicting.append(course)
 
-            if blocked_removed:
-                blocked_codes = {c.course_code for c in blocked_removed}
-                grouped_recommendations = [
-                    RequirementGroupRecommendation(
-                        group_name=g.group_name,
-                        min_units=g.min_units,
-                        max_units=g.max_units,
-                        courses=[c for c in g.courses if c.course_code not in blocked_codes],
+            selected_slots: list[str] = [c.days_times for c in non_conflicting if c.days_times]
+            swap_map: dict[str, RecommendedCourse] = {}
+            blocked_removed: list[RecommendedCourse] = []
+
+            for course in conflicting:
+                alt_sections = schedule_lookup.get(course.course_code, []) or []
+                swapped: RecommendedCourse | None = None
+                for alt in alt_sections:
+                    alt_dt = (alt.get("days_times") or "").strip()
+                    if not alt_dt:
+                        continue
+                    if alt_dt == course.days_times:
+                        continue
+                    if AdvisorService._conflicts_with_blocked_windows(
+                        alt_dt, payload.blocked_time_windows
+                    ):
+                        continue
+                    if any(
+                        AdvisorService._has_time_conflict(alt_dt, slot)
+                        for slot in selected_slots
+                    ):
+                        continue
+                    swapped = AdvisorService._swap_section_on_course(
+                        course,
+                        alt,
+                        professor_by_full_name=professor_by_full_name,
+                        professor_by_last_initial=professor_by_last_initial,
+                        professor_by_last_name=professor_by_last_name,
+                        sentiment_by_professor=sentiment_by_professor,
+                        sentiment_by_last_initial=sentiment_by_last_initial,
+                        sentiment_by_last_name=sentiment_by_last_name,
+                        sentiment_summary_by_professor=sentiment_summary_by_professor,
+                        rmp_cache=rmp_cache,
                     )
-                    for g in grouped_recommendations
-                ]
-            recommendations = blocked_filtered
+                    break
+
+                if swapped:
+                    swap_map[course.course_code] = swapped
+                    if swapped.days_times:
+                        selected_slots.append(swapped.days_times)
+                else:
+                    blocked_removed.append(course)
+
+            blocked_codes = {c.course_code for c in blocked_removed}
+
+            # Rebuild recommendations preserving original order, applying
+            # swaps and removing any that we couldn't reschedule.
+            rebuilt: list[RecommendedCourse] = []
+            for course in recommendations:
+                if course.course_code in blocked_codes:
+                    continue
+                rebuilt.append(swap_map.get(course.course_code, course))
+            recommendations = rebuilt
+
+            grouped_recommendations = [
+                RequirementGroupRecommendation(
+                    group_name=g.group_name,
+                    min_units=g.min_units,
+                    max_units=g.max_units,
+                    courses=[
+                        swap_map.get(c.course_code, c)
+                        for c in g.courses
+                        if c.course_code not in blocked_codes
+                    ],
+                )
+                for g in grouped_recommendations
+            ]
 
         recommendations, skipped_conflicts = AdvisorService._filter_time_conflicts(recommendations)
         if skipped_conflicts:
