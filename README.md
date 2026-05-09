@@ -1,11 +1,14 @@
 # Curriculum Advisor
 
-Web app for degree-aware starter semester planning.
+Conversational, sentiment-aware semester planning that respects course
+prerequisites deterministically.
 
 Current stack:
-- Frontend: HTML, CSS, JavaScript (AJAX via fetch)
-- Backend: FastAPI
+- Frontend: HTML, CSS, vanilla JavaScript (chat UI, AJAX via `fetch`)
+- Backend: FastAPI + Pydantic
 - Database: SQLite (default for development)
+- Runtime LLM: Llama 3.2 3B via Ollama (intent extraction + per-course rationales)
+- Build-time LLM: Llama 3.1 8B via Ollama (professor sentiment summaries)
 
 ## Prerequisites
 
@@ -16,15 +19,21 @@ Before cloning or running the scripts, ensure you have:
    - Ubuntu/Debian: `sudo apt-get install python3 python3-venv`
    - Windows: [Download from python.org](https://www.python.org)
 
-2. **Ollama** (optional, used only for professor review sentiment scoring) - One-time setup
+2. **Ollama** - powers both the runtime chat and the offline sentiment build
    - **macOS/Linux**: `curl -fsSL https://ollama.ai/install.sh | sh`
    - **Windows**: [Download installer](https://ollama.ai/download)
-   - After install: `ollama pull llama3.1` (one-time, ~4.9GB download)
-   - Then run `run_backend.sh` - it will auto-start the Ollama service
+   - After install, pull the two models:
+     ```bash
+     ollama pull llama3.2:3b   # runtime chat (~2 GB) — used live
+     ollama pull llama3.1      # sentiment build (~4.9 GB) — used offline only
+     ```
+   - Then run `run_backend.sh` — it auto-starts the Ollama service and warms up
+     the chat model on backend boot so the first user message isn't a cold start.
 
-**Course preference parsing now uses fast keyword-based matching** (e.g., specify "ai" or "os" for those topic areas) — no external LLM calls needed.
-
-If you skip Ollama installation, the sentiment scoring falls back to ratings-based scoring and the review summary fields stay blank.
+If Ollama is not running, the conversational interface falls back gracefully
+to keyword intent parsing and template-based course rationales (templates are
+built once via `scripts/prebuild_demo_rationales.py`). Sentiment scoring
+similarly falls back to ratings-only when the build-time LLM is unavailable.
 
 ## Quick Start
 
@@ -57,7 +66,9 @@ python scripts/import_degree_requirements.py
 python scripts/build_degree_requirement_model.py
 python scripts/import_class_schedules.py
 python scripts/import_course_metadata.py
+python scripts/import_course_prerequisites.py     # NEW: builds the prereq DAG
 python scripts/build_professor_sentiment_features.py
+python scripts/prebuild_demo_rationales.py        # NEW: cached chat rationales
 ```
 
 ### Real Reviews from RateMyProfessors
@@ -93,13 +104,16 @@ Expected core tables:
 - `requirement_groups`
 - `requirement_group_courses`
 - `class_schedules`
-- `course_descriptions`
+- `course_descriptions` (with `recommendation_rationale_template` column)
+- `course_prerequisites` (DNF: AND across `clause_index`, OR within a clause)
+- `course_prerequisite_notes` (free-form non-course prereqs, informational only)
 - `professor_profiles`
 - `professor_sentiment_features`
 
 ## Where To Look
 
 - Project architecture: [docs/architecture.md](docs/architecture.md)
+- **Capstone proposal alignment (full)**: [docs/proposal-alignment.md](docs/proposal-alignment.md)
 - Team ownership split: [docs/team-ownership.md](docs/team-ownership.md)
 - Detailed startup and API test commands: [docs/quickstart.md](docs/quickstart.md)
 - Proposal alignment for data pipeline scope: [docs/proposal-data-pipeline-alignment.md](docs/proposal-data-pipeline-alignment.md)
@@ -159,14 +173,37 @@ This recreates `class_schedules` in `data/seed/curriculum_advisor.db`.
 
 - GET `/health`
 - GET `/advisor/degrees`
-- POST `/advisor/recommend`
+- POST `/advisor/recommend` — structured form-style request (used by eval scripts)
+- POST `/advisor/chat` — conversational entry point; orchestrates LLM intent
+  extraction, calls `recommend` deterministically, then attaches per-course
+  rationales
 
 ## Current Recommendation Behavior
 
-- Degree-first onboarding from `GET /advisor/degrees`.
-- Requirement-group-aware recommendations.
+- **Conversational entry point**: `POST /advisor/chat` interprets a free-form
+  message via Llama 3.2 3B (with a regex fallback), maintains rolling state,
+  and delegates the deterministic plan generation to `AdvisorService.recommend`.
+- **Deterministic prerequisite validation**: `PrerequisiteService` loads a DNF
+  course-dependency graph from `course_prerequisites` and removes any candidate
+  whose prereqs are not satisfied by the student's completed coursework.
+  Removed courses are returned in `prerequisite_blocked_courses` with
+  human-readable unmet-clause summaries.
+- Requirement-group-aware recommendations from official catalog data.
 - Term-filtered availability via class schedules.
-- Greedy schedule conflict removal.
+- Greedy schedule conflict removal + blocked time-window filtering.
 - Semester cap support via `max_units_per_semester`.
-- Progress output using `total_units_selected` and `total_units_required`.
-- Course enrichment from metadata imports (course descriptions, professor names, and professor images).
+- Progress output using `total_units_selected` / `total_units_required`.
+- Course enrichment with descriptions, professor names, professor images, RMP
+  ratings/tags, and confidence-weighted sentiment scores.
+- Per-course natural-language rationales from Llama 3.2 3B at runtime, with
+  pre-built templates as fallback when Ollama is unavailable.
+
+## Configuration
+
+Optional environment variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CURRICULUM_ADVISOR_CHAT_ENDPOINT` | `http://localhost:11434/v1/chat/completions` | Override the runtime LLM endpoint |
+| `CURRICULUM_ADVISOR_CHAT_MODEL` | `llama3.2:3b` | Override the runtime LLM model name |
+| `CURRICULUM_ADVISOR_DISABLE_CHAT_WARMUP` | unset | Skip the startup warm-up call (useful for tests / when Ollama is intentionally down) |

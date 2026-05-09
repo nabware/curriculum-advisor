@@ -67,6 +67,18 @@ class RecommendedCourse(BaseModel):
     rmp_would_take_again_pct: float | None = None
     rmp_url: str | None = None
     rmp_num_ratings: int | None = None
+    # Prerequisite metadata (from deterministic DAG validator)
+    prerequisite_text: str | None = None
+    prerequisite_satisfied_by: list[str] = Field(default_factory=list)
+    rationale: str | None = None
+
+
+class BlockedCourseExplanation(BaseModel):
+    course_code: str
+    title: str | None = None
+    group_name: str | None = None
+    unmet_prerequisites: str
+    raw_prerequisite_text: str | None = None
 
 
 class ProfessorRatingLookupResponse(BaseModel):
@@ -103,3 +115,44 @@ class AdvisorResponse(BaseModel):
     explanation: str
     total_units_selected: int = 0
     total_units_required: int = 0
+    prerequisite_blocked_courses: list[BlockedCourseExplanation] = Field(default_factory=list)
+    prerequisite_violation_count: int = 0
+
+
+class ChatTurn(BaseModel):
+    role: str = Field(..., description="'user' or 'assistant'")
+    content: str
+
+
+class ChatState(BaseModel):
+    major: str | None = None
+    term: str | None = None
+    completed_courses: list[str] = Field(default_factory=list)
+    transcript_text: str | None = None
+    preferences_text: str | None = None
+    prefer_high_rated_professors: bool = False
+    prefer_light_workload: bool = False
+    max_units_per_semester: int | None = None
+    blocked_time_windows: list[BlockedTimeWindow] = Field(default_factory=list)
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., description="The student's latest chat message")
+    state: ChatState = Field(default_factory=ChatState)
+    history: list[ChatTurn] = Field(default_factory=list)
+
+
+class ChatResponse(BaseModel):
+    reply: str = Field(..., description="The assistant's natural-language reply")
+    intent: str = Field(default="recommend")
+    state: ChatState
+    advisor: AdvisorResponse | None = None
+    rationale_source: str = Field(
+        default="none",
+        description="One of: 'llm', 'template', 'none' — which path produced the per-course rationales",
+    )
+    intent_source: str = Field(
+        default="fallback",
+        description="One of: 'llm', 'fallback' — which path extracted the intent",
+    )
+    missing_required_fields: list[str] = Field(default_factory=list)

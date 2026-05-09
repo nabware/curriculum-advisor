@@ -1,14 +1,90 @@
-const form = document.getElementById("advisor-form");
-const degreeSelect = document.getElementById("degree-select");
-const statusEl = document.getElementById("status");
+// Conversational curriculum advisor frontend.
+// Maintains chat history + rolling state, renders message bubbles, and
+// re-renders the recommendation panel when the assistant returns advisor data.
+
+const chatThread = document.getElementById("chat-thread");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const chatStatus = document.getElementById("chat-status");
+const chatStateDebug = document.getElementById("chat-state-debug");
+const chatMaxUnitsInput = document.getElementById("chat-max-units");
+const chatBlockedToggle = document.getElementById("chat-blocked-toggle");
+const chatBlockedDetails = document.getElementById("chat-blocked-windows");
+const chatResetButton = document.getElementById("chat-reset");
+const sendButton = document.getElementById("chat-send");
+const resultsPanel = document.getElementById("results-panel");
 const explanationEl = document.getElementById("explanation");
 const recommendationsEl = document.getElementById("recommendations");
-// Professor lookup UI removed; backend lookup endpoint retained for hydration
-const submitBtn = document.getElementById("submit-btn");
+const prereqBlockedSection = document.getElementById("prereq-blocked-section");
+const prereqBlockedList = document.getElementById("prereq-blocked-list");
 const professorRmpCache = new Map();
 
-// ── Blocked time windows state ───────────────────────────────────────────────
-const blockedWindows = []; // { day, start, end } objects
+const conversationHistory = [];
+let conversationState = {
+  major: null,
+  term: null,
+  completed_courses: [],
+  preferences_text: null,
+  prefer_high_rated_professors: false,
+  prefer_light_workload: false,
+  max_units_per_semester: 9,
+  blocked_time_windows: [],
+};
+
+const blockedWindows = [];
+
+function setChatStatus(message, kind = "neutral") {
+  chatStatus.textContent = message;
+  chatStatus.classList.remove("error", "success", "info");
+  if (kind && kind !== "neutral") {
+    chatStatus.classList.add(kind);
+  }
+}
+
+function renderChatStateDebug() {
+  chatStateDebug.textContent = JSON.stringify(conversationState, null, 2);
+}
+
+function appendMessage(role, content, meta = null) {
+  const wrapper = document.createElement("div");
+  wrapper.className = `chat-message chat-message-${role}`;
+
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble";
+  bubble.textContent = content;
+  wrapper.appendChild(bubble);
+
+  if (meta) {
+    const metaEl = document.createElement("p");
+    metaEl.className = "chat-message-meta";
+    metaEl.textContent = meta;
+    wrapper.appendChild(metaEl);
+  }
+
+  chatThread.appendChild(wrapper);
+  chatThread.scrollTop = chatThread.scrollHeight;
+}
+
+function appendThinkingIndicator() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "chat-message chat-message-assistant chat-thinking";
+  wrapper.id = "chat-thinking-indicator";
+
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble chat-bubble-thinking";
+  bubble.textContent = "Thinking…";
+
+  wrapper.appendChild(bubble);
+  chatThread.appendChild(wrapper);
+  chatThread.scrollTop = chatThread.scrollHeight;
+}
+
+function removeThinkingIndicator() {
+  const node = document.getElementById("chat-thinking-indicator");
+  if (node) {
+    node.remove();
+  }
+}
 
 function formatTime24To12(hhmm) {
   const [hStr, mStr] = hhmm.split(":");
@@ -46,38 +122,41 @@ document.getElementById("add-blocked-btn").addEventListener("click", () => {
   const start = document.getElementById("blocked-start").value;
   const end = document.getElementById("blocked-end").value;
   if (!start || !end || start >= end) {
-    setStatus("Blocked window: end time must be after start time.", true);
+    setChatStatus("Blocked window: end time must be after start time.", "error");
     return;
   }
   blockedWindows.push({ day, start, end });
   renderBlockedWindows();
+  setChatStatus(`Added blocked window. (${blockedWindows.length} total.)`, "info");
 });
 
-// ── Transcript drag-and-drop ─────────────────────────────────────────────────
-const dropzone = document.getElementById("transcript-dropzone");
-const transcriptTextarea = document.getElementById("transcript-text");
-
-dropzone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropzone.classList.add("drag-over");
+chatBlockedToggle.addEventListener("click", () => {
+  chatBlockedDetails.open = !chatBlockedDetails.open;
 });
-dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag-over"));
-dropzone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropzone.classList.remove("drag-over");
-  const file = e.dataTransfer?.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    transcriptTextarea.value = ev.target.result || "";
+
+chatResetButton.addEventListener("click", () => {
+  conversationHistory.length = 0;
+  conversationState = {
+    major: null,
+    term: null,
+    completed_courses: [],
+    preferences_text: null,
+    prefer_high_rated_professors: false,
+    prefer_light_workload: false,
+    max_units_per_semester: parseInt(chatMaxUnitsInput.value, 10) || 9,
+    blocked_time_windows: [],
   };
-  reader.readAsText(file);
+  blockedWindows.length = 0;
+  renderBlockedWindows();
+  chatThread.innerHTML = "";
+  appendMessage(
+    "assistant",
+    "Started a new conversation. What major and term are you planning?",
+  );
+  resultsPanel.hidden = true;
+  renderChatStateDebug();
+  setChatStatus("Ready.");
 });
-
-function setStatus(message, isError = false) {
-  statusEl.textContent = message;
-  statusEl.classList.toggle("error", isError);
-}
 
 function hashString(value) {
   let hash = 0;
@@ -110,17 +189,12 @@ function getRenderableProfessorImageUrl(imageUrl) {
   if (!value) {
     return null;
   }
-
-  // Only allow image sources that the browser can reliably resolve from the app.
   if (/^https?:\/\//i.test(value) || value.startsWith("data:image/")) {
     return value;
   }
-
-  // Backend returns root-relative asset paths; make them absolute to backend origin.
   if (value.startsWith("/") && typeof API_BASE_URL === "string" && API_BASE_URL) {
     return `${API_BASE_URL}${value}`;
   }
-
   return null;
 }
 
@@ -128,27 +202,22 @@ function getPillTone(value, kind) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "neutral";
   }
-
   const numericValue = Number(value);
-
   if (kind === "difficulty") {
     if (numericValue >= 3.8) return "red";
     if (numericValue >= 2.8) return "yellow";
     return "green";
   }
-
   if (kind === "sentiment") {
     if (numericValue >= 0.7) return "green";
     if (numericValue >= 0.45) return "yellow";
     return "red";
   }
-
   if (kind === "wta") {
     if (numericValue >= 80) return "green";
     if (numericValue >= 60) return "yellow";
     return "red";
   }
-
   if (numericValue >= 4.0) return "green";
   if (numericValue >= 3.0) return "yellow";
   return "red";
@@ -165,15 +234,12 @@ function normalizeProfessorKey(name) {
 async function getProfessorRmpData(course) {
   const professorName = course.professor_name || course.instructor;
   const cacheKey = normalizeProfessorKey(professorName);
-
   if (!cacheKey) {
     return null;
   }
-
   if (professorRmpCache.has(cacheKey)) {
     return professorRmpCache.get(cacheKey);
   }
-
   try {
     const rating = await fetchProfessorRating(professorName);
     professorRmpCache.set(cacheKey, rating);
@@ -184,25 +250,17 @@ async function getProfessorRmpData(course) {
   }
 }
 
-// lookup UI removed: related render/interaction functions deleted
-
 async function renderRecommendations(groups, fallbackCourses = []) {
   recommendationsEl.innerHTML = "";
 
-  // Flatten all courses from groups
   let allCourses = [];
-  if (groups.length) {
+  if (groups && groups.length) {
     groups.forEach((group) => {
       group.courses.forEach((course) => {
-        allCourses.push({
-          ...course,
-          group_name: group.group_name
-        });
+        allCourses.push({ ...course, group_name: group.group_name });
       });
     });
   }
-
-  // Add fallback courses if no groups
   if (!allCourses.length && fallbackCourses.length) {
     allCourses = fallbackCourses;
   }
@@ -215,33 +273,30 @@ async function renderRecommendations(groups, fallbackCourses = []) {
     return;
   }
 
-  const enrichedCourses = await Promise.all(allCourses.map(async (course) => {
-    const needsRmpData = course.rmp_rating === null || course.rmp_rating === undefined
-      || course.rmp_difficulty === null || course.rmp_difficulty === undefined
-      || course.rmp_would_take_again_pct === null || course.rmp_would_take_again_pct === undefined
-      || !course.rmp_top_tag;
+  const enrichedCourses = await Promise.all(
+    allCourses.map(async (course) => {
+      const needsRmpData =
+        course.rmp_rating === null || course.rmp_rating === undefined ||
+        course.rmp_difficulty === null || course.rmp_difficulty === undefined ||
+        course.rmp_would_take_again_pct === null || course.rmp_would_take_again_pct === undefined ||
+        !course.rmp_top_tag;
+      if (!needsRmpData) return course;
 
-    if (!needsRmpData) {
-      return course;
-    }
-
-    const rmpData = await getProfessorRmpData(course);
-    if (!rmpData) {
-      return course;
-    }
-
-    return {
-      ...course,
-      rmp_rating: course.rmp_rating ?? rmpData.rating,
-      rmp_difficulty: course.rmp_difficulty ?? rmpData.difficulty,
-      rmp_would_take_again_pct: course.rmp_would_take_again_pct ?? rmpData.would_take_again_pct,
-      rmp_url: course.rmp_url ?? rmpData.rmp_url,
-      rmp_num_ratings: course.rmp_num_ratings ?? rmpData.num_ratings,
-      rmp_top_tag: course.rmp_top_tag ?? rmpData.top_tag,
-      rmp_top_tag_count: course.rmp_top_tag_count ?? rmpData.top_tag_count,
-      rmp_top_tag_tone: course.rmp_top_tag_tone ?? rmpData.top_tag_tone,
-    };
-  }));
+      const rmpData = await getProfessorRmpData(course);
+      if (!rmpData) return course;
+      return {
+        ...course,
+        rmp_rating: course.rmp_rating ?? rmpData.rating,
+        rmp_difficulty: course.rmp_difficulty ?? rmpData.difficulty,
+        rmp_would_take_again_pct: course.rmp_would_take_again_pct ?? rmpData.would_take_again_pct,
+        rmp_url: course.rmp_url ?? rmpData.rmp_url,
+        rmp_num_ratings: course.rmp_num_ratings ?? rmpData.num_ratings,
+        rmp_top_tag: course.rmp_top_tag ?? rmpData.top_tag,
+        rmp_top_tag_count: course.rmp_top_tag_count ?? rmpData.top_tag_count,
+        rmp_top_tag_tone: course.rmp_top_tag_tone ?? rmpData.top_tag_tone,
+      };
+    }),
+  );
 
   enrichedCourses.forEach((course) => {
     const article = document.createElement("article");
@@ -260,14 +315,35 @@ async function renderRecommendations(groups, fallbackCourses = []) {
     const units = Number.isInteger(course.units) ? `${course.units} units` : "Units TBD";
     meta.textContent = `${units} | ${groupName}`;
 
+    if (course.rationale) {
+      const rationale = document.createElement("p");
+      rationale.className = "course-rationale";
+      rationale.textContent = course.rationale;
+      article.append(code, courseTitle, meta, rationale);
+    } else {
+      article.append(code, courseTitle, meta);
+    }
+
+    if (course.prerequisite_text || (course.prerequisite_satisfied_by && course.prerequisite_satisfied_by.length)) {
+      const prereq = document.createElement("p");
+      prereq.className = "course-prerequisite";
+      const satisfiedClause =
+        course.prerequisite_satisfied_by && course.prerequisite_satisfied_by.length
+          ? ` (you've completed ${course.prerequisite_satisfied_by.join(", ")})`
+          : "";
+      prereq.textContent = `Prereq: ${course.prerequisite_text || "—"}${satisfiedClause}`;
+      article.appendChild(prereq);
+    }
+
     const schedule = document.createElement("p");
     schedule.className = "course-schedule";
-    const daysTimes = course.days_times || "Time not available";
-    schedule.textContent = daysTimes;
+    schedule.textContent = course.days_times || "Time not available";
+    article.appendChild(schedule);
 
     const description = document.createElement("p");
     description.className = "course-description";
     description.textContent = course.description || "Course description not available.";
+    article.appendChild(description);
 
     const professor = document.createElement("div");
     professor.className = "professor-card";
@@ -290,7 +366,6 @@ async function renderRecommendations(groups, fallbackCourses = []) {
     const professorName = document.createElement("p");
     professorName.className = "professor-name";
     professorName.textContent = course.professor_name || course.instructor || "Professor not available";
-
     professorMeta.appendChild(professorName);
 
     const professorPills = document.createElement("div");
@@ -307,7 +382,6 @@ async function renderRecommendations(groups, fallbackCourses = []) {
       sentimentPill.textContent = "Sentiment n/a";
       applyPillTone(sentimentPill, "neutral");
     }
-
     professorPills.append(sentimentPill);
 
     if (course.rmp_top_tag) {
@@ -326,7 +400,6 @@ async function renderRecommendations(groups, fallbackCourses = []) {
 
     professorVisual.append(professorImage);
 
-    // RMP ratings
     if (course.rmp_rating !== null && course.rmp_rating !== undefined) {
       const rmpBadge = document.createElement("div");
       rmpBadge.className = "rmp-badge";
@@ -340,7 +413,11 @@ async function renderRecommendations(groups, fallbackCourses = []) {
       const diffEl = document.createElement("span");
       diffEl.className = "rmp-difficulty";
       diffEl.title = "Avg difficulty (1–5)";
-      diffEl.textContent = `Difficulty ${course.rmp_difficulty !== null && course.rmp_difficulty !== undefined ? course.rmp_difficulty.toFixed(1) : "—"}`;
+      diffEl.textContent = `Difficulty ${
+        course.rmp_difficulty !== null && course.rmp_difficulty !== undefined
+          ? course.rmp_difficulty.toFixed(1)
+          : "—"
+      }`;
       applyPillTone(diffEl, getPillTone(course.rmp_difficulty, "difficulty"));
 
       rmpBadge.append(ratingEl, diffEl);
@@ -353,13 +430,11 @@ async function renderRecommendations(groups, fallbackCourses = []) {
         applyPillTone(wtaEl, getPillTone(course.rmp_would_take_again_pct, "wta"));
         rmpBadge.appendChild(wtaEl);
       }
-
       professorPills.appendChild(rmpBadge);
     }
 
     professorMeta.appendChild(professorPills);
 
-    // Professor review summary (LLM-generated) shown under the pills
     if (course.professor_review_summary) {
       const summaryEl = document.createElement("p");
       summaryEl.className = "professor-summary";
@@ -368,43 +443,51 @@ async function renderRecommendations(groups, fallbackCourses = []) {
     }
 
     professor.append(professorVisual, professorMeta);
-
-    article.append(code, courseTitle, meta, schedule, description, professor);
+    article.appendChild(professor);
     recommendationsEl.appendChild(article);
   });
 }
 
+function renderPrereqBlocked(blockedCourses = []) {
+  if (!blockedCourses.length) {
+    prereqBlockedSection.hidden = true;
+    prereqBlockedList.innerHTML = "";
+    return;
+  }
+  prereqBlockedSection.hidden = false;
+  prereqBlockedList.innerHTML = "";
+  blockedCourses.forEach((blocked) => {
+    const item = document.createElement("li");
+    item.className = "prereq-blocked-item";
+    const code = document.createElement("strong");
+    code.textContent = blocked.course_code;
+    const title = document.createElement("span");
+    title.className = "prereq-blocked-title";
+    title.textContent = blocked.title ? ` — ${blocked.title}` : "";
+    const reason = document.createElement("span");
+    reason.className = "prereq-blocked-reason";
+    reason.textContent = blocked.unmet_prerequisites
+      ? ` · needs ${blocked.unmet_prerequisites}`
+      : "";
+    item.append(code, title, reason);
+    prereqBlockedList.appendChild(item);
+  });
+}
+
 function parseDaysTimes(daysTimes) {
-  if (!daysTimes) {
-    return [];
-  }
-
+  if (!daysTimes) return [];
   const match = daysTimes.trim().match(/^([A-Za-z]+)\s+([\d:APMapm]+)\s*-\s*([\d:APMapm]+)$/);
-  if (!match) {
-    return [];
-  }
-
+  if (!match) return [];
   const daysText = match[1];
   const startTime = match[2];
   const endTime = match[3];
   const dayTokens = daysText.match(/Th|Tu|We|Fr|Sa|Su|Mo|M|T|W|R|F|S|U/gi) || [];
   const dayMap = {
-    Mo: "Monday",
-    Tu: "Tuesday",
-    We: "Wednesday",
-    Th: "Thursday",
-    Fr: "Friday",
-    Sa: "Saturday",
-    Su: "Sunday",
-    M: "Monday",
-    T: "Tuesday",
-    W: "Wednesday",
-    R: "Thursday",
-    F: "Friday",
-    S: "Saturday",
-    U: "Sunday",
+    Mo: "Monday", Tu: "Tuesday", We: "Wednesday", Th: "Thursday",
+    Fr: "Friday", Sa: "Saturday", Su: "Sunday",
+    M: "Monday", T: "Tuesday", W: "Wednesday", R: "Thursday",
+    F: "Friday", S: "Saturday", U: "Sunday",
   };
-
   return dayTokens
     .map((token) => dayMap[token.charAt(0).toUpperCase() + token.slice(1).toLowerCase()] || dayMap[token.toUpperCase()] || dayMap[token])
     .filter(Boolean)
@@ -412,27 +495,14 @@ function parseDaysTimes(daysTimes) {
 }
 
 function timeToMinutes(timeText) {
-  if (!timeText) {
-    return Number.POSITIVE_INFINITY;
-  }
-
+  if (!timeText) return Number.POSITIVE_INFINITY;
   const match = timeText.trim().match(/^(\d{1,2})(?::(\d{2}))?(AM|PM)$/i);
-  if (!match) {
-    return Number.POSITIVE_INFINITY;
-  }
-
+  if (!match) return Number.POSITIVE_INFINITY;
   let hours = parseInt(match[1], 10);
   const minutes = parseInt(match[2] || "0", 10);
   const period = match[3].toUpperCase();
-
-  if (hours === 12) {
-    hours = 0;
-  }
-
-  if (period === "PM") {
-    hours += 12;
-  }
-
+  if (hours === 12) hours = 0;
+  if (period === "PM") hours += 12;
   return hours * 60 + minutes;
 }
 
@@ -440,8 +510,6 @@ function renderSchedule(courses = []) {
   const scheduleContainer = document.getElementById("schedule-container");
   const schedulePlaceholder = document.getElementById("schedule-placeholder");
   const scheduleGrid = document.getElementById("schedule-grid");
-
-  // Filter courses that have schedule info
   const coursesWithSchedule = courses.filter((c) => c.days_times && c.days_times.trim());
 
   if (!coursesWithSchedule.length) {
@@ -454,9 +522,7 @@ function renderSchedule(courses = []) {
   schedulePlaceholder.style.display = "none";
   scheduleGrid.innerHTML = "";
 
-  // Create a simple schedule display: group courses by day
   const coursesByDay = {};
-
   coursesWithSchedule.forEach((course) => {
     const scheduleSlots = parseDaysTimes(course.days_times);
     scheduleSlots.forEach(({ day, startTime, endTime }) => {
@@ -470,7 +536,6 @@ function renderSchedule(courses = []) {
     });
   });
 
-  // Render schedule grid
   const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   daysOrder.forEach((day) => {
     const dayDiv = document.createElement("div");
@@ -484,18 +549,15 @@ function renderSchedule(courses = []) {
       coursesByDay[day]
         .sort((left, right) => timeToMinutes(left.time.split(" - ")[0]) - timeToMinutes(right.time.split(" - ")[0]))
         .forEach((course) => {
-        const courseDiv = document.createElement("div");
-        courseDiv.className = "schedule-course";
-
-        const courseCode = document.createElement("strong");
-        courseCode.textContent = course.code;
-
-        const courseTime = document.createElement("p");
-        courseTime.className = "schedule-time";
-        courseTime.textContent = `${course.time} | ${course.instructor}`;
-
-        courseDiv.append(courseCode, courseTime);
-        dayDiv.appendChild(courseDiv);
+          const courseDiv = document.createElement("div");
+          courseDiv.className = "schedule-course";
+          const courseCode = document.createElement("strong");
+          courseCode.textContent = course.code;
+          const courseTime = document.createElement("p");
+          courseTime.className = "schedule-time";
+          courseTime.textContent = `${course.time} | ${course.instructor}`;
+          courseDiv.append(courseCode, courseTime);
+          dayDiv.appendChild(courseDiv);
         });
     } else {
       const empty = document.createElement("p");
@@ -503,131 +565,123 @@ function renderSchedule(courses = []) {
       empty.textContent = "No classes";
       dayDiv.appendChild(empty);
     }
-
     scheduleGrid.appendChild(dayDiv);
   });
 }
 
-async function loadDegrees() {
-  setStatus("Loading degree programs...");
-  degreeSelect.innerHTML = "";
-
-  try {
-    const data = await fetchDegrees();
-    const defaultOption = document.createElement("option");
-    defaultOption.value = "";
-    defaultOption.textContent = "Select a degree";
-    degreeSelect.appendChild(defaultOption);
-
-    data.degrees.forEach((degree) => {
-      const option = document.createElement("option");
-      option.value = degree.degree_name;
-      option.textContent = degree.degree_name;
-      degreeSelect.appendChild(option);
-    });
-
-    setStatus("Degree programs loaded.");
-  } catch (error) {
-    setStatus(`Failed to load degree programs: ${error.message}`, true);
-    degreeSelect.innerHTML = "<option value=''>Could not load degrees</option>";
+function renderProgress(advisor) {
+  const progressContainer = document.getElementById("progress-container");
+  const progressFill = document.getElementById("progress-fill");
+  const progressText = document.getElementById("progress-text");
+  if (!advisor) {
+    progressContainer.style.display = "none";
+    return;
+  }
+  const selected = advisor.total_units_selected ?? 0;
+  const required = advisor.total_units_required ?? 0;
+  progressContainer.style.display = "block";
+  if (required > 0) {
+    progressText.textContent = `${selected} / ${required} units toward degree`;
+    progressFill.style.width = `${Math.min(100, (selected / required) * 100)}%`;
+  } else {
+    progressText.textContent = `${selected} units selected`;
+    progressFill.style.width = "0%";
   }
 }
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const major = degreeSelect.value.trim();
-  if (!major) {
-    setStatus("Please choose a degree program first.", true);
+async function handleAdvisorPayload(advisor) {
+  if (!advisor) {
+    resultsPanel.hidden = true;
     return;
   }
+  resultsPanel.hidden = false;
+  await renderRecommendations(advisor.grouped_recommendations || [], advisor.recommendations || []);
+  renderSchedule(advisor.recommendations || []);
+  renderProgress(advisor);
+  renderPrereqBlocked(advisor.prerequisite_blocked_courses || []);
+  explanationEl.textContent = advisor.explanation || "No explanation provided.";
+}
 
-  const maxUnitsInput = document.getElementById("max-units");
-  const maxUnits = maxUnitsInput.value ? parseInt(maxUnitsInput.value, 10) : 12;
-
-  const termSelect = document.getElementById("term-select");
-  const term = termSelect.value || null;
-
-  // Collect completed courses from manual textarea
-  const completedRaw = document.getElementById("completed-courses").value || "";
-  const completedCourses = completedRaw
-    .split(/[\n,]+/)
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-
-  // Collect transcript text
-  const transcriptText = transcriptTextarea.value.trim() || null;
-
-  // Blocked time windows: convert HH:MM → "H:MMAM/PM" for backend
+function buildOutgoingState() {
   const blocked = blockedWindows.map((w) => ({
     day: w.day,
     start: formatTime24To12(w.start),
     end: formatTime24To12(w.end),
   }));
-
-  const preferencesText = (document.getElementById("preferences-text").value || "").trim();
-
-  submitBtn.disabled = true;
-  setStatus("Generating recommendations…");
-
-  const preferHighRatedProfessors = document.getElementById("prefer-high-rated-professors").checked;
-
-  const payload = {
-    major,
-    completed_courses: completedCourses,
-    transcript_text: transcriptText,
+  const maxUnits = parseInt(chatMaxUnitsInput.value, 10);
+  return {
+    ...conversationState,
+    max_units_per_semester: Number.isFinite(maxUnits) && maxUnits > 0 ? maxUnits : conversationState.max_units_per_semester,
     blocked_time_windows: blocked,
-    preferences_text: preferencesText || null,
-    interests: [],
-    career_goals: [],
-    prefer_light_workload: false,
-    prefer_high_rated_professors: preferHighRatedProfessors,
-    max_units_per_semester: maxUnits,
-    term,
   };
+}
+
+function applyResponseState(state) {
+  if (!state) return;
+  conversationState = {
+    major: state.major ?? conversationState.major,
+    term: state.term ?? conversationState.term,
+    completed_courses: Array.isArray(state.completed_courses) ? state.completed_courses : conversationState.completed_courses,
+    preferences_text: state.preferences_text ?? conversationState.preferences_text,
+    prefer_high_rated_professors: !!state.prefer_high_rated_professors,
+    prefer_light_workload: !!state.prefer_light_workload,
+    max_units_per_semester: state.max_units_per_semester ?? conversationState.max_units_per_semester,
+    blocked_time_windows: Array.isArray(state.blocked_time_windows) ? state.blocked_time_windows : conversationState.blocked_time_windows,
+  };
+  renderChatStateDebug();
+}
+
+chatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  appendMessage("user", message);
+  conversationHistory.push({ role: "user", content: message });
+  chatInput.value = "";
+  sendButton.disabled = true;
+  appendThinkingIndicator();
+  setChatStatus("Sending to advisor…", "info");
 
   try {
-    const data = await fetchRecommendations(payload);
-    await renderRecommendations(data.grouped_recommendations || [], data.recommendations || []);
-    
-    // Render schedule
-    const allCourses = data.recommendations || [];
-    renderSchedule(allCourses);
-    
-    // Display progress
-    const progressContainer = document.getElementById("progress-container");
-    const progressFill = document.getElementById("progress-fill");
-    const progressText = document.getElementById("progress-text");
-    
-    if (data.total_units_selected !== undefined && data.total_units_required !== undefined) {
-      const selected = data.total_units_selected;
-      const required = data.total_units_required;
+    const payload = {
+      message,
+      state: buildOutgoingState(),
+      history: conversationHistory.slice(-8),
+    };
+    const data = await sendChatMessage(payload);
+    removeThinkingIndicator();
 
-      progressContainer.style.display = "block";
-      if (required > 0) {
-        progressText.textContent = `${selected} / ${required} units toward degree`;
-        progressFill.style.width = `${Math.min(100, (selected / required) * 100)}%`;
-      } else {
-        progressText.textContent = `${selected} units selected`;
-        progressFill.style.width = "0%";
-      }
-    } else {
-      progressContainer.style.display = "none";
+    appendMessage("assistant", data.reply || "(no reply)");
+    conversationHistory.push({ role: "assistant", content: data.reply || "" });
+
+    applyResponseState(data.state);
+    await handleAdvisorPayload(data.advisor);
+
+    const sourceLabel =
+      data.intent_source === "llm" ? "intent: LLM" : "intent: regex fallback";
+    const rationaleLabel =
+      data.rationale_source === "llm"
+        ? " · rationales: LLM"
+        : data.rationale_source === "template"
+          ? " · rationales: template"
+          : data.rationale_source === "llm+template"
+            ? " · rationales: LLM + template"
+            : "";
+    setChatStatus(`Done (${sourceLabel}${rationaleLabel}).`, "success");
+
+    if (data.missing_required_fields && data.missing_required_fields.length) {
+      const missing = data.missing_required_fields.join(", ");
+      setChatStatus(`Need ${missing} to recommend courses.`, "info");
     }
-    
-    explanationEl.textContent = data.explanation || "No explanation provided.";
-    setStatus("Recommendations ready.");
   } catch (error) {
-    await renderRecommendations([]);
-    renderSchedule([]);
-    explanationEl.textContent = "Could not fetch recommendations.";
-    setStatus(`Error: ${error.message}`, true);
-    document.getElementById("progress-container").style.display = "none";
+    removeThinkingIndicator();
+    appendMessage("assistant", `I hit an error talking to the advisor: ${error.message}`);
+    setChatStatus(`Error: ${error.message}`, "error");
   } finally {
-    submitBtn.disabled = false;
+    sendButton.disabled = false;
+    chatInput.focus();
   }
 });
 
-// lookup UI removed: no event listeners to attach
-
-loadDegrees();
+renderChatStateDebug();

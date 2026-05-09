@@ -47,3 +47,24 @@ async function fetchProfessorRating(name) {
 
   return response.json();
 }
+
+async function sendChatMessage(payload) {
+  const response = await fetch(`${API_BASE_URL}/advisor/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let details = "";
+    try {
+      const body = await response.json();
+      details = body?.detail ? `: ${body.detail}` : "";
+    } catch {
+      details = "";
+    }
+    throw new Error(`Chat request failed (${response.status})${details}`);
+  }
+
+  return response.json();
+}

@@ -120,6 +120,20 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
                     return parsed if isinstance(parsed, dict) else None
                 except json.JSONDecodeError:
                     return None
+
+    # Last-ditch: small models sometimes drop the closing brace(s). Try balancing
+    # what we collected so far (only when we found a starting `{`).
+    if start is not None and depth > 0:
+        truncated = candidate[start:].rstrip()
+        # Trim a trailing partial token that would obviously break parsing.
+        truncated = re.sub(r",\s*$", "", truncated)
+        for _ in range(depth):
+            truncated += "}"
+        try:
+            parsed = json.loads(truncated)
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            return None
     return None
 
 
@@ -467,6 +481,224 @@ def score_summary_text(
     score = max(0.0, min(1.0, score))
 
     return {"sentiment_label": label, "sentiment_score": score}
+
+
+def _build_chat_intent_prompt(
+    user_message: str,
+    available_degrees: list[str],
+    history: list[dict[str, str]] | None,
+    known_state: dict[str, Any] | None,
+) -> str:
+    """Prompt to extract structured intent from a free-form student chat message."""
+    cleaned_message = _trim_text(user_message, 800)
+    degree_lines = "\n".join(f"- {name}" for name in available_degrees[:30])
+    state_summary = ""
+    if known_state:
+        state_summary = (
+            "Known so far:\n"
+            f"  major={known_state.get('major') or 'unknown'}\n"
+            f"  term={known_state.get('term') or 'unknown'}\n"
+            f"  completed_courses={', '.join(known_state.get('completed_courses') or []) or 'none'}\n"
+            f"  preferences_text={(known_state.get('preferences_text') or '')[:160]}\n"
+            f"  prefer_high_rated_professors={bool(known_state.get('prefer_high_rated_professors'))}\n"
+            f"  prefer_light_workload={bool(known_state.get('prefer_light_workload'))}\n"
+            f"  max_units_per_semester={known_state.get('max_units_per_semester') or 'unset'}\n"
+        )
+
+    history_text = ""
+    if history:
+        formatted_history = []
+        for turn in history[-4:]:
+            role = (turn.get("role") or "").strip().lower()
+            text = _trim_text(str(turn.get("content") or ""), 240)
+            if role and text:
+                formatted_history.append(f"{role}: {text}")
+        if formatted_history:
+            history_text = "Recent conversation:\n" + "\n".join(formatted_history) + "\n\n"
+
+    parts = [
+        (
+            "You are the intent extractor for a curriculum advisor. The student is chatting "
+            "in plain English. Extract a structured intent JSON object so the deterministic "
+            "advisor backend can run."
+        ),
+        (
+            "Return strict JSON only (no markdown, no surrounding text) with EXACTLY this schema:\n"
+            "{\n"
+            '  "major": string|null,                         // pick the closest degree from the list, or null\n'
+            '  "term": string|null,                          // e.g. "Fall 2026", "Spring 2026"\n'
+            '  "max_units_per_semester": integer|null,       // 1-21 or null\n'
+            '  "completed_courses": [string],                // course codes mentioned, e.g. ["CSC 220"]\n'
+            '  "preferences_text": string|null,              // verbatim preference text the student gave (or null)\n'
+            '  "prefer_high_rated_professors": boolean,\n'
+            '  "prefer_light_workload": boolean,\n'
+            '  "intent": "recommend|update_state|ask_clarification|smalltalk",\n'
+            '  "missing_required_fields": [string],          // any of: "major", "term"\n'
+            '  "assistant_reply": string                     // 1-2 friendly sentences acknowledging the student\n'
+            "}"
+        ),
+        "Rules:",
+        "- Course codes are uppercase like CSC 220 or MATH 226.",
+        '- If the student says "AI" or "ML" or "OS", do not invent course codes; put the topic in preferences_text instead.',
+        "- Only set major to a degree from the provided list. If unsure, set null and add 'major' to missing_required_fields.",
+        (
+            "- Common abbreviations: BSCS / BS CS / 'undergrad CS' / 'computer science' -> "
+            "'Bachelor of Science in Computer Science'. MSCS / MS CS / 'graduate CS' / "
+            "'masters in computer science' -> 'Master of Science in Computer Science'. "
+            "BSDSAI / BS DSAI / 'data science' (undergrad) -> 'Bachelor of Science in Data Science and Artificial Intelligence'. "
+            "MSDSAI / MS DSAI -> 'Master of Science in Data Science and Artificial Intelligence'. "
+            "Always pick the matching item from the provided 'Available degrees' list verbatim."
+        ),
+        "- assistant_reply MUST be plain text (no JSON, no quotes), under 280 characters, and never repeat the schema or list course codes verbatim.",
+        "- If the student is just chatting (e.g. 'hi'), use intent=smalltalk and reply briefly without inventing fields.",
+        "- Preserve any field the user did not change by leaving it as in 'Known so far' (treat null in the user's message as 'no change').",
+        "Available degrees:",
+        degree_lines or "(none)",
+        state_summary,
+        history_text + f"User message: {cleaned_message}",
+    ]
+    return "\n\n".join(part for part in parts if part)
+
+
+def extract_chat_intent(
+    user_message: str,
+    *,
+    available_degrees: list[str],
+    history: list[dict[str, str]] | None = None,
+    known_state: dict[str, Any] | None = None,
+    endpoint: str | None,
+    model: str,
+    api_key: str | None = None,
+    timeout: int = 20,
+) -> dict[str, Any] | None:
+    cleaned_message = _trim_text(user_message or "", 800)
+    if not cleaned_message:
+        return None
+
+    parsed = _call_json_llm(
+        _build_chat_intent_prompt(cleaned_message, available_degrees, history, known_state),
+        endpoint=endpoint,
+        model=model,
+        api_key=api_key,
+        timeout=timeout,
+    )
+    if not parsed:
+        return None
+
+    completed_raw = parsed.get("completed_courses") or []
+    if not isinstance(completed_raw, list):
+        completed_raw = []
+    completed = [str(item).strip().upper() for item in completed_raw if str(item).strip()]
+
+    missing_raw = parsed.get("missing_required_fields") or []
+    if not isinstance(missing_raw, list):
+        missing_raw = []
+    missing = [str(item).strip().lower() for item in missing_raw if str(item).strip()]
+
+    intent = str(parsed.get("intent") or "recommend").strip().lower()
+    if intent not in {"recommend", "update_state", "ask_clarification", "smalltalk"}:
+        intent = "recommend"
+
+    max_units_raw = parsed.get("max_units_per_semester")
+    max_units: int | None = None
+    if max_units_raw is not None:
+        try:
+            value = int(max_units_raw)
+            if 1 <= value <= 21:
+                max_units = value
+        except (TypeError, ValueError):
+            max_units = None
+
+    assistant_reply = _normalize_sentiment_text(str(parsed.get("assistant_reply") or "")) or ""
+    if len(assistant_reply) > 320:
+        assistant_reply = assistant_reply[:317].rstrip() + "..."
+
+    return {
+        "major": (str(parsed.get("major") or "").strip() or None),
+        "term": (str(parsed.get("term") or "").strip() or None),
+        "max_units_per_semester": max_units,
+        "completed_courses": completed,
+        "preferences_text": (str(parsed.get("preferences_text") or "").strip() or None),
+        "prefer_high_rated_professors": bool(parsed.get("prefer_high_rated_professors", False)),
+        "prefer_light_workload": bool(parsed.get("prefer_light_workload", False)),
+        "intent": intent,
+        "missing_required_fields": missing,
+        "assistant_reply": assistant_reply,
+    }
+
+
+def _build_course_rationale_prompt(
+    course_summaries: list[dict[str, Any]],
+    student_context: dict[str, Any],
+) -> str:
+    student_lines = [
+        f"Major: {student_context.get('major') or 'unknown'}",
+        f"Term: {student_context.get('term') or 'unknown'}",
+        f"Completed: {', '.join(student_context.get('completed_courses') or []) or 'none'}",
+        f"Preferences: {(student_context.get('preferences_text') or '').strip() or 'none'}",
+    ]
+    course_blocks = []
+    for course in course_summaries:
+        course_blocks.append(
+            f"- code={course.get('course_code','')} | title={course.get('title','')} | "
+            f"group={course.get('group_name','')} | units={course.get('units','?')} | "
+            f"prereq={course.get('prerequisite_text','none')} | "
+            f"professor={course.get('professor_name','TBA')} | "
+            f"sentiment={course.get('professor_sentiment_score','n/a')} | "
+            f"rmp_rating={course.get('rmp_rating','n/a')} | "
+            f"rmp_difficulty={course.get('rmp_difficulty','n/a')}"
+        )
+    schema_block = (
+        '{"rationales":{"COURSE CODE":"one-sentence rationale referencing the student\'s situation"}}'
+    )
+    parts = [
+        "You explain why each recommended course fits this specific student. "
+        "Write ONE concise sentence per course (max 28 words). Reference the student's "
+        "completed courses, preference, or the course's role in the degree. Mention the "
+        "instructor only if their sentiment is high. Never claim a course satisfies a "
+        "prerequisite the student has not completed.",
+        f"Return strict JSON only with this schema (no markdown): {schema_block}",
+        "Student context:\n" + "\n".join(student_lines),
+        "Courses to explain:\n" + "\n".join(course_blocks),
+    ]
+    return "\n\n".join(parts)
+
+
+def generate_course_rationales(
+    course_summaries: list[dict[str, Any]],
+    student_context: dict[str, Any],
+    *,
+    endpoint: str | None,
+    model: str,
+    api_key: str | None = None,
+    timeout: int = 30,
+) -> dict[str, str] | None:
+    if not course_summaries:
+        return None
+
+    parsed = _call_json_llm(
+        _build_course_rationale_prompt(course_summaries, student_context),
+        endpoint=endpoint,
+        model=model,
+        api_key=api_key,
+        timeout=timeout,
+    )
+    if not parsed:
+        return None
+
+    raw_map = parsed.get("rationales")
+    if not isinstance(raw_map, dict):
+        return None
+
+    rationales: dict[str, str] = {}
+    for key, value in raw_map.items():
+        code = str(key or "").strip().upper()
+        text = _normalize_sentiment_text(str(value or ""))
+        if code and text:
+            if len(text) > 320:
+                text = text[:317].rstrip() + "..."
+            rationales[code] = text
+    return rationales or None
 
 
 def _build_prompt(review_texts: list[str]) -> str:

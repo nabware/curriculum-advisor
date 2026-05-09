@@ -3,10 +3,13 @@ from fastapi import APIRouter, HTTPException, Query
 from app.models.schemas import (
     AdvisorRequest,
     AdvisorResponse,
+    ChatRequest,
+    ChatResponse,
     DegreeProgramsResponse,
     ProfessorRatingLookupResponse,
 )
 from app.services.advisor_service import AdvisorService
+from app.services.chat_service import ChatService
 from app.services.rmp_service import fetch_professor_rating
 
 router = APIRouter(prefix="/advisor", tags=["advisor"])
@@ -15,6 +18,11 @@ router = APIRouter(prefix="/advisor", tags=["advisor"])
 @router.post("/recommend", response_model=AdvisorResponse)
 def recommend_courses(payload: AdvisorRequest) -> AdvisorResponse:
     return AdvisorService.recommend(payload)
+
+
+@router.post("/chat", response_model=ChatResponse)
+def chat(payload: ChatRequest) -> ChatResponse:
+    return ChatService.respond(payload)
 
 
 @router.get("/degrees", response_model=DegreeProgramsResponse)

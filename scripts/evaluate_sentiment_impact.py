@@ -16,6 +16,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 from app.core.database import get_database_path
 from app.models.schemas import AdvisorRequest, RecommendedCourse
 from app.services.advisor_service import AdvisorService
+from app.services.prerequisite_service import PrerequisiteService
 
 
 def parse_completed_courses(value: str) -> list[str]:
@@ -186,6 +187,43 @@ def overlap_at_k(codes_a: list[str], codes_b: list[str], k: int) -> float:
     return len(top_a & top_b) / float(k)
 
 
+def count_prereq_violations(
+    courses: list[RecommendedCourse],
+    completed_courses: list[str],
+    prereq_service: PrerequisiteService,
+) -> tuple[int, int]:
+    """Return (violations, total_courses_with_prereqs).
+
+    Treats every course in `courses` as concurrently enrolled with the others, so
+    courses whose only unmet prereqs are also in this same recommended set
+    (and were marked `concurrent_allowed`) are not double-counted as violations.
+    """
+    completed_set = {str(code).strip().upper() for code in completed_courses if str(code).strip()}
+    enrolled_set = {course.course_code.strip().upper() for course in courses}
+
+    violations = 0
+    courses_with_prereqs = 0
+    for course in courses:
+        if not prereq_service.has_prerequisites(course.course_code):
+            continue
+        courses_with_prereqs += 1
+        result = prereq_service.validate(course.course_code, completed_set, enrolled_set)
+        if not result.is_satisfied:
+            violations += 1
+    return violations, courses_with_prereqs
+
+
+def expand_completed_courses_from_transcript(
+    completed_courses: list[str], transcript_text: str | None
+) -> list[str]:
+    """Mirror AdvisorService.recommend's completed-course expansion logic."""
+    expanded = {str(code).strip().upper() for code in completed_courses if str(code).strip()}
+    if transcript_text:
+        for dept, num in re.findall(r"\b([A-Z]{2,6})\s*(\d{3,4}[A-Z]*)\b", transcript_text.upper()):
+            expanded.add(f"{dept} {num}")
+    return sorted(expanded)
+
+
 def timed_recommend(payload: AdvisorRequest) -> tuple[float, object]:
     started = time.perf_counter()
     result = AdvisorService.recommend(payload)
@@ -243,6 +281,7 @@ def main() -> None:
         sentiment_by_professor, sentiment_by_last_initial, sentiment_by_last_name = (
             load_sentiment_by_professor(conn)
         )
+        prereq_service = PrerequisiteService(conn)
 
     report_rows: list[dict[str, object]] = []
     for scenario in scenarios:
@@ -309,6 +348,26 @@ def main() -> None:
         if baseline_avg_sentiment is not None and sentiment_avg_sentiment is not None:
             sentiment_lift = sentiment_avg_sentiment - baseline_avg_sentiment
 
+        effective_completed = expand_completed_courses_from_transcript(
+            completed_courses, transcript_text
+        )
+        baseline_violations, baseline_with_prereqs = count_prereq_violations(
+            baseline.recommendations, effective_completed, prereq_service
+        )
+        sentiment_violations, sentiment_with_prereqs = count_prereq_violations(
+            sentiment.recommendations, effective_completed, prereq_service
+        )
+        baseline_violation_rate = (
+            baseline_violations / baseline_with_prereqs
+            if baseline_with_prereqs > 0
+            else 0.0
+        )
+        sentiment_violation_rate = (
+            sentiment_violations / sentiment_with_prereqs
+            if sentiment_with_prereqs > 0
+            else 0.0
+        )
+
         report_rows.append(
             {
                 "scenario_id": scenario_id,
@@ -336,6 +395,18 @@ def main() -> None:
                 if sentiment_avg_sentiment is None
                 else round(sentiment_avg_sentiment, 6),
                 "sentiment_lift": None if sentiment_lift is None else round(sentiment_lift, 6),
+                "baseline_prereq_violations": baseline_violations,
+                "baseline_courses_with_prereqs": baseline_with_prereqs,
+                "baseline_prereq_violation_rate": round(baseline_violation_rate, 4),
+                "sentiment_prereq_violations": sentiment_violations,
+                "sentiment_courses_with_prereqs": sentiment_with_prereqs,
+                "sentiment_prereq_violation_rate": round(sentiment_violation_rate, 4),
+                "baseline_blocked_count": baseline.prerequisite_violation_count
+                if hasattr(baseline, "prerequisite_violation_count")
+                else len(baseline.prerequisite_blocked_courses),
+                "sentiment_blocked_count": sentiment.prerequisite_violation_count
+                if hasattr(sentiment, "prerequisite_violation_count")
+                else len(sentiment.prerequisite_blocked_courses),
                 "baseline_top_codes": "|".join(baseline_codes[: args.top_k]),
                 "sentiment_top_codes": "|".join(sentiment_codes[: args.top_k]),
             }
@@ -359,12 +430,29 @@ def main() -> None:
     mean_lift = (sum(measured_lifts) / len(measured_lifts)) if measured_lifts else 0.0
     mean_latency_delta = sum(float(row["latency_delta_ms"]) for row in report_rows) / total
 
+    mean_baseline_violation_rate = (
+        sum(float(row["baseline_prereq_violation_rate"]) for row in report_rows) / total
+    )
+    mean_sentiment_violation_rate = (
+        sum(float(row["sentiment_prereq_violation_rate"]) for row in report_rows) / total
+    )
+    total_baseline_violations = sum(int(row["baseline_prereq_violations"]) for row in report_rows)
+    total_sentiment_violations = sum(int(row["sentiment_prereq_violations"]) for row in report_rows)
+
     print(f"Evaluated scenarios: {total}")
     print(f"Mean overlap@k: {mean_overlap:.4f}")
     print(f"Mean baseline sentiment coverage: {mean_baseline_coverage:.4f}")
     print(f"Mean sentiment-run coverage: {mean_sentiment_coverage:.4f}")
     print(f"Mean sentiment lift: {mean_lift:.6f}")
     print(f"Mean latency delta (ms): {mean_latency_delta:.2f}")
+    print(
+        f"Prerequisite violation rate (baseline / sentiment): "
+        f"{mean_baseline_violation_rate:.4f} / {mean_sentiment_violation_rate:.4f}"
+    )
+    print(
+        f"Total prereq violations across scenarios "
+        f"(baseline / sentiment): {total_baseline_violations} / {total_sentiment_violations}"
+    )
     print(f"Report written to: {args.output_csv}")
 
 

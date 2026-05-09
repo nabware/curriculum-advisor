@@ -11,6 +11,7 @@ from app.core.database import get_database_path
 from app.models.schemas import (
     AdvisorRequest,
     AdvisorResponse,
+    BlockedCourseExplanation,
     BlockedTimeWindow,
     DegreeProgram,
     DegreeProgramsResponse,
@@ -18,6 +19,7 @@ from app.models.schemas import (
     RecommendedCourse,
 )
 from app.services.llama_sentiment_service import parse_course_preferences_with_catalog
+from app.services.prerequisite_service import PrerequisiteService
 from app.services.rmp_service import fetch_professor_rating
 
 
@@ -627,6 +629,8 @@ class AdvisorService:
                     ),
                 )
 
+            prerequisite_service = PrerequisiteService(conn)
+
             degree_units_row = conn.execute(
                 """
                 SELECT total_units_required
@@ -845,6 +849,9 @@ class AdvisorService:
         ]
         grouped_by_id = {group["group_id"]: group for group in grouped_rows}
 
+        prerequisite_blocked_courses: list[BlockedCourseExplanation] = []
+        seen_blocked_codes: set[str] = set()
+
         for row in req_rows:
             group_id = int(row["group_id"])
             group_entry = grouped_by_id.get(group_id)
@@ -858,6 +865,21 @@ class AdvisorService:
             courses = group_entry["courses"]
             assert isinstance(courses, list)
             if any(existing.course_code == course_code for existing in courses):
+                continue
+
+            prereq_result = prerequisite_service.validate(course_code, completed)
+            if not prereq_result.is_satisfied:
+                if course_code not in seen_blocked_codes:
+                    seen_blocked_codes.add(course_code)
+                    prerequisite_blocked_courses.append(
+                        BlockedCourseExplanation(
+                            course_code=course_code,
+                            title=(row["course_name"] or "").strip() or None,
+                            group_name=str(group_entry["group_name"]),
+                            unmet_prerequisites=prereq_result.unmet_summary(),
+                            raw_prerequisite_text=prereq_result.raw_prereq_text,
+                        )
+                    )
                 continue
 
             group_name = str(group_entry["group_name"])
@@ -892,6 +914,8 @@ class AdvisorService:
                             professor_info["professor_name"] if professor_info else (schedule_info.get("instructor") if schedule_info else None)
                         )) if 'sentiment_summary_by_professor' in locals() else None
                     ),
+                    prerequisite_text=prereq_result.raw_prereq_text,
+                    prerequisite_satisfied_by=list(prereq_result.satisfied_by),
                 )
             )
 
@@ -1304,10 +1328,20 @@ class AdvisorService:
         if semester_capacity is not None:
             explanation += f" Limited to {semester_capacity} units for this semester."
 
+        if prerequisite_blocked_courses:
+            sample_codes = ", ".join(blocked.course_code for blocked in prerequisite_blocked_courses[:3])
+            extra = "" if len(prerequisite_blocked_courses) <= 3 else f" (+{len(prerequisite_blocked_courses) - 3} more)"
+            explanation += (
+                f" {len(prerequisite_blocked_courses)} course(s) were excluded by deterministic "
+                f"prerequisite validation: {sample_codes}{extra}."
+            )
+
         return AdvisorResponse(
             grouped_recommendations=grouped_recommendations,
             recommendations=recommendations,
             total_units_selected=total_units_selected,
             total_units_required=total_units_required,
             explanation=explanation,
+            prerequisite_blocked_courses=prerequisite_blocked_courses,
+            prerequisite_violation_count=0,
         )

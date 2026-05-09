@@ -9,7 +9,9 @@ python scripts/import_degree_requirements.py
 python scripts/build_degree_requirement_model.py
 python scripts/import_class_schedules.py
 python scripts/import_course_metadata.py
+python scripts/import_course_prerequisites.py
 python scripts/build_professor_sentiment_features.py
+python scripts/prebuild_demo_rationales.py
 ```
 
 Expected SQLite file: `data/seed/curriculum_advisor.db`
@@ -21,6 +23,8 @@ Expected core tables:
 - `requirement_group_courses`
 - `class_schedules`
 - `course_descriptions`
+- `course_prerequisites`
+- `course_prerequisite_notes`
 - `professor_profiles`
 - `professor_sentiment_features`
 
@@ -173,3 +177,31 @@ curl -X POST http://localhost:8000/advisor/recommend \
     "term": "Spring 2026"
   }'
 ```
+
+Conversational chat endpoint (uses Llama 3.2 3B via Ollama if available,
+otherwise falls back to a regex intent extractor + pre-built rationale
+templates):
+
+```bash
+curl -X POST http://localhost:8000/advisor/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "I am a BSCS senior planning Fall 2026, I prefer high-rated profs.",
+    "state": {"completed_courses": [], "blocked_time_windows": []},
+    "history": []
+  }'
+```
+
+## 4) Optional: Local LLM for the chat experience
+
+The chat endpoint works without a local LLM (regex fallback), but the demo
+script in `docs/demo-script.md` and the slide deck assume Llama 3.2 3B is
+available via Ollama:
+
+```bash
+ollama pull llama3.2:3b   # ~2 GB, runtime intent + rationales
+ollama pull llama3.1      # ~5 GB, only needed to rebuild sentiment features
+```
+
+The backend warms the chat model in a daemon thread at startup so the first
+user message does not pay the model-load cost.

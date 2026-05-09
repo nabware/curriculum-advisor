@@ -4,134 +4,87 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Curriculum Advisor</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260505-1" />
+    <link rel="stylesheet" href="css/styles.css?v=20260509-1" />
   </head>
   <body>
     <main class="page-shell">
       <section class="hero">
-        <p class="eyebrow">Capstone Baseline Advisor</p>
-        <h1>Build Your First Semester Plan</h1>
+        <p class="eyebrow">Capstone Conversational Advisor</p>
+        <h1>Plan Your Semester by Chat</h1>
         <p class="subtitle">
-          Choose a degree below to generate recommendations, then add transcript
-          details if you have them.
+          Tell the advisor your major, the term you're planning, and any
+          preferences. It validates prerequisites deterministically and ranks
+          courses with a sentiment-aware multi-objective function.
         </p>
       </section>
 
-      <section class="panel">
-        <form id="advisor-form" class="advisor-form">
-          <div class="form-group">
-            <label for="degree-select">Degree Program</label>
-            <select id="degree-select" name="major" required>
-              <option value="">Loading degree options...</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="max-units">Max Units This Semester</label>
-            <input
-              id="max-units"
-              name="max-units"
-              type="number"
-              min="1"
-              value="12"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="term-select">Term</label>
-            <select id="term-select" name="term">
-              <option value="Spring 2026">Spring 2026</option>
-              <option value="Summer 2026">Summer 2026</option>
-              <option value="Fall 2026">Fall 2026</option>
-            </select>
-          </div>
-
-          <!-- Transcript -->
-          <div class="form-group form-full">
-            <label for="transcript-text">Transcript (paste or drop a .txt file)</label>
-            <div
-              id="transcript-dropzone"
-              class="transcript-dropzone"
-              role="button"
-              tabindex="0"
-              aria-label="Drop transcript file here or click to paste"
-            >
-              <textarea
-                id="transcript-text"
-                name="transcript-text"
-                class="transcript-textarea"
-                placeholder="Paste your transcript here — course codes like CSC 101 are detected automatically…"
-                rows="4"
-              ></textarea>
-              <p class="dropzone-hint">or drag &amp; drop a .txt file</p>
+      <section class="panel chat-panel">
+        <div id="chat-thread" class="chat-thread" aria-live="polite">
+          <div class="chat-message chat-message-assistant">
+            <div class="chat-bubble">
+              Hi! I'm your curriculum advisor. Tell me your major, the term you're planning,
+              and any courses you've completed. You can also mention preferences like
+              "I want an AI class" or "prefer high-rated professors."
             </div>
           </div>
+        </div>
 
-          <!-- Completed courses (manual) -->
-          <div class="form-group form-full">
-            <label for="completed-courses">Completed Courses (optional, one per line)</label>
-            <textarea
-              id="completed-courses"
-              name="completed-courses"
-              class="completed-textarea"
-              placeholder="e.g. CSC 210&#10;MATH 226&#10;CSC 230"
-              rows="3"
-            ></textarea>
-          </div>
-
-          <!-- Free-form preferences -->
-          <div class="form-group form-full">
-            <label for="preferences-text">Preferences (optional)</label>
-            <textarea
-              id="preferences-text"
-              name="preferences-text"
-              class="preferences-textarea"
-              placeholder="For example: I want to include an operating systems class. I don't want any difficult teachers."
-              rows="3"
-            ></textarea>
-          </div>
-
-          <!-- Blocked time windows -->
-          <div class="form-group form-full">
-            <label>Blocked Time Windows</label>
-            <div class="blocked-windows-builder">
-              <div class="blocked-windows-inputs">
-                <select id="blocked-day" class="blocked-day-select">
-                  <option value="Monday">Monday</option>
-                  <option value="Tuesday">Tuesday</option>
-                  <option value="Wednesday">Wednesday</option>
-                  <option value="Thursday">Thursday</option>
-                  <option value="Friday">Friday</option>
-                  <option value="Saturday">Saturday</option>
-                  <option value="Sunday">Sunday</option>
-                </select>
-                <input id="blocked-start" type="time" value="09:00" class="blocked-time-input" />
-                <span class="blocked-separator">–</span>
-                <input id="blocked-end" type="time" value="11:00" class="blocked-time-input" />
-                <button type="button" id="add-blocked-btn" class="blocked-add-btn">Add</button>
-              </div>
-              <div id="blocked-windows-list" class="blocked-windows-list" aria-live="polite"></div>
+        <form id="chat-form" class="chat-form">
+          <textarea
+            id="chat-input"
+            class="chat-input"
+            rows="2"
+            placeholder="Try: I&rsquo;m a CS major, planning Fall 2026, completed CSC 101 and CSC 210, I want an AI class"
+            required
+          ></textarea>
+          <div class="chat-form-row">
+            <div class="chat-tools">
+              <label class="chat-tool-label">
+                Max units
+                <input id="chat-max-units" type="number" min="1" max="21" value="9" class="chat-tool-input" />
+              </label>
+              <button type="button" id="chat-blocked-toggle" class="chat-tool-button">
+                Blocked times
+              </button>
+              <button type="button" id="chat-reset" class="chat-tool-button chat-tool-button-secondary">
+                New chat
+              </button>
             </div>
+            <button type="submit" id="chat-send" class="chat-send">Send</button>
           </div>
-
-          <!-- Preferences -->
-          <div class="form-group form-full">
-            <label>
-              <input id="prefer-high-rated-professors" type="checkbox" />
-              Prefer high-rated professors (uses sentiment analysis from real reviews)
-            </label>
-          </div>
-
-          <button id="submit-btn" type="submit" class="form-submit">Recommend Classes</button>
         </form>
 
-        <p id="status" class="status">Choose a degree to begin.</p>
+        <p id="chat-status" class="chat-status">Ready.</p>
+
+        <details id="chat-blocked-windows" class="chat-blocked-windows">
+          <summary>Blocked time windows (optional)</summary>
+          <div class="blocked-windows-builder">
+            <div class="blocked-windows-inputs">
+              <select id="blocked-day" class="blocked-day-select">
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
+              <input id="blocked-start" type="time" value="09:00" class="blocked-time-input" />
+              <span class="blocked-separator">&ndash;</span>
+              <input id="blocked-end" type="time" value="11:00" class="blocked-time-input" />
+              <button type="button" id="add-blocked-btn" class="blocked-add-btn">Add</button>
+            </div>
+            <div id="blocked-windows-list" class="blocked-windows-list" aria-live="polite"></div>
+          </div>
+        </details>
+
+        <details class="chat-debug">
+          <summary>Conversation state (debug)</summary>
+          <pre id="chat-state-debug" class="chat-state-debug">(empty)</pre>
+        </details>
       </section>
 
-      <!-- Professor lookup removed: functionality retained server-side for hydration -->
-
-      <section class="panel results-panel">
+      <section class="panel results-panel" id="results-panel" hidden>
         <div id="progress-container" class="progress-container" style="display: none">
           <div class="progress-bar">
             <div id="progress-fill" class="progress-fill"></div>
@@ -142,6 +95,16 @@
         <h2>Recommended Courses</h2>
         <div id="recommendations" class="recommendation-list">
           <p class="empty-state">No recommendations yet.</p>
+        </div>
+
+        <div id="prereq-blocked-section" class="prereq-blocked-section" hidden>
+          <h3>Excluded by Prerequisite Validation</h3>
+          <p class="prereq-blocked-help">
+            These courses match the requirement groups but the student has not yet completed
+            their prerequisites. The deterministic prerequisite-graph validator removed them
+            so they cannot be recommended.
+          </p>
+          <ul id="prereq-blocked-list" class="prereq-blocked-list"></ul>
         </div>
 
         <h2>Schedule Overview</h2>
@@ -155,7 +118,7 @@
       </section>
     </main>
 
-    <script src="js/api.js?v=20260506-1"></script>
-    <script src="js/app.js?v=20260506-1"></script>
+    <script src="js/api.js?v=20260509-1"></script>
+    <script src="js/app.js?v=20260509-1"></script>
   </body>
 </html>
