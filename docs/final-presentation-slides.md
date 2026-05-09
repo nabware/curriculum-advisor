@@ -28,17 +28,18 @@ much time to spend on it. **Total run time: 8:00 presentation + 2:00 Q&A.**
 | 1 | Title | 0:10 | 0:10 | A |
 | 2 | Problem | 0:30 | 0:40 | A |
 | 3 | Solution snapshot | 0:30 | 1:10 | A |
-| 4 | System architecture | 0:55 | 2:05 | B |
-| 5 | Prerequisite DAG (correctness backbone) | 0:50 | 2:55 | B |
-| 6 | Time-conflict handling (calendar gate) | 0:30 | 3:25 | B |
-| 7 | Sentiment + multi-objective + LLM fallback | 1:00 | 4:25 | B |
-| 8 | **LIVE DEMO (2 scenarios)** | 2:15 | 6:40 | C |
-| 9 | Evaluation results | 0:30 | 7:10 | C |
-| 10 | Limitations + close | 0:20 | 7:30 | C |
-| – | Buffer (transitions, laptop quirks) | 0:30 | 8:00 | All |
+| 4 | System architecture | 0:45 | 1:55 | B |
+| 5 | How the ranker works (deterministic pipeline) | 0:25 | 2:20 | B |
+| 6 | Prerequisite DAG (correctness backbone) | 0:40 | 3:00 | B |
+| 7 | Time-conflict handling (calendar gate) | 0:30 | 3:30 | B |
+| 8 | Sentiment + multi-objective + LLM fallback | 1:00 | 4:30 | B |
+| 9 | **LIVE DEMO (2 scenarios)** | 2:15 | 6:45 | C |
+| 10 | Evaluation results | 0:30 | 7:15 | C |
+| 11 | Limitations + close | 0:20 | 7:35 | C |
+| – | Buffer (transitions, laptop quirks) | 0:25 | 8:00 | All |
 | – | Q&A | 2:00 | 10:00 | All |
 
-The 30s buffer is deliberate insurance for a CPU-only demo machine — it
+The 25s buffer is deliberate insurance for a CPU-only demo machine — it
 absorbs FastAPI cold-starts, scroll fumbles, or a slow Ollama warm-up
 without putting you over time. Treat it as flex, not as runway to add
 content.
@@ -52,13 +53,13 @@ backbone, C = demo + eval + close.** Adjust to your team's strengths.
 
 | Rubric category | Pts | Slides that earn it |
 |---|---|---|
-| Technical Soundness & Model Use | 8 | 4, 5, 6, 7, 9 |
-| Problem Fit & Impact | 4 | 2, 3, 10 |
-| Execution & Completeness | 7 | 5, 6, 8 (live demo), 9 |
-| Design & UX | 2 | 3, 8 |
+| Technical Soundness & Model Use | 8 | 4, 5, 6, 7, 8, 10 |
+| Problem Fit & Impact | 4 | 2, 3, 11 |
+| Execution & Completeness | 7 | 5, 6, 7, 9 (live demo), 10 |
+| Design & UX | 2 | 3, 9 |
 | Slide Clarity & Organization | 4 | All — apply visual discipline |
-| Demo Quality | 3 | 8 (live demo) + backup video |
-| Q&A Performance | 2 | Q&A block + backup slides 11-13 |
+| Demo Quality | 3 | 9 (live demo) + backup video |
+| Q&A Performance | 2 | Q&A block + backup slides 12-14 |
 
 ---
 
@@ -116,7 +117,7 @@ plan."*
 
 ---
 
-## Slide 4 — System architecture (0:55)
+## Slide 4 — System architecture (0:45)
 
 **Targets:** Technical Soundness & Model Use (8 pts) — biggest payoff slide.
 
@@ -139,7 +140,50 @@ deterministic SQL plus graph traversal. That separation is deliberate."*
 
 ---
 
-## Slide 5 — Prerequisite DAG (0:50)
+## Slide 5 — How the ranker works (deterministic pipeline) (0:25)
+
+**Targets:** Technical Soundness (8) + Execution (7).
+
+**Frame this slide as the "ranker overview."** Every recommendation the
+system produces — whether the request came from the chat UI or the
+direct REST endpoint — flows through one linear pipeline inside
+`AdvisorService.recommend`. There is no branching ranker, no LLM-based
+fallback ranker, no "easy mode." The next three slides zoom into the
+highlighted stages.
+
+**Pipeline (top-to-bottom, all in `AdvisorService.recommend`):**
+
+1. **Resolve degree + load catalog, sections, sentiment, RMP** (SQL).
+2. **Prereq DAG validation** → drops un-takeable courses. *(Slide 6)*
+3. **Preference parsing** (`parse_course_preferences_with_catalog`) →
+   keyword + synonym matching against course titles and descriptions.
+   No LLM at runtime.
+4. **Multi-objective scoring** (`_resolve_course_objective`) → weighted
+   average over progress, workload (lightness), sentiment, difficulty
+   (easiness). *(formula: Slide 8)*
+5. **Group selection** (`_select_group_courses`) → DP over the unit
+   budget + objective sum, picked per requirement group.
+6. **Time-conflict layer** (course-vs-course, blocked windows, section
+   swap before drop). *(Slide 7)*
+7. **Semester unit cap.**
+
+**Headline property:** the LLM **never gets a vote on which courses end
+up in the plan.** The sentiment column the ranker reads is an
+LLM-derived *number* in a SQLite cell — computed offline once, read at
+runtime like any other feature.
+
+**What to say:** *"Every recommendation flows through one deterministic
+pipeline. Prerequisites filter out what's not takeable, time conflicts
+filter out what doesn't fit the calendar, and a weighted-average ranker
+over precomputed numeric features picks the best courses to fill each
+requirement group. The LLM never gets a vote on the plan — its only
+ranking-time input is a sentiment number it filled in offline. The
+next three slides zoom into the prereq gate, the calendar gate, and
+the scoring layer."*
+
+---
+
+## Slide 6 — Prerequisite DAG (0:40)
 
 **Targets:** Technical Soundness (8) + Execution (7).
 
@@ -162,12 +206,12 @@ violations."*
 
 ---
 
-## Slide 6 — Time-conflict handling (calendar gate) (0:30)
+## Slide 7 — Time-conflict handling (calendar gate) (0:30)
 
 **Targets:** Technical Soundness (8) + Execution (7).
 
 **Frame this slide as the second deterministic gate** — the prereq DAG
-(Slide 5) decides *which courses* are takeable; this layer decides
+(Slide 6) decides *which courses* are takeable; this layer decides
 *whether the picked sections* fit a single weekly calendar. Two
 different data sources, two independent guarantees.
 
@@ -204,7 +248,7 @@ table is the only input — no LLM in this layer."*
 
 ---
 
-## Slide 7 — Sentiment + ranking + LLM fallback (1:00)
+## Slide 8 — Sentiment + ranking + LLM fallback (1:00)
 
 **Targets:** Technical Soundness (8) + Execution (7).
 
@@ -258,7 +302,7 @@ constraint handling all keep working."*
 
 ---
 
-## Slide 8 — LIVE DEMO (2:15)
+## Slide 9 — LIVE DEMO (2:15)
 
 **Targets:** Demo Quality (3) + Execution (7) + Design & UX (2).
 
@@ -292,7 +336,7 @@ Point out:
 - Status line: `intent: regex (fast path) · rationales: template` —
   deterministic execution for clean prompts. Mention in passing that the
   LLM intent extractor automatically engages when the regex can't parse
-  a prompt; we don't burn demo time showing it because Slide 7 already
+  a prompt; we don't burn demo time showing it because Slide 8 already
   made the case.
 - The reply line *"Skipped N courses with unmet prereqs (deterministic
   check)"* is your free callout for Objective 2 — point at it for half
@@ -333,7 +377,7 @@ Point out:
 
 ---
 
-## Slide 9 — Evaluation results (0:30)
+## Slide 10 — Evaluation results (0:30)
 
 **Targets:** Execution (7) + Technical Soundness (8).
 
@@ -358,7 +402,7 @@ Objective 5 of our proposal."*
 
 ---
 
-## Slide 10 — Close (0:20)
+## Slide 11 — Close (0:20)
 
 **Targets:** Problem Fit (4) + sets up Q&A.
 
@@ -379,7 +423,7 @@ Objective 5 of our proposal."*
 
 ## Backup slides (held in reserve for Q&A)
 
-### Slide 11 — Anticipated Q&A reference
+### Slide 12 — Anticipated Q&A reference
 
 Prepared answers for likely classmate questions:
 
@@ -429,7 +473,7 @@ scores toward the prior mean so professors with few reviews aren't
 over-penalized, and we display the underlying rating count so users can
 judge for themselves.
 
-### Slide 12 — Architecture deep-dive (file paths)
+### Slide 13 — Architecture deep-dive (file paths)
 
 For deeper Q&A on implementation:
 
@@ -442,7 +486,7 @@ For deeper Q&A on implementation:
 - `scripts/build_professor_sentiment_features.py` (RMP → features)
 - `scripts/evaluate_sentiment_impact.py` (eval harness)
 
-### Slide 13 — Data ethics statement
+### Slide 14 — Data ethics statement
 
 For if a reviewer pushes on the RMP question:
 
@@ -467,7 +511,7 @@ For if a reviewer pushes on the RMP question:
 - [ ] Stage a side terminal with `pkill -f "ollama serve"` and
       `ollama serve &` ready to run, in case a Q&A question asks for the
       failover demo on the spot — you'll be fluent, not flustered.
-- [ ] Re-run `scripts/evaluate_sentiment_impact.py` and update Slide 9
+- [ ] Re-run `scripts/evaluate_sentiment_impact.py` and update Slide 10
       numbers if anything drifted.
 - [ ] Disable system notifications and set the laptop to "Do Not Disturb."
 - [ ] Plug in power. Mirror the display.
@@ -481,7 +525,7 @@ explaining the architecture; emphasize what is LLM vs. deterministic;
 mention temperature=0 and the warm-up.
 
 **Problem Fit (4 pts) — earn the 4:** open and close on the "fragmented
-process today" framing. Tie it back at the end (Slide 10).
+process today" framing. Tie it back at the end (Slide 11).
 
 **Execution (7 pts) — earn the 7:** the live demo must hit two clean,
 distinct scenarios with no dead ends; the eval table must show real
@@ -496,27 +540,28 @@ core idea per slide, consistent typography, no walls of text.
 **Demo Quality (3 pts) — earn the 3:** rehearse the demo five times. Have
 the backup video.
 
-**Q&A (2 pts) — earn the 2:** rehearse Slide 11 answers out loud. Pause
+**Q&A (2 pts) — earn the 2:** rehearse Slide 12 answers out loud. Pause
 half a second before answering — it reads as confidence.
 
 ## Practice timing rule
 
-The deck targets **7:30** with a 30s buffer at the end. If your dry-run
+The deck targets **7:35** with a 25s buffer at the end. If your dry-run
 runs **over 8:00**, cut from these in order:
 
-1. Slide 7 — drop the scoring formula and just describe in words.
+1. Slide 8 — drop the scoring formula and just describe in words.
 2. Slide 4 — drop the "deterministic vs LLM-mediated" arrow annotation.
-3. Slide 9 — drop one row from the eval table.
-4. Slide 6 — collapse the three filters to a single sentence.
+3. Slide 10 — drop one row from the eval table.
+4. Slide 7 — collapse the three filters to a single sentence.
+5. Slide 5 — collapse the seven-step pipeline to four steps.
 
 (Both demo scenarios are load-bearing — A establishes the system, B
 proves it adapts mid-conversation. Don't cut either of them.)
 
-If your dry-run finishes **under 6:45**, you have headroom — add:
+If your dry-run finishes **under 6:50**, you have headroom — add:
 
 1. One extra sentence on Scenario A pointing at the per-course rationale
    text.
-2. One sentence on Slide 5 about how the parser handles
+2. One sentence on Slide 6 about how the parser handles
    `concurrent_allowed`.
 3. Read out the `Skipped N courses with unmet prereqs` line on Scenario A
    and pause for a beat — that's a free Objective 2 callout.

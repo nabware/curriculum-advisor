@@ -301,7 +301,7 @@ Use this for the actual final presentation (8 min total ≈ 5:45 of slides
 from Scenario 3**, then **blocked times from Scenario 5** *in the same
 chat*. Skip the cold-start scenario — the senior-year prompt demonstrates
 intent extraction in one shot and saves ~45 seconds. Skip the
-Ollama-down failover demo — it's covered verbally on Slide 7 and is
+Ollama-down failover demo — it's covered verbally on Slide 8 and is
 available as a Q&A live demo if anyone asks.
 
 | Beat | Time | What to point at |
