@@ -207,3 +207,43 @@ class PrerequisiteService:
                 if not option.recommended_only
             }
         return graph
+
+    def expand_completed_with_implied(self, completed_courses: Iterable[str] | None) -> set[str]:
+        """Expand the completed-course set with transitively-implied prereqs.
+
+        If a student completed a course, they must (by university rules) have
+        completed all of that course's prereqs at some point. We walk the
+        prereq graph backwards from each completed course and add every
+        course that *must* have been satisfied along any path.
+
+        For OR clauses we conservatively take the intersection across all
+        alternatives — only courses required regardless of which option was
+        chosen are added. This avoids over-claiming completion.
+
+        Returns the expanded set, normalized (uppercased, single-spaced).
+        """
+        completed = _normalize_completed(completed_courses)
+        expanded: set[str] = set(completed)
+        # Iterate to a fixed point so newly implied courses can pull in their
+        # own implied prereqs (e.g. CSC 415 implies CSC 230 which implies
+        # MATH 226, etc.).
+        changed = True
+        while changed:
+            changed = False
+            for course_code in list(expanded):
+                clauses = self._clauses_by_course.get(course_code, [])
+                for clause in clauses:
+                    if clause.is_recommendation_only:
+                        continue
+                    # Conservative: only add a course if it appears as the
+                    # sole non-recommended option for this clause (i.e. the
+                    # student MUST have taken it). For OR clauses with
+                    # multiple real options we cannot tell which was chosen
+                    # so we add nothing.
+                    real_options = [opt for opt in clause.options if not opt.recommended_only]
+                    if len(real_options) == 1:
+                        implied_code = real_options[0].course_code
+                        if implied_code and implied_code not in expanded:
+                            expanded.add(implied_code)
+                            changed = True
+        return expanded

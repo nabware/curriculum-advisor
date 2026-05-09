@@ -631,6 +631,54 @@ class AdvisorService:
 
             prerequisite_service = PrerequisiteService(conn)
 
+            # Walk the prereq DAG backwards so completing CSC 210 implies
+            # the prereqs of CSC 210 were completed too.
+            completed = prerequisite_service.expand_completed_with_implied(completed)
+
+            # Department-floor inference: build the set of courses we'll
+            # *quietly* skip when filling requirement groups. If a student
+            # listed CSC 220, 230, 415 (all >= 220) but not CSC 101 / 150
+            # etc., they've clearly progressed past the intro tier in CSC.
+            # We do NOT add these to `completed` because that would also
+            # unlock other courses via the prereq DAG (e.g. CSC 215 unlocks
+            # because CSC 101 is its prereq). Instead we use this set as a
+            # filter inside requirement-group selection.
+            implied_skip_codes: set[str] = set()
+            dept_floors: dict[str, int] = {}
+            for code in completed:
+                parts = code.split()
+                if len(parts) != 2:
+                    continue
+                dept = parts[0]
+                num_match = re.match(r"(\d+)", parts[1])
+                if not num_match:
+                    continue
+                number = int(num_match.group(1))
+                if dept not in dept_floors or number < dept_floors[dept]:
+                    dept_floors[dept] = number
+            if dept_floors:
+                placeholders = ",".join(["?"] * len(dept_floors))
+                same_dept_rows = conn.execute(
+                    f"""
+                    SELECT DISTINCT UPPER(course_code) AS course_code
+                    FROM requirement_group_courses
+                    WHERE substr(course_code, 1, instr(course_code, ' ') - 1) IN ({placeholders})
+                    """,
+                    list(dept_floors.keys()),
+                ).fetchall()
+                for row in same_dept_rows:
+                    code = (row["course_code"] if hasattr(row, "keys") else row[0]) or ""
+                    parts = code.split()
+                    if len(parts) != 2:
+                        continue
+                    dept = parts[0]
+                    num_match = re.match(r"(\d+)", parts[1])
+                    if not num_match:
+                        continue
+                    number = int(num_match.group(1))
+                    if number < dept_floors.get(dept, 0):
+                        implied_skip_codes.add(code)
+
             degree_units_row = conn.execute(
                 """
                 SELECT total_units_required
@@ -861,6 +909,11 @@ class AdvisorService:
             course_code = (row["course_code"] or "").strip().upper()
             if not course_code or course_code in completed:
                 continue
+            # Department-floor skip: don't fill a senior's plan with intro
+            # courses they've clearly progressed past, even if they never
+            # explicitly listed them as completed.
+            if course_code in implied_skip_codes:
+                continue
 
             courses = group_entry["courses"]
             assert isinstance(courses, list)
@@ -1055,7 +1108,24 @@ class AdvisorService:
                 )
                 explicit_high_rating = any(
                     token in normalized_preferences_text
-                    for token in ["high rated", "high-rated", "best professor", "good professor", "top professor"]
+                    for token in [
+                        "high rated",
+                        "high-rated",
+                        "highly rated",
+                        "well rated",
+                        "well-rated",
+                        "top rated",
+                        "top-rated",
+                        "best professor",
+                        "good professor",
+                        "great professor",
+                        "great profs",
+                        "top professor",
+                        "great reviews",
+                        "good reviews",
+                        "great ratings",
+                        "good ratings",
+                    ]
                 )
                 explicit_easy_teachers = any(
                     token in normalized_preferences_text

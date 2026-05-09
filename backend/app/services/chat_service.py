@@ -184,7 +184,10 @@ def _fallback_intent(message: str, state: ChatState, available_degrees: list[str
     prefer_light_workload = bool(re.search(r"light\s+workload|easier\s+classes|less\s+work", lower_text))
     prefer_high_rated = bool(
         re.search(
-            r"high.?rated|good\s+professor|best\s+professor|favor\s+(highly|good).*professor",
+            r"high.?rated|highly.?rated|well.?rated|top.?rated|"
+            r"(?:great|good|excellent|amazing|positive|favorable|loved|top|best)"
+            r"\s+(?:professor|prof|profs|teacher|instructor|review|reviews|rating|ratings)|"
+            r"favor\s+(?:highly|good|great).*professor",
             lower_text,
         )
     )
@@ -214,12 +217,17 @@ def _fallback_intent(message: str, state: ChatState, available_degrees: list[str
         else:
             reply_parts.append("Got it. Pulling a sentiment-aware plan that respects your prereqs.")
 
+    # Always pass the full message as preferences_text so the downstream
+    # AdvisorService preference parser can extract topic hints ("AI elective",
+    # "operating systems", etc.) and additional sentiment cues. Previously we
+    # dropped this whenever a major or course code was detected, which lost
+    # everything the student said about what they actually wanted.
     return {
         "major": detected_major,
         "term": detected_term,
         "max_units_per_semester": max_units,
         "completed_courses": detected_codes,
-        "preferences_text": text if not detected_codes and not detected_major else None,
+        "preferences_text": text or None,
         "prefer_high_rated_professors": prefer_high_rated,
         "prefer_light_workload": prefer_light_workload,
         "intent": intent,
