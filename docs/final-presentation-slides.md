@@ -28,16 +28,17 @@ much time to spend on it. **Total run time: 8:00 presentation + 2:00 Q&A.**
 | 1 | Title | 0:10 | 0:10 | A |
 | 2 | Problem | 0:30 | 0:40 | A |
 | 3 | Solution snapshot | 0:30 | 1:10 | A |
-| 4 | System architecture | 1:10 | 2:20 | B |
-| 5 | Prerequisite DAG (correctness backbone) | 0:50 | 3:10 | B |
-| 6 | Sentiment + multi-objective + LLM fallback | 1:00 | 4:10 | B |
-| 7 | **LIVE DEMO (2 scenarios)** | 2:15 | 6:25 | C |
-| 8 | Evaluation results | 0:30 | 6:55 | C |
-| 9 | Limitations + close | 0:20 | 7:15 | C |
-| – | Buffer (transitions, laptop quirks) | 0:45 | 8:00 | All |
+| 4 | System architecture | 0:55 | 2:05 | B |
+| 5 | Prerequisite DAG (correctness backbone) | 0:50 | 2:55 | B |
+| 6 | Time-conflict handling (calendar gate) | 0:30 | 3:25 | B |
+| 7 | Sentiment + multi-objective + LLM fallback | 1:00 | 4:25 | B |
+| 8 | **LIVE DEMO (2 scenarios)** | 2:15 | 6:40 | C |
+| 9 | Evaluation results | 0:30 | 7:10 | C |
+| 10 | Limitations + close | 0:20 | 7:30 | C |
+| – | Buffer (transitions, laptop quirks) | 0:30 | 8:00 | All |
 | – | Q&A | 2:00 | 10:00 | All |
 
-The 45s buffer is deliberate insurance for a CPU-only demo machine — it
+The 30s buffer is deliberate insurance for a CPU-only demo machine — it
 absorbs FastAPI cold-starts, scroll fumbles, or a slow Ollama warm-up
 without putting you over time. Treat it as flex, not as runway to add
 content.
@@ -51,13 +52,13 @@ backbone, C = demo + eval + close.** Adjust to your team's strengths.
 
 | Rubric category | Pts | Slides that earn it |
 |---|---|---|
-| Technical Soundness & Model Use | 8 | 4, 5, 6, 8 |
-| Problem Fit & Impact | 4 | 2, 3, 9 |
-| Execution & Completeness | 7 | 7 (live demo), 8 |
-| Design & UX | 2 | 3, 7 |
+| Technical Soundness & Model Use | 8 | 4, 5, 6, 7, 9 |
+| Problem Fit & Impact | 4 | 2, 3, 10 |
+| Execution & Completeness | 7 | 5, 6, 8 (live demo), 9 |
+| Design & UX | 2 | 3, 8 |
 | Slide Clarity & Organization | 4 | All — apply visual discipline |
-| Demo Quality | 3 | 7 (live demo) + backup video |
-| Q&A Performance | 2 | Q&A block + backup slides 10-12 |
+| Demo Quality | 3 | 8 (live demo) + backup video |
+| Q&A Performance | 2 | Q&A block + backup slides 11-13 |
 
 ---
 
@@ -115,7 +116,7 @@ plan."*
 
 ---
 
-## Slide 4 — System architecture (1:10)
+## Slide 4 — System architecture (0:55)
 
 **Targets:** Technical Soundness & Model Use (8 pts) — biggest payoff slide.
 
@@ -161,7 +162,49 @@ violations."*
 
 ---
 
-## Slide 6 — Sentiment + ranking + LLM fallback (1:00)
+## Slide 6 — Time-conflict handling (calendar gate) (0:30)
+
+**Targets:** Technical Soundness (8) + Execution (7).
+
+**Frame this slide as the second deterministic gate** — the prereq DAG
+(Slide 5) decides *which courses* are takeable; this layer decides
+*whether the picked sections* fit a single weekly calendar. Two
+different data sources, two independent guarantees.
+
+**Content (three filters, no LLM in any of them, all in `AdvisorService`):**
+
+1. **Course-vs-course overlap** (`_filter_time_conflicts`) — drops any
+   recommended section whose `days_times` overlaps another
+   already-picked section in the plan.
+2. **User-blocked windows** (`_conflicts_with_blocked_windows`) — drops
+   sections that fall in user-supplied windows ("no evening classes",
+   "no Tuesdays").
+3. **Section swap before drop** (`_swap_section_on_course`) — when a
+   constraint change would otherwise force a course out of the plan,
+   walk every offered section of the same course and pick one that
+   satisfies *all* current constraints + doesn't overlap any other
+   selected section.
+
+**Headline property:** every plan that ships has a calendar that
+actually fits — pure interval arithmetic over `class_schedules`, zero
+LLM judgement.
+
+**What to say:** *"After the prereq DAG decides what's takeable, a
+second deterministic layer enforces that the picked sections actually
+fit a single weekly calendar. Course-vs-course overlaps are dropped,
+user-blocked windows are dropped, and if a constraint change would
+otherwise force a course out of the plan, the advisor tries every
+alternative section of the same course before giving up. The schedule
+table is the only input — no LLM in this layer."*
+
+> The section-swap behavior is what Scenario B in the live demo will
+> showcase visually: when "no evening classes" arrives mid-conversation,
+> CSC 317 is rescheduled rather than dropped, preserving the unit
+> budget.
+
+---
+
+## Slide 7 — Sentiment + ranking + LLM fallback (1:00)
 
 **Targets:** Technical Soundness (8) + Execution (7).
 
@@ -215,7 +258,7 @@ constraint handling all keep working."*
 
 ---
 
-## Slide 7 — LIVE DEMO (2:15)
+## Slide 8 — LIVE DEMO (2:15)
 
 **Targets:** Demo Quality (3) + Execution (7) + Design & UX (2).
 
@@ -249,7 +292,7 @@ Point out:
 - Status line: `intent: regex (fast path) · rationales: template` —
   deterministic execution for clean prompts. Mention in passing that the
   LLM intent extractor automatically engages when the regex can't parse
-  a prompt; we don't burn demo time showing it because Slide 6 already
+  a prompt; we don't burn demo time showing it because Slide 7 already
   made the case.
 - The reply line *"Skipped N courses with unmet prereqs (deterministic
   check)"* is your free callout for Objective 2 — point at it for half
@@ -290,7 +333,7 @@ Point out:
 
 ---
 
-## Slide 8 — Evaluation results (0:30)
+## Slide 9 — Evaluation results (0:30)
 
 **Targets:** Execution (7) + Technical Soundness (8).
 
@@ -315,7 +358,7 @@ Objective 5 of our proposal."*
 
 ---
 
-## Slide 9 — Close (0:20)
+## Slide 10 — Close (0:20)
 
 **Targets:** Problem Fit (4) + sets up Q&A.
 
@@ -336,7 +379,7 @@ Objective 5 of our proposal."*
 
 ## Backup slides (held in reserve for Q&A)
 
-### Slide 10 — Anticipated Q&A reference
+### Slide 11 — Anticipated Q&A reference
 
 Prepared answers for likely classmate questions:
 
@@ -386,7 +429,7 @@ scores toward the prior mean so professors with few reviews aren't
 over-penalized, and we display the underlying rating count so users can
 judge for themselves.
 
-### Slide 11 — Architecture deep-dive (file paths)
+### Slide 12 — Architecture deep-dive (file paths)
 
 For deeper Q&A on implementation:
 
@@ -399,7 +442,7 @@ For deeper Q&A on implementation:
 - `scripts/build_professor_sentiment_features.py` (RMP → features)
 - `scripts/evaluate_sentiment_impact.py` (eval harness)
 
-### Slide 12 — Data ethics statement
+### Slide 13 — Data ethics statement
 
 For if a reviewer pushes on the RMP question:
 
@@ -424,7 +467,7 @@ For if a reviewer pushes on the RMP question:
 - [ ] Stage a side terminal with `pkill -f "ollama serve"` and
       `ollama serve &` ready to run, in case a Q&A question asks for the
       failover demo on the spot — you'll be fluent, not flustered.
-- [ ] Re-run `scripts/evaluate_sentiment_impact.py` and update Slide 8
+- [ ] Re-run `scripts/evaluate_sentiment_impact.py` and update Slide 9
       numbers if anything drifted.
 - [ ] Disable system notifications and set the laptop to "Do Not Disturb."
 - [ ] Plug in power. Mirror the display.
@@ -438,7 +481,7 @@ explaining the architecture; emphasize what is LLM vs. deterministic;
 mention temperature=0 and the warm-up.
 
 **Problem Fit (4 pts) — earn the 4:** open and close on the "fragmented
-process today" framing. Tie it back at the end (Slide 9).
+process today" framing. Tie it back at the end (Slide 10).
 
 **Execution (7 pts) — earn the 7:** the live demo must hit two clean,
 distinct scenarios with no dead ends; the eval table must show real
@@ -453,17 +496,18 @@ core idea per slide, consistent typography, no walls of text.
 **Demo Quality (3 pts) — earn the 3:** rehearse the demo five times. Have
 the backup video.
 
-**Q&A (2 pts) — earn the 2:** rehearse Slide 10 answers out loud. Pause
+**Q&A (2 pts) — earn the 2:** rehearse Slide 11 answers out loud. Pause
 half a second before answering — it reads as confidence.
 
 ## Practice timing rule
 
-The deck targets **7:15** with a 45s buffer at the end. If your dry-run
+The deck targets **7:30** with a 30s buffer at the end. If your dry-run
 runs **over 8:00**, cut from these in order:
 
-1. Slide 6 — drop the scoring formula and just describe in words.
+1. Slide 7 — drop the scoring formula and just describe in words.
 2. Slide 4 — drop the "deterministic vs LLM-mediated" arrow annotation.
-3. Slide 8 — drop one row from the eval table.
+3. Slide 9 — drop one row from the eval table.
+4. Slide 6 — collapse the three filters to a single sentence.
 
 (Both demo scenarios are load-bearing — A establishes the system, B
 proves it adapts mid-conversation. Don't cut either of them.)
