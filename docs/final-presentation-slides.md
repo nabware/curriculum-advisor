@@ -207,7 +207,7 @@ Ollama crashes mid-demo, we keep working."*
 
 **Three scenarios, ~1 minute each, from `docs/demo-script.md`:**
 
-### Scenario A — Cold start + sentiment in one shot (~75s)
+### Scenario A — Senior-year sentiment-aware planning (~75s)
 
 Type:
 
