@@ -132,6 +132,11 @@ multi-objective — workload is not just a hard cap.
 
 ## Scenario 5 — Blocked time windows (constraint handling)
 
+> **Continue the existing chat** (e.g. from Scenario 3) — do NOT click
+> "New chat" before this prompt. The message below has no major or term
+> in it, so it relies on the conversation state from the previous turn.
+> Starting fresh would just trigger "I still need your major and term."
+
 **Prompt:**
 
 ```text
@@ -142,6 +147,9 @@ I can't do anything before 11am on Mondays or Wednesdays.
 - Click **Blocked times** to reveal that the windows are now populated.
 - The schedule grid on the right has no morning MoWe blocks.
 - Any course that *only* offered MoWe morning sections got swapped out.
+- The conversation state debug panel still shows the major, term, and
+  completed courses from the previous turn — only `blocked_time_windows`
+  was added.
 
 **Proposal claim demonstrated:** Real constraint satisfaction, not
 LLM-imagined "vibes."
@@ -281,9 +289,9 @@ demonstrates intent extraction in one shot and saves ~45 seconds.
 
 | Beat | Time | What to point at |
 |---|---:|---|
-| Senior-year sentiment prompt (Scenario 3) | ~75s | green RMP tags (Llama-summarized at build time), debug state showing extracted major+term, template rationales per card |
-| Blocked time windows (Scenario 5) | ~60s | empty MoWe morning grid, schedule re-ranks |
-| Vague prompt → see `intent: LLM` (5s) → kill Ollama → another vague prompt → see `intent: regex fallback` (Scenario 8 both beats) | ~45s | The status line tells the whole story |
+| **New chat** → Senior-year sentiment prompt (Scenario 3) | ~75s | green RMP tags (Llama-summarized at build time), debug state showing extracted major+term, template rationales per card |
+| **Same chat** → Blocked time windows (Scenario 5) | ~60s | empty MoWe morning grid, schedule re-ranks, debug panel shows state preserved across turns |
+| **New chat** → vague prompt (`intent: LLM`, ~5s) → kill Ollama → another vague prompt (`intent: regex fallback`, sub-second) (Scenario 8 both beats) | ~45s | The status line tells the whole story |
 
 ## Suggested 5-minute flow
 

@@ -230,7 +230,11 @@ Point out:
 
 ### Scenario B — Constraint changes the schedule (~60s)
 
-Type:
+> **Continue the same chat from Scenario A** — do NOT click "New chat".
+> This prompt has no major or term in it; it relies on the conversation
+> state Scenario A established.
+
+Type into the same chat:
 
 ```text
 I can't do anything before 11am on Mondays or Wednesdays.
@@ -239,6 +243,9 @@ I can't do anything before 11am on Mondays or Wednesdays.
 Point out:
 - Schedule grid on the right empties of MoWe morning blocks.
 - Different courses (or different sections) appear in the panel.
+- Open the **Conversation state (debug)** panel to show that major,
+  term, completed courses, and preferences from Scenario A are still
+  in state — only `blocked_time_windows` was added by this turn.
 
 ### Scenario C — LLM live, then graceful failover (~45s)
 
