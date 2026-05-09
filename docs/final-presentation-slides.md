@@ -31,10 +31,16 @@ much time to spend on it. **Total run time: 8:00 presentation + 2:00 Q&A.**
 | 4 | System architecture | 1:10 | 2:20 | B |
 | 5 | Prerequisite DAG (correctness backbone) | 0:50 | 3:10 | B |
 | 6 | Sentiment + multi-objective + LLM fallback | 1:00 | 4:10 | B |
-| 7 | **LIVE DEMO (3 scenarios)** | 3:00 | 7:10 | C |
-| 8 | Evaluation results | 0:30 | 7:40 | C |
-| 9 | Limitations + close | 0:20 | 8:00 | C |
+| 7 | **LIVE DEMO (2 scenarios)** | 2:15 | 6:25 | C |
+| 8 | Evaluation results | 0:30 | 6:55 | C |
+| 9 | Limitations + close | 0:20 | 7:15 | C |
+| – | Buffer (transitions, laptop quirks) | 0:45 | 8:00 | All |
 | – | Q&A | 2:00 | 10:00 | All |
+
+The 45s buffer is deliberate insurance for a CPU-only demo machine — it
+absorbs FastAPI cold-starts, scroll fumbles, or a slow Ollama warm-up
+without putting you over time. Treat it as flex, not as runway to add
+content.
 
 Suggested presenter split for 3 people: **A = problem framing, B = technical
 backbone, C = demo + eval + close.** Adjust to your team's strengths.
@@ -117,9 +123,9 @@ plan."*
 
 1. **Frontend** — HTML / CSS / vanilla JS chat UI, `fetch` to backend.
 2. **Backend (FastAPI)** — `ChatService` → `AdvisorService` →
-   `PrerequisiteService` + `RmpService` + `LlamaSentimentService`.
+   `PrerequisiteService` + `rmp_service` + `llama_sentiment_service`.
 3. **Data layer (SQLite)** — `course_prerequisites`, `degree_programs`,
-   `class_schedule`, `professor_sentiment_features`.
+   `class_schedules`, `professor_sentiment_features`.
 4. **LLMs (Ollama, local)** — Llama 3.2 3B at runtime, Llama 3.1 8B offline.
 
 Annotate which arrows are **deterministic** (solid) and which are
@@ -138,18 +144,20 @@ deterministic SQL plus graph traversal. That separation is deliberate."*
 
 **Content:**
 
-- Mini-diagram of a CSC 415 prereq subgraph (CSC 230 ∧ CSC 256 → CSC 415).
+- Mini-diagram of a CSC 415 prereq subgraph
+  (CSC 256 ∧ CSC 340 ∧ MATH 324 ∧ PHYS 230 → CSC 415, "C or better").
 - Three bullets:
   - Stored as **DNF**: AND across `clause_index`, OR within a clause.
   - Flags: `concurrent_allowed`, `recommended_only`.
   - Validator runs in **single-digit milliseconds** in memory.
-- Headline number: **0.0000 prerequisite violation rate** across all 24
-  packaged scenarios.
+- Headline number: **0.0000 prerequisite violation rate** across the
+  packaged evaluation scenarios.
 
 **What to say:** *"Objective 2 of our proposal was zero prerequisite
 violations. We don't approximate this with LLM judgement — we parse the
 catalog into a directed graph and run a Boolean check before anything
-reaches the ranker. Across 24 evaluation scenarios: zero violations."*
+reaches the ranker. Across every packaged evaluation scenario: zero
+violations."*
 
 ---
 
@@ -166,10 +174,14 @@ reaches the ranker. Across 24 evaluation scenarios: zero violations."*
 
 **Multi-objective scoring:**
 
-`score = w_progress·progress + w_sentiment·sentiment − w_difficulty·difficulty − w_workload·workload`
+`score = (w_progress·progress + w_workload·lightness + w_sentiment·sentiment + w_difficulty·easiness) / Σw`
 
-Weights flip when the user expresses preferences ("light workload" /
-"high-rated profs").
+`progress` favors higher-unit (degree-advancing) courses; `lightness`,
+`easiness`, and `sentiment` are all 0…1 normalized. Only `w_progress`
+fires by default (0.55); `w_workload` (0.30), `w_sentiment` (0.35),
+and `w_difficulty` (0.25) light up only when the user expresses a
+matching preference ("light workload", "high-rated profs", "easier
+teachers"), so the ranking adapts to what was actually asked for.
 
 **Conversational layer (two-tier):**
 
@@ -179,22 +191,31 @@ Weights flip when the user expresses preferences ("light workload" /
 - **LLM path:** Llama 3.2 3B intent extractor (temperature = 0, warmed at
   startup) automatically engages for ambiguous prompts the regex can't
   parse, and is opt-in for live per-course rationales via env var.
-- **Both paths survive Ollama outages** — validation and prereq checks
-  never depend on the LLM.
+**LLM enhances, never gates:**
 
-**What to say:** *"Sentiment is offline so the demo never waits on it. The
-ranker is the one place those signals enter. The LLM is reachable for
-ambiguous chat, but the system stays responsive on a CPU laptop because the
-deterministic fast path handles clean prompts in milliseconds — and if
-Ollama crashes mid-demo, we keep working."*
+- Prereq validation, ranking, and constraint enforcement are 100%
+  deterministic SQL + graph traversal — they cannot fail because Ollama
+  is slow or down.
+- If Ollama is unreachable, the regex extractor handles intent and the
+  template rationales (pre-built offline by Llama 3.2 3B) populate the
+  cards. The user sees a fully-functional plan; only the per-course
+  explanation phrasing falls back from "fresh" to "templated".
 
-> This slide is your insurance policy. Saying "the system stays responsive
-> on a CPU laptop" and "if Ollama crashes mid-demo we keep working" here
-> makes any latency or LLM hiccup look like intentional engineering.
+**What to say:** *"Sentiment is summarized offline so the demo never waits
+on it. The ranker is the one place those signals enter. The LLM is
+reachable for ambiguous chat, but the system stays responsive on a CPU
+laptop because the deterministic fast path handles clean prompts in
+milliseconds — and if Ollama crashes mid-demo, prereqs, ranking, and
+constraint handling all keep working."*
+
+> This slide is your insurance policy. Saying "LLM enhances, never gates"
+> and "if Ollama crashes mid-demo we keep working" here makes any latency
+> hiccup look like intentional engineering, and lets you cover the
+> failover story without burning live demo time on it.
 
 ---
 
-## Slide 7 — LIVE DEMO (3:00)
+## Slide 7 — LIVE DEMO (2:15)
 
 **Targets:** Demo Quality (3) + Execution (7) + Design & UX (2).
 
@@ -205,7 +226,8 @@ Ollama crashes mid-demo, we keep working."*
 > `CURRICULUM_ADVISOR_RUNTIME_RATIONALES=1`. See the "Latency profile"
 > table at the top of `docs/demo-script.md`.
 
-**Three scenarios, ~1 minute each, from `docs/demo-script.md`:**
+**Two scenarios from `docs/demo-script.md`. The chat in Scenario B
+continues from Scenario A — do not click "New chat" between them.**
 
 ### Scenario A — Senior-year sentiment-aware planning (~75s)
 
@@ -225,8 +247,13 @@ Point out:
   RateMyProfessor reviews, and the rationale line came from a template
   pre-built by Llama 3.2 3B.
 - Status line: `intent: regex (fast path) · rationales: template` —
-  deterministic execution for clean prompts; the LLM intent path is
-  reachable for ambiguity (Scenario C will show it explicitly).
+  deterministic execution for clean prompts. Mention in passing that the
+  LLM intent extractor automatically engages when the regex can't parse
+  a prompt; we don't burn demo time showing it because Slide 6 already
+  made the case.
+- The reply line *"Skipped N courses with unmet prereqs (deterministic
+  check)"* is your free callout for Objective 2 — point at it for half
+  a beat before moving on.
 
 ### Scenario B — Constraint changes the schedule (~60s)
 
@@ -243,51 +270,22 @@ Actually, I can't do evening classes.
 Point out:
 - The schedule grid's evening rows empty out (5 PM onwards for every
   weekday is now blocked).
-- The recommendation panel drops CSC 317 (TuTh 5–6:15 PM with the
-  unrated Nina Mir) — the only evening class — and keeps CSC 665
-  (the AI elective) and CSC 510.
+- CSC 317 stays in the plan but **its section silently swaps** from
+  `TuTh 5:00 PM (Nina Mir)` to `MoWe 11:00 AM (Andrew Scott)`. The
+  advisor walks every offered section of each recommended course and
+  picks one that satisfies the new blocked window *and* doesn't overlap
+  any other selected class — instead of dropping the course and
+  shrinking the unit count.
+- Total units stay at 9 — the user's requested load is preserved
+  through a constraint change. CSC 665 (AI elective) and CSC 510 keep
+  their original sections.
 - Open the **Conversation state (debug)** panel: major, term, completed
   courses, and the AI-elective preference from Scenario A are all still
   in state. Only `blocked_time_windows` was added by this turn — that's
   multi-turn state persistence working.
 
-### Scenario C — LLM live, then graceful failover (~45s)
-
-This beat needs two prompts to make the failover visible. Click **New chat**.
-
-**Step 1.** Type a deliberately vague prompt the regex can't parse:
-
-```text
-Hey, I'm thinking about an AI class for next term, what would be good?
-```
-
-Point out:
-- Status line: `intent: LLM` — Llama 3.2 3B was just called because no
-  major or term was found by the regex.
-- Response takes ~5 s — visible LLM work happening on the laptop.
-
-**Step 2.** In a side terminal already staged, kill Ollama:
-
-```bash
-pkill -f "ollama serve"
-```
-
-Then send another vague prompt:
-
-```text
-What about a class on operating systems?
-```
-
-Point out:
-- Status line: `intent: regex fallback` — the LLM call timed out / failed,
-  so the system silently degraded to the deterministic extractor.
-- Response is sub-second.
-- Mention: validation and prereq checks never depended on the LLM at all,
-  and per-course rationales come from pre-built templates, so if Ollama
-  stays down the system remains fully functional.
-
-> **Backup video required.** Pre-record these three scenarios the night
-> before, queued in a video player on a second monitor. If the laptop
+> **Backup video required.** Pre-record both scenarios the night before,
+> queued in a video player on a second monitor. If the laptop
 > misbehaves, switch and keep talking.
 
 ---
@@ -300,16 +298,20 @@ Point out:
 
 | Metric | Baseline | Sentiment-aware |
 |---|---|---|
-| Mean professor sentiment | (fill in from `evaluate_sentiment_impact.py`) | (fill in) |
-| Recommendation overlap@5 with baseline | 1.00 | 0.6–0.8 |
+| Mean professor sentiment coverage | (fill in from `evaluate_sentiment_impact.py`) | (fill in) |
+| Recommendation overlap@k with baseline | 1.00 | (fill in — recent runs ~0.93) |
 | **Prerequisite violation rate** | **0.0000** | **0.0000** |
-| Latency (warm, CPU) | ~50 ms | ~80 ms |
+| Latency (warm chat, CPU) | ~20 ms (regex + template) | ~5–10 s (when LLM intent fires) |
 
-(Replace the placeholders with the latest numbers the night before.)
+(Replace the placeholders with the latest numbers from
+`scripts/evaluate_sentiment_impact.py` the night before. The default
+scenario CSV has 8 scenarios; the harness ships 5 CSVs totaling 96 if
+you want a broader run.)
 
-**What to say:** *"Across 24 scenarios the sentiment-aware path raises mean
-professor sentiment by X — without ever introducing a prereq violation.
-That's the empirical answer to Objective 5 of our proposal."*
+**What to say:** *"Across our packaged evaluation scenarios the
+sentiment-aware path raises mean professor sentiment coverage — without
+ever introducing a prereq violation. That's the empirical answer to
+Objective 5 of our proposal."*
 
 ---
 
@@ -356,13 +358,16 @@ adjacency map.
 **Q: "How do you measure prerequisite violation rate?"**
 A: `scripts/evaluate_sentiment_impact.py` runs the advisor on packaged
 scenarios, then re-checks every recommended course against the validator
-with the student's effective completed set. Across all 24 scenarios the
-violation count is exactly zero.
+with the student's effective completed set. Across every packaged
+scenario CSV the violation count is exactly zero.
 
-**Q: "What if Ollama crashes during the demo?"** (already shown in
-Scenario C)
-A: Regex fallback for intent + template rationales. Validation is
-unaffected because it never depended on the LLM.
+**Q: "What if Ollama crashes during the demo?"**
+A: Regex fallback for intent + template rationales. Validation, ranking,
+and constraint handling are unaffected because none of them depend on the
+LLM. We can demonstrate this on request — `pkill -f "ollama serve"` and
+the next chat turn returns sub-second with the status line flipped to
+`intent: regex fallback`. We chose not to show it live to keep the demo
+focused on the user-facing capabilities.
 
 **Q: "How is sentiment integrated into the ranking?"**
 A: It's a weighted term in `_resolve_course_objective`. The weight is
@@ -411,17 +416,18 @@ For if a reviewer pushes on the RMP question:
 
 - [ ] `ollama pull llama3.2:3b` and `ollama pull llama3.1` on the demo laptop.
 - [ ] `bash scripts/run_backend.sh` once — verify the warm-up log line.
-- [ ] `bash scripts/run_frontend.sh` and click through Scenarios A, B, C
-      end-to-end.
-- [ ] Time the full deck end-to-end at least twice. Goal: 7:45 to give
-      yourself a 15s buffer.
-- [ ] Record a 2-3 min screen-capture backup of Scenarios A, B, C.
+- [ ] `bash scripts/run_frontend.sh` and click through Scenarios A and B
+      end-to-end (without clicking "New chat" between them).
+- [ ] Time the full deck end-to-end at least twice. Goal: 7:15-7:30 so
+      the 45s buffer stays intact.
+- [ ] Record a 2-3 min screen-capture backup of Scenarios A and B.
+- [ ] Stage a side terminal with `pkill -f "ollama serve"` and
+      `ollama serve &` ready to run, in case a Q&A question asks for the
+      failover demo on the spot — you'll be fluent, not flustered.
 - [ ] Re-run `scripts/evaluate_sentiment_impact.py` and update Slide 8
       numbers if anything drifted.
 - [ ] Disable system notifications and set the laptop to "Do Not Disturb."
 - [ ] Plug in power. Mirror the display.
-- [ ] Stage Scenario C's `pkill` command in a terminal so you don't fumble
-      it live.
 - [ ] Decide presenter order and rehearse the handoffs (3-2-1 rule:
       finish, three-second pause, hand off).
 
@@ -434,8 +440,9 @@ mention temperature=0 and the warm-up.
 **Problem Fit (4 pts) — earn the 4:** open and close on the "fragmented
 process today" framing. Tie it back at the end (Slide 9).
 
-**Execution (7 pts) — earn the 7:** the live demo must hit three distinct
-scenarios with no dead ends; the eval table must show real numbers.
+**Execution (7 pts) — earn the 7:** the live demo must hit two clean,
+distinct scenarios with no dead ends; the eval table must show real
+numbers; the deck must finish under 8:00.
 
 **Design & UX (2 pts) — earn the 2:** keep the chat panel clean during the
 demo. No console open, no debug panel expanded except when narrating it.
@@ -451,14 +458,21 @@ half a second before answering — it reads as confidence.
 
 ## Practice timing rule
 
-If your dry-run runs **over 8:00**, cut from these in order:
+The deck targets **7:15** with a 45s buffer at the end. If your dry-run
+runs **over 8:00**, cut from these in order:
 
-1. Slide 6 — drop the formula and just describe in words.
+1. Slide 6 — drop the scoring formula and just describe in words.
 2. Slide 4 — drop the "deterministic vs LLM-mediated" arrow annotation.
 3. Slide 8 — drop one row from the eval table.
-4. Last resort: cut Scenario B (constraint change) from the demo.
 
-If your dry-run runs **under 7:30**, add:
+(Both demo scenarios are load-bearing — A establishes the system, B
+proves it adapts mid-conversation. Don't cut either of them.)
 
-1. One extra example back to Scenario A (mention the rationale text out loud).
-2. One sentence on Slide 5 about how the parser handles `concurrent_allowed`.
+If your dry-run finishes **under 6:45**, you have headroom — add:
+
+1. One extra sentence on Scenario A pointing at the per-course rationale
+   text.
+2. One sentence on Slide 5 about how the parser handles
+   `concurrent_allowed`.
+3. Read out the `Skipped N courses with unmet prereqs` line on Scenario A
+   and pause for a beat — that's a free Objective 2 callout.

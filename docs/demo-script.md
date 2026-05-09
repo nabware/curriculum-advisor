@@ -143,25 +143,31 @@ multi-objective — workload is not just a hard cap.
 Actually, I can't do evening classes.
 ```
 
-(Why this prompt: drops only CSC 317 — the lone TuTh evening class —
-while preserving the AI elective and the algorithms class from
-Scenario 3. Other prompts to avoid: "before 11am MoWe" knocks out the
-AI elective; "no Tuesdays" removes both TuTh classes and leaves you
-with one course. The evening-block prompt is the cleanest demo of
-constraint propagation without nuking the previous beat.)
+(Why this prompt: the previously picked CSC 317 section was at TuTh
+5:00 PM, which now conflicts with the new evening block. Other prompts
+to avoid: "before 11am MoWe" knocks out the AI elective; "no Tuesdays"
+removes both TuTh classes. The evening-block prompt is the cleanest
+demo of constraint propagation without nuking the previous beat.)
 
 **Point out:**
 - The schedule grid's evening rows (5 PM onwards) empty out for every
   weekday.
-- The recommendation panel re-ranks: CSC 317 disappears, CSC 665 (AI
-  elective) and CSC 510 (algorithms) stay.
+- CSC 317 stays in the plan but **its section silently swaps** from
+  `TuTh 5:00 PM (Nina Mir)` to a non-evening section
+  (`MoWe 11:00 AM (Andrew Scott)`). The advisor walks every available
+  section of each course and picks one that satisfies *all* current
+  constraints — blocked windows + no overlap with the other selected
+  classes — instead of dropping the course and shrinking the unit
+  budget. CSC 665 (AI elective) and CSC 510 (algorithms) keep their
+  original sections.
+- Total units stays at 9 — the user's requested load is preserved.
 - Click **Blocked times** to reveal that the windows are now populated.
 - The conversation state debug panel still shows the major, term,
   completed courses, and AI-elective preference from the previous turn
   — only `blocked_time_windows` was added. Multi-turn state persistence.
 
-**Proposal claim demonstrated:** Real constraint satisfaction, not
-LLM-imagined "vibes."
+**Proposal claim demonstrated:** Real constraint satisfaction with
+section-level rescheduling, not LLM-imagined "vibes."
 
 ---
 
@@ -288,19 +294,27 @@ Q&A.
 
 ---
 
-## Suggested 3-minute flow (8-min presentation slot)
+## Suggested 2-scenario demo (8-min presentation slot)
 
-Use this for the actual final presentation (8 min total = 5 min slides +
-3 min demo). Run the **senior-year sentiment prompt from Scenario 3**, then
-**blocked times from Scenario 5**, then **the Ollama-down fallback from
-Scenario 8**. Skip the cold-start scenario — the senior-year prompt
-demonstrates intent extraction in one shot and saves ~45 seconds.
+Use this for the actual final presentation (8 min total ≈ 5:45 of slides
++ 2:15 of demo + a 45s buffer). Run the **senior-year sentiment prompt
+from Scenario 3**, then **blocked times from Scenario 5** *in the same
+chat*. Skip the cold-start scenario — the senior-year prompt demonstrates
+intent extraction in one shot and saves ~45 seconds. Skip the
+Ollama-down failover demo — it's covered verbally on Slide 6 and is
+available as a Q&A live demo if anyone asks.
 
 | Beat | Time | What to point at |
 |---|---:|---|
-| **New chat** → Senior-year sentiment prompt (Scenario 3) | ~75s | green RMP tags (Llama-summarized at build time), debug state showing extracted major+term, template rationales per card |
-| **Same chat** → Blocked time windows (Scenario 5) | ~60s | empty MoWe morning grid, schedule re-ranks, debug panel shows state preserved across turns |
-| **New chat** → vague prompt (`intent: LLM`, ~5s) → kill Ollama → another vague prompt (`intent: regex fallback`, sub-second) (Scenario 8 both beats) | ~45s | The status line tells the whole story |
+| **New chat** → Senior-year sentiment prompt (Scenario 3) | ~75s | green RMP tags (Llama-summarized at build time), debug state showing extracted major+term, template rationales per card, the *"Skipped N courses with unmet prereqs (deterministic check)"* line for a free Objective 2 callout |
+| **Same chat** → Blocked time windows (Scenario 5) | ~60s | evening rows empty, CSC 317 silently swaps to a daytime section to keep the unit budget at 9, state preserved across turns |
+
+**Why two scenarios is the right call for this slot:** Three beats on a
+CPU-only laptop is three chances to lose your rhythm. Two beats hit
+every proposal objective (intent extraction, sentiment integration,
+multi-objective ranking, prereq DAG via the Skipped-N callout, and
+constraint handling with section-level rescheduling) and leave a 45s
+buffer for the FastAPI cold-start, scroll fumbles, or audience laughter.
 
 ## Suggested 5-minute flow
 
