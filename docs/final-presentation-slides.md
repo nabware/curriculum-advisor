@@ -171,19 +171,26 @@ reaches the ranker. Across 24 evaluation scenarios: zero violations."*
 Weights flip when the user expresses preferences ("light workload" /
 "high-rated profs").
 
-**Conversational layer + fallback:**
+**Conversational layer (two-tier):**
 
-- Llama 3.2 3B intent extractor + per-course rationale generator
-  (temperature = 0, warmed at startup).
-- **If Ollama is down:** regex intent extractor + pre-built rationale
-  templates. Validation never depends on the LLM.
+- **Fast path (default):** deterministic regex resolves clean prompts in
+  milliseconds; per-course rationales come from templates pre-built by
+  Llama 3.2 3B.
+- **LLM path:** Llama 3.2 3B intent extractor (temperature = 0, warmed at
+  startup) automatically engages for ambiguous prompts the regex can't
+  parse, and is opt-in for live per-course rationales via env var.
+- **Both paths survive Ollama outages** — validation and prereq checks
+  never depend on the LLM.
 
 **What to say:** *"Sentiment is offline so the demo never waits on it. The
-ranker is the one place those signals enter. And every LLM call is
-optional — if Ollama crashes mid-demo, we keep working."*
+ranker is the one place those signals enter. The LLM is reachable for
+ambiguous chat, but the system stays responsive on a CPU laptop because the
+deterministic fast path handles clean prompts in milliseconds — and if
+Ollama crashes mid-demo, we keep working."*
 
-> This slide is your insurance policy. Saying "every LLM call is optional"
-> here makes any Ollama hiccup during the demo look intentional.
+> This slide is your insurance policy. Saying "the system stays responsive
+> on a CPU laptop" and "if Ollama crashes mid-demo we keep working" here
+> makes any latency or LLM hiccup look like intentional engineering.
 
 ---
 
@@ -211,9 +218,15 @@ I want an AI elective and I prefer professors with great reviews.
 ```
 
 Point out:
-- Debug panel: LLM extracted major + term + completed courses.
-- Course cards: green RMP tags ("Amazing lectures") + per-course rationale.
-- Status line: `intent: LLM · rationales: LLM`.
+- Debug panel: chat extracted major + term + completed courses from
+  free-form English (no form fields).
+- Course cards: green RMP tags ("Amazing lectures"), per-course rationale.
+  Mention that the green/red tags are summaries Llama 3.1 8B generated from
+  RateMyProfessor reviews, and the rationale line came from a template
+  pre-built by Llama 3.2 3B.
+- Status line: `intent: regex (fast path) · rationales: template` —
+  deterministic execution for clean prompts; the LLM intent path is
+  reachable for ambiguity (Scenario C will show it explicitly).
 
 ### Scenario B — Constraint changes the schedule (~60s)
 
@@ -227,24 +240,40 @@ Point out:
 - Schedule grid on the right empties of MoWe morning blocks.
 - Different courses (or different sections) appear in the panel.
 
-### Scenario C — Failure mode (~45s)
+### Scenario C — LLM live, then graceful failover (~45s)
 
-In a side terminal already staged:
+This beat needs two prompts to make the failover visible. Click **New chat**.
+
+**Step 1.** Type a deliberately vague prompt the regex can't parse:
+
+```text
+Hey, I'm thinking about an AI class for next term, what would be good?
+```
+
+Point out:
+- Status line: `intent: LLM` — Llama 3.2 3B was just called because no
+  major or term was found by the regex.
+- Response takes ~5 s — visible LLM work happening on the laptop.
+
+**Step 2.** In a side terminal already staged, kill Ollama:
 
 ```bash
 pkill -f "ollama serve"
 ```
 
-Send:
+Then send another vague prompt:
 
 ```text
-Plan my Fall 2026 BSCS schedule, I've finished CSC 210 and CSC 220.
+What about a class on operating systems?
 ```
 
 Point out:
-- Status flips to `intent: regex fallback`.
-- Recommendations still appear in <1 second.
-- Rationales still present (templates).
+- Status line: `intent: regex fallback` — the LLM call timed out / failed,
+  so the system silently degraded to the deterministic extractor.
+- Response is sub-second.
+- Mention: validation and prereq checks never depended on the LLM at all,
+  and per-course rationales come from pre-built templates, so if Ollama
+  stays down the system remains fully functional.
 
 > **Backup video required.** Pre-record these three scenarios the night
 > before, queued in a video player on a second monitor. If the laptop
