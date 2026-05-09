@@ -46,6 +46,26 @@ def _chat_model() -> str:
     return os.environ.get("CURRICULUM_ADVISOR_CHAT_MODEL", _DEFAULT_CHAT_MODEL)
 
 
+def _runtime_rationales_enabled() -> bool:
+    """Per-course LLM rationales add ~10s on CPU. Off by default for demo speed.
+
+    Set CURRICULUM_ADVISOR_RUNTIME_RATIONALES=1 to enable LLM-generated
+    per-course explanations (will fall back to pre-built templates either way).
+    """
+    raw = os.environ.get("CURRICULUM_ADVISOR_RUNTIME_RATIONALES", "0").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _fast_intent_enabled() -> bool:
+    """Skip the LLM intent call when the regex extractor already produced a
+    confident result (both major and term resolved). Saves ~5-10s on CPU.
+
+    Set CURRICULUM_ADVISOR_FAST_INTENT=0 to always call the LLM.
+    """
+    raw = os.environ.get("CURRICULUM_ADVISOR_FAST_INTENT", "1").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
 COURSE_CODE_REGEX = re.compile(r"\b([A-Z]{2,6})\s+(\d{2,4}[A-Z]{0,3})\b")
 # Department codes that look like words but aren't real SFSU departments —
 # guards against accidentally matching things like 'FALL 2026'.
@@ -370,23 +390,38 @@ class ChatService:
 
         intent: dict[str, Any] | None = None
         intent_source = "fallback"
-        try:
-            intent = extract_chat_intent(
-                payload.message,
-                available_degrees=available_degrees,
-                history=[turn.model_dump() for turn in payload.history],
-                known_state=normalized_state.model_dump(),
-                endpoint=endpoint,
-                model=chat_model,
-                timeout=15,
-            )
-            if intent:
-                intent_source = "llm"
-        except Exception:
-            intent = None
 
-        if intent is None:
-            intent = _fallback_intent(payload.message, normalized_state, available_degrees)
+        # Fast-intent path: when the regex extractor already resolves both
+        # `major` and `term`, skip the LLM intent call entirely (~5-10s win
+        # on CPU). The LLM still runs whenever the regex is uncertain.
+        regex_intent = _fallback_intent(payload.message, normalized_state, available_degrees)
+        regex_has_major = bool(regex_intent.get("major") or normalized_state.major)
+        regex_has_term = bool(regex_intent.get("term") or normalized_state.term)
+        regex_is_smalltalk = (regex_intent.get("intent") or "").lower() == "smalltalk"
+
+        if _fast_intent_enabled() and (
+            (regex_has_major and regex_has_term) or regex_is_smalltalk
+        ):
+            intent = regex_intent
+            intent_source = "regex"
+        else:
+            try:
+                intent = extract_chat_intent(
+                    payload.message,
+                    available_degrees=available_degrees,
+                    history=[turn.model_dump() for turn in payload.history],
+                    known_state=normalized_state.model_dump(),
+                    endpoint=endpoint,
+                    model=chat_model,
+                    timeout=15,
+                )
+                if intent:
+                    intent_source = "llm"
+            except Exception:
+                intent = None
+
+            if intent is None:
+                intent = regex_intent
 
         merged_state = _merge_intent_into_state(normalized_state, intent)
 
@@ -420,10 +455,15 @@ class ChatService:
                 term=merged_state.term,
             )
             advisor = AdvisorService.recommend(advisor_request)
+            # Default: skip the per-course LLM rationale call (~10s on CPU)
+            # and use pre-built templates for fast responses. Set
+            # CURRICULUM_ADVISOR_RUNTIME_RATIONALES=1 to opt into LLM
+            # rationales for the demo "wow" moment.
+            rationale_endpoint = endpoint if _runtime_rationales_enabled() else None
             rationale_source = _attach_rationales(
                 advisor,
                 merged_state,
-                chat_endpoint=endpoint,
+                chat_endpoint=rationale_endpoint,
                 chat_model=chat_model,
             )
 

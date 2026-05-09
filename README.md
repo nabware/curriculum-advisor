@@ -207,3 +207,5 @@ Optional environment variables:
 | `CURRICULUM_ADVISOR_CHAT_ENDPOINT` | `http://localhost:11434/v1/chat/completions` | Override the runtime LLM endpoint |
 | `CURRICULUM_ADVISOR_CHAT_MODEL` | `llama3.2:3b` | Override the runtime LLM model name |
 | `CURRICULUM_ADVISOR_DISABLE_CHAT_WARMUP` | unset | Skip the startup warm-up call (useful for tests / when Ollama is intentionally down) |
+| `CURRICULUM_ADVISOR_FAST_INTENT` | `1` | When `1`, skip the LLM intent call if the regex extractor already resolved both major and term (saves ~5-10 s on CPU). Set `0` to always call the LLM. |
+| `CURRICULUM_ADVISOR_RUNTIME_RATIONALES` | `0` | When `1`, generate per-course rationales with the LLM at runtime (~10 s on CPU). When `0`, use pre-built templates from `course_descriptions.recommendation_rationale_template`. |

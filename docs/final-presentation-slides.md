@@ -191,6 +191,13 @@ optional — if Ollama crashes mid-demo, we keep working."*
 
 **Targets:** Demo Quality (3) + Execution (7) + Design & UX (2).
 
+> **Latency note:** the backend defaults to fast mode (~50 ms response,
+> regex intent + template rationales). To explicitly demo the LLM intent
+> path, use a vague prompt the regex can't parse (~5-10 s). To demo
+> LLM-generated rationales, start the backend with
+> `CURRICULUM_ADVISOR_RUNTIME_RATIONALES=1`. See the "Latency profile"
+> table at the top of `docs/demo-script.md`.
+
 **Three scenarios, ~1 minute each, from `docs/demo-script.md`:**
 
 ### Scenario A — Cold start + sentiment in one shot (~75s)

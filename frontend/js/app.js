@@ -659,7 +659,11 @@ chatForm.addEventListener("submit", async (event) => {
     await handleAdvisorPayload(data.advisor);
 
     const sourceLabel =
-      data.intent_source === "llm" ? "intent: LLM" : "intent: regex fallback";
+      data.intent_source === "llm"
+        ? "intent: LLM"
+        : data.intent_source === "regex"
+          ? "intent: regex (fast path)"
+          : "intent: regex fallback";
     const rationaleLabel =
       data.rationale_source === "llm"
         ? " · rationales: LLM"

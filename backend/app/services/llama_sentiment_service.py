@@ -153,6 +153,8 @@ def _call_json_llm(
     model: str,
     api_key: str | None = None,
     timeout: int = 30,
+    max_tokens: int | None = None,
+    keep_alive: str | None = "30m",
 ) -> dict[str, Any] | None:
     if not endpoint:
         return None
@@ -170,8 +172,16 @@ def _call_json_llm(
             {"role": "user", "content": prompt},
         ],
         "stream": False,
-            "temperature": 0.0,
+        "temperature": 0.0,
     }
+    # Cap output tokens to avoid the model generating thousands of tokens of
+    # padding/whitespace on small JSON responses (huge CPU latency win).
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
+    # Tell Ollama to keep the model loaded in RAM between requests so the
+    # next call doesn't pay the model-load cost.
+    if keep_alive is not None:
+        payload["keep_alive"] = keep_alive
 
     request = urllib.request.Request(
         endpoint,
@@ -581,6 +591,9 @@ def extract_chat_intent(
         model=model,
         api_key=api_key,
         timeout=timeout,
+        # Intent JSON is small (~150 tokens). Cap generation so the model can't
+        # ramble for thousands of tokens — a major CPU-latency win.
+        max_tokens=384,
     )
     if not parsed:
         return None
@@ -682,6 +695,9 @@ def generate_course_rationales(
         model=model,
         api_key=api_key,
         timeout=timeout,
+        # ~1 short sentence per course, max ~6 courses; cap generously to
+        # cover JSON overhead while keeping latency in check.
+        max_tokens=512,
     )
     if not parsed:
         return None

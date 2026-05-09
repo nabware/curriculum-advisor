@@ -4,6 +4,21 @@ A walk-through of every claim in the Capstone Project Proposal in roughly 5
 minutes, designed for a CPU-only laptop running Ollama + FastAPI + the static
 frontend on `localhost`.
 
+## Latency profile (CPU laptop)
+
+The chat backend has three response modes. Pick the one that matches the
+moment in your demo:
+
+| Mode | How to enable | Typical response time | When to use |
+|---|---|---:|---|
+| **Fast (default)** | nothing — out of the box | **~50 ms** | Most demo turns. Regex extracts intent when prompt is clear; per-course rationales come from pre-built templates. |
+| **LLM intent only** | use a vague prompt that regex can't parse (e.g. *"I'm thinking about ML next semester"*) | ~5-10 s | When you want to **show** the LLM intent extractor running. Status line reads `intent: LLM`. |
+| **Full GenAI (LLM intent + LLM rationales)** | start backend with `CURRICULUM_ADVISOR_RUNTIME_RATIONALES=1 bash scripts/run_backend.sh` | ~15-25 s | "Wow moment" only — explicit per-course explanations generated for *this* student. Reserve for one scenario. |
+
+For an 8-minute demo, **start in Fast mode**. If you want to demo the LLM
+rationale path, restart the backend with the env var set in advance (or
+pre-record a short clip of it).
+
 ## Pre-flight checklist
 
 Run these once before the audience arrives:
@@ -12,7 +27,7 @@ Run these once before the audience arrives:
 ollama serve &                # background daemon
 ollama run llama3.2:3b "hi"   # warms the runtime intent model
 ollama run llama3.1 "hi"      # only needed if re-running sentiment build
-bash scripts/run_backend.sh   # FastAPI on :8000 (auto-reload)
+bash scripts/run_backend.sh   # FastAPI on :8000 (auto-reload, fast mode)
 bash scripts/run_frontend.sh  # static server on :5500
 ```
 
