@@ -92,4 +92,13 @@ fi
 
 echo "Backend dependencies ready. Starting FastAPI server on port 8000..."
 cd "$BACKEND_DIR"
+
+# Default the demo to live LLM-generated per-course rationales (Llama 3.2 3B
+# via Ollama). This costs ~5-10 s of latency per chat turn on a CPU laptop
+# but means every word of rationale prose students read on a card was
+# authored by a model. Set CURRICULUM_ADVISOR_RUNTIME_RATIONALES=0 to
+# fall back to the deterministic template path (pre-built by
+# scripts/prebuild_demo_rationales.py) for non-demo development.
+export CURRICULUM_ADVISOR_RUNTIME_RATIONALES="${CURRICULUM_ADVISOR_RUNTIME_RATIONALES:-1}"
+
 exec "$VENV_PYTHON" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
