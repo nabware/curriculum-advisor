@@ -804,6 +804,8 @@ class AdvisorService:
             sentiment_summary_by_professor: dict[str, str] = {}
             sentiment_by_last_initial: dict[str, list[float]] = {}
             sentiment_by_last_name: dict[str, list[float]] = {}
+            sentiment_ci_by_professor: dict[str, tuple[float, float]] = {}
+            structured_by_professor: dict[str, dict] = {}
             try:
                 sentiment_rows = conn.execute(
                     """
@@ -1051,6 +1053,7 @@ class AdvisorService:
                             professor_info["professor_name"] if professor_info else (schedule_info.get("instructor") if schedule_info else None)
                         )) if 'sentiment_summary_by_professor' in locals() else None
                     ),
+                    structured_by_professor=structured_by_professor if structured_by_professor else None, 
                     prerequisite_text=prereq_result.raw_prereq_text,
                     prerequisite_satisfied_by=list(prereq_result.satisfied_by),
                 )
