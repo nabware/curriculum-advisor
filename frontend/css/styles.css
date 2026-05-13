@@ -141,6 +141,11 @@ h1, h2, h3, h4 {
   padding: 1.5rem;
 }
 
+.main-grid.full-width ~ * .page-shell,
+body:has(.main-grid.full-width) .page-shell {
+  max-width: 1200px;
+}
+
 .panel {
   background: var(--white);
   border: 1px solid var(--line);
@@ -528,7 +533,8 @@ h1, h2, h3, h4 {
 }
 
 .results-body {
-  padding: 1rem 1.1rem;
+  padding: 1.25rem 1.5rem;
+  width: 100%;
 }
 
 .progress-wrap {
@@ -591,11 +597,12 @@ h1, h2, h3, h4 {
   gap: 0.65rem;
 }
 
-.full-width .course-grid {
+.main-grid.full-width .course-grid,
+.course-grid {
   grid-template-columns: repeat(3, 1fr);
 }
 
-.full-width .schedule-grid {
+.main-grid.full-width .schedule-grid {
   grid-template-columns: repeat(5, 1fr);
 }
 
@@ -615,6 +622,8 @@ h1, h2, h3, h4 {
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   animation: rise-in 300ms ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .recommendation-card::before {

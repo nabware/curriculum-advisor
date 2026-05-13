@@ -63,11 +63,14 @@ navBtns.forEach(btn => {
     const panel = document.getElementById(`tab-${btn.dataset.tab}`);
     if (panel) panel.classList.remove("hidden");
 
+    const shell = document.querySelector(".page-shell");
     if (mainGrid) {
       if (btn.dataset.tab === "chat") {
         mainGrid.classList.remove("full-width");
+        if (shell) shell.style.maxWidth = "";
       } else {
         mainGrid.classList.add("full-width");
+        if (shell) shell.style.maxWidth = "1400px";
       }
     }
   });
@@ -725,7 +728,6 @@ chatForm.addEventListener("submit", async event => {
       state:   buildOutgoingState(),
       history: conversationHistory.slice(-8),
     };
-   
     const _send = (typeof sendChatMessage === "function")
       ? sendChatMessage
       : async (p) => {
