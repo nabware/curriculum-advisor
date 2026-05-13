@@ -1,4 +1,4 @@
-// Curriculum Advisor — app.js
+// Curriculum Advisor -- app.js
 // Wired to the SFSU-branded index.html.
 // Maintains chat history + rolling state, renders message bubbles,
 // drives tab switching, and updates sidebar stats on each advisor response.
@@ -72,8 +72,8 @@ document.querySelectorAll(".chip").forEach(chip => {
     document.querySelector(".nav-btn[data-tab='chat']").click();
   });
 });
-
 function updateSidebar(advisor) {
+
   setStateEl(stMajor,     conversationState.major,            "not set");
   setStateEl(stTerm,      conversationState.term,             "not set");
   setStateEl(stCompleted,
@@ -93,7 +93,7 @@ function updateSidebar(advisor) {
     stEligible.textContent  = eligible;
     stBlocked.textContent   = blocked;
     stUnitsSel.textContent  = sel;
-    stUnitsReq.textContent  = req || "—";
+    stUnitsReq.textContent  = req || "--";
 
     if (chatTermBadge && conversationState.term) {
       chatTermBadge.textContent = conversationState.term;
@@ -103,7 +103,7 @@ function updateSidebar(advisor) {
     }
     if (scheduleBadge && conversationState.term) {
       scheduleBadge.textContent =
-        `${conversationState.term} · ${eligible} course${eligible !== 1 ? "s" : ""}`;
+        `${conversationState.term} . ${eligible} course${eligible !== 1 ? "s" : ""}`;
     }
   }
 }
@@ -157,7 +157,7 @@ function appendThinkingIndicator() {
   wrapper.id = "chat-thinking-indicator";
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble chat-bubble-thinking";
-  bubble.textContent = "Thinking…";
+  bubble.textContent = "Thinking...";
   wrapper.appendChild(bubble);
   chatThread.appendChild(wrapper);
   chatThread.scrollTop = chatThread.scrollHeight;
@@ -183,12 +183,12 @@ function renderBlockedWindows() {
   blockedWindows.forEach((w, idx) => {
     const chip = document.createElement("span");
     chip.className = "blocked-chip";
-    chip.textContent = `${w.day} ${formatTime24To12(w.start)} – ${formatTime24To12(w.end)}`;
+    chip.textContent = `${w.day} ${formatTime24To12(w.start)} - ${formatTime24To12(w.end)}`;
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "blocked-chip-remove";
     removeBtn.setAttribute("aria-label", `Remove ${chip.textContent}`);
-    removeBtn.textContent = "×";
+    removeBtn.textContent = "x";
     removeBtn.addEventListener("click", () => {
       blockedWindows.splice(idx, 1);
       renderBlockedWindows();
@@ -214,6 +214,7 @@ document.getElementById("add-blocked-btn").addEventListener("click", () => {
 chatBlockedToggle.addEventListener("click", () => {
   chatBlockedDetails.open = !chatBlockedDetails.open;
 });
+
 chatResetButton.addEventListener("click", () => {
   conversationHistory.length = 0;
   conversationState = {
@@ -229,7 +230,7 @@ chatResetButton.addEventListener("click", () => {
   chatThread.innerHTML = "";
   appendMessage("assistant",
     "Hi, Gator! 🐊 Started a new conversation. What major and term are you planning?");
-  recommendationsEl.innerHTML = '<p class="empty-state">No recommendations yet — start a chat.</p>';
+  recommendationsEl.innerHTML = '<p class="empty-state">No recommendations yet -- start a chat.</p>';
   prereqBlockedSection.hidden = true;
   progressContainer.style.display = "none";
   renderChatStateDebug();
@@ -297,7 +298,7 @@ async function getProfessorRmpData(course) {
     return null;
   }
 }
-──
+
 async function renderRecommendations(groups, fallbackCourses = []) {
   recommendationsEl.innerHTML = "";
 
@@ -393,7 +394,7 @@ function buildCourseCard(course) {
   if (course.prerequisite_satisfied_by && course.prerequisite_satisfied_by.length) {
     const t = document.createElement("span");
     t.className = "tag tag-prereq";
-    t.textContent = "✓ prereqs met";
+    t.textContent = "v prereqs met";
     tags.appendChild(t);
   }
 
@@ -483,8 +484,8 @@ function buildCourseCard(course) {
 
     const diffEl = document.createElement("span");
     diffEl.className = "rmp-difficulty";
-    diffEl.title = "Avg difficulty (1–5)";
-    diffEl.textContent = `Difficulty ${course.rmp_difficulty != null ? course.rmp_difficulty.toFixed(1) : "—"}`;
+    diffEl.title = "Avg difficulty (1-5)";
+    diffEl.textContent = `Difficulty ${course.rmp_difficulty != null ? course.rmp_difficulty.toFixed(1) : "--"}`;
     applyPillTone(diffEl, getPillTone(course.rmp_difficulty, "difficulty"));
 
     rmpBadge.append(ratingEl, diffEl);
@@ -504,7 +505,7 @@ function buildCourseCard(course) {
       rmpLink.href = course.rmp_url;
       rmpLink.target = "_blank";
       rmpLink.rel = "noopener noreferrer";
-      rmpLink.textContent = "RMP ↗";
+      rmpLink.textContent = "RMP ->";
       rmpBadge.appendChild(rmpLink);
     }
 
@@ -541,11 +542,11 @@ function renderPrereqBlocked(blockedCourses = []) {
     code.textContent = blocked.course_code;
     const titleEl = document.createElement("span");
     titleEl.className = "prereq-blocked-title";
-    titleEl.textContent = blocked.title ? ` — ${blocked.title}` : "";
+    titleEl.textContent = blocked.title ? ` -- ${blocked.title}` : "";
     const reason = document.createElement("span");
     reason.className = "prereq-blocked-reason";
     reason.textContent = blocked.unmet_prerequisites
-      ? ` · needs ${blocked.unmet_prerequisites}` : "";
+      ? ` . needs ${blocked.unmet_prerequisites}` : "";
     item.append(code, titleEl, reason);
     prereqBlockedList.appendChild(item);
   });
@@ -627,7 +628,7 @@ function renderSchedule(courses = []) {
           strong.textContent = course.code;
           const time = document.createElement("p");
           time.className = "schedule-time";
-          time.textContent = `${course.time} · ${course.instructor}`;
+          time.textContent = `${course.time} . ${course.instructor}`;
           div.append(strong, time);
           dayDiv.appendChild(div);
         });
@@ -708,7 +709,7 @@ chatForm.addEventListener("submit", async event => {
   chatInput.value = "";
   sendButton.disabled = true;
   appendThinkingIndicator();
-  setChatStatus("Sending to advisor…", "info");
+  setChatStatus("Sending to advisor...", "info");
 
   try {
     const payload = {
@@ -743,9 +744,9 @@ chatForm.addEventListener("submit", async event => {
     const sourceLabel = data.intent_source === "llm" ? "intent: LLM"
       : data.intent_source === "regex" ? "intent: regex (fast path)"
       : "intent: regex fallback";
-    const rationaleLabel = data.rationale_source === "llm" ? " · rationales: LLM"
-      : data.rationale_source === "template" ? " · rationales: template"
-      : data.rationale_source === "llm+template" ? " · rationales: LLM + template"
+    const rationaleLabel = data.rationale_source === "llm" ? " . rationales: LLM"
+      : data.rationale_source === "template" ? " . rationales: template"
+      : data.rationale_source === "llm+template" ? " . rationales: LLM + template"
       : "";
     setChatStatus(`Done (${sourceLabel}${rationaleLabel}).`, "success");
 

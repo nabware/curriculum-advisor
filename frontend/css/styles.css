@@ -111,7 +111,7 @@ h1, h2, h3, h4 {
   display: flex;
   align-items: center;
   transition: color 0.15s, border-color 0.15s;
-  margin-bottom: -3px; /* sit on top of the gold border */
+  margin-bottom: -3px; 
 }
 
 .nav-btn:hover {
@@ -134,7 +134,6 @@ h1, h2, h3, h4 {
     var(--purple) 100%
   );
 }
-
 .page-shell {
   max-width: 940px;
   margin: 0 auto;
@@ -187,6 +186,7 @@ h1, h2, h3, h4 {
   flex-direction: column;
   gap: 0.85rem;
 }
+
 .chat-panel {
   display: flex;
   flex-direction: column;
@@ -225,6 +225,10 @@ h1, h2, h3, h4 {
   line-height: 1.5;
   word-wrap: break-word;
   white-space: normal;
+}
+
+.chat-bubble.preserve-whitespace {
+  white-space: pre-wrap;
 }
 
 .chat-message-user .chat-bubble {
@@ -744,7 +748,6 @@ h1, h2, h3, h4 {
   max-width: 60ch;
 }
 
-/* rating pills */
 .professor-rating-pill {
   display: inline-flex;
   align-items: center;
