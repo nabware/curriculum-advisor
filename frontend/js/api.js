@@ -1,7 +1,7 @@
-const ADVISOR_API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "http://localhost:8000";
 
 async function fetchDegrees() {
-  const response = await fetch(`${ADVISOR_API_BASE_URL}advisor/degrees`);
+  const response = await fetch(`${API_BASE_URL}advisor/degrees`);
 
   if (!response.ok) {
     throw new Error(`Could not load degrees (${response.status})`);
@@ -11,7 +11,7 @@ async function fetchDegrees() {
 }
 
 async function fetchRecommendations(payload) {
-  const response = await fetch(`${ADVISOR_API_BASE_URL}/advisor/recommend`, {
+  const response = await fetch(`${API_BASE_URL}/advisor/recommend`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -32,7 +32,7 @@ async function fetchRecommendations(payload) {
 }
 
 async function fetchProfessorRating(name) {
-  const response = await fetch(`${ADVISOR_API_BASE_URL}/advisor/professor-rating?name=${encodeURIComponent(name)}`);
+  const response = await fetch(`${API_BASE_URL}/advisor/professor-rating?name=${encodeURIComponent(name)}`);
 
   if (!response.ok) {
     let details = "";
@@ -49,7 +49,7 @@ async function fetchProfessorRating(name) {
 }
 
 async function sendChatMessage(payload) {
-  const response = await fetch(`${ADVISOR_API_BASE_URL}/advisor/chat`, {
+  const response = await fetch(`${API_BASE_URL}/advisor/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -68,7 +68,3 @@ async function sendChatMessage(payload) {
 
   return response.json();
 }
-window.sendChatMessage = sendChatMessage;
-window.fetchProfessorRating = fetchProfessorRating;
-window.fetchRecommendations = fetchRecommendations;
-window.fetchDegrees = fetchDegrees;

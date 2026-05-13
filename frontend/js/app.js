@@ -214,7 +214,6 @@ document.getElementById("add-blocked-btn").addEventListener("click", () => {
 chatBlockedToggle.addEventListener("click", () => {
   chatBlockedDetails.open = !chatBlockedDetails.open;
 });
-
 chatResetButton.addEventListener("click", () => {
   conversationHistory.length = 0;
   conversationState = {
@@ -229,7 +228,7 @@ chatResetButton.addEventListener("click", () => {
   renderBlockedWindows();
   chatThread.innerHTML = "";
   appendMessage("assistant",
-    "Hi, Gator! 🐊 Tell me your major, the semester you're planning, and any courses you've already completed. I'll validate prerequisites and build your plan.");
+    "Hi, Gator! 🐊 Started a new conversation. What major and term are you planning?");
   recommendationsEl.innerHTML = '<p class="empty-state">No recommendations yet — start a chat.</p>';
   prereqBlockedSection.hidden = true;
   progressContainer.style.display = "none";
@@ -266,6 +265,7 @@ function getRenderableProfessorImageUrl(imageUrl) {
     return `${API_BASE_URL}${value}`;
   return null;
 }
+
 function getPillTone(value, kind) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "neutral";
   const v = Number(value);
@@ -297,7 +297,7 @@ async function getProfessorRmpData(course) {
     return null;
   }
 }
-
+──
 async function renderRecommendations(groups, fallbackCourses = []) {
   recommendationsEl.innerHTML = "";
 
@@ -716,7 +716,22 @@ chatForm.addEventListener("submit", async event => {
       state:   buildOutgoingState(),
       history: conversationHistory.slice(-8),
     };
-    const data = await sendChatMessage(payload);
+    const _send = (typeof sendChatMessage === "function")
+      ? sendChatMessage
+      : async (p) => {
+          const r = await fetch(`${API_BASE_URL}/advisor/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(p),
+          });
+          if (!r.ok) {
+            let d = "";
+            try { const b = await r.json(); d = b?.detail ? `: ${b.detail}` : ""; } catch {}
+            throw new Error(`Chat request failed (${r.status})${d}`);
+          }
+          return r.json();
+        };
+    const data = await _send(payload);
     removeThinkingIndicator();
 
     appendMessage("assistant", data.reply || "(no reply)", "SF State Advisor");
