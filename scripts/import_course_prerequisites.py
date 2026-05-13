@@ -44,7 +44,7 @@ COURSE_TITLE_PATTERN = re.compile(
     flags=re.IGNORECASE | re.DOTALL,
 )
 PREREQ_BLOCK_PATTERN = re.compile(
-    r'<p class="courseblockextra">\s*Prerequisites?:\s*(.*?)</p>',
+    r'<p class="courseblockextra">(.*?)</p>',
     flags=re.IGNORECASE | re.DOTALL,
 )
 
@@ -225,12 +225,24 @@ def import_file(conn: sqlite3.Connection, html_path: Path, *, dry_run: bool) -> 
         if not course_code:
             continue
         counts["courses_seen"] += 1
-
+        
         prereq_match = PREREQ_BLOCK_PATTERN.search(block)
         if not prereq_match:
             continue
+        raw_block = prereq_match.group(1)
+        br_segments = re.split(r'<br\s*/?>', raw_block, flags=re.IGNORECASE)
 
-        prereq_text = html_to_text(prereq_match.group(1))
+        prereq_text = None
+        for segment in br_segments:
+            segment_text = html_to_text(segment)
+            m = re.match(
+            r'Prerequisites?\s*(?:for\s+' + re.escape(course_code) + r'\s*)?:\s*(.+)',
+            segment_text,
+            flags=re.IGNORECASE,
+            )
+            if m:
+                prereq_text = m.group(1).strip()
+                break
         if not prereq_text:
             continue
 
