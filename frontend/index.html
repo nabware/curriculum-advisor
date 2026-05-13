@@ -3,122 +3,238 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Curriculum Advisor</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260509-1" />
+    <title>Curriculum Advisor · SF State CS</title>
+    <link rel="stylesheet" href="css/styles.css?v=20260512-1" />
   </head>
   <body>
+
+    <div class="gg-bar"></div>
+
+    <header class="site-header">
+      <div class="header-brand">
+        <div class="gator-badge">G</div>
+        <div class="brand-text">
+          <div class="brand-sup">San Francisco State University</div>
+          <h1 class="brand-name">Curriculum Advisor</h1>
+          <div class="brand-sub">Computer Science Department</div>
+        </div>
+      </div>
+      <nav class="header-nav" aria-label="Main tabs">
+        <button class="nav-btn active" data-tab="chat">Chat</button>
+        <button class="nav-btn" data-tab="results">Recommendations</button>
+        <button class="nav-btn" data-tab="schedule">Schedule</button>
+      </nav>
+    </header>
+
     <main class="page-shell">
-      <section class="hero">
-        <p class="eyebrow">Capstone Conversational Advisor</p>
-        <h1>Plan Your Semester by Chat</h1>
-        <p class="subtitle">
-          Tell the advisor your major, the term you're planning, and any
-          preferences. It validates prerequisites deterministically and ranks
-          courses with a sentiment-aware multi-objective function.
-        </p>
-      </section>
+      <div class="main-grid">
 
-      <section class="panel chat-panel">
-        <div id="chat-thread" class="chat-thread" aria-live="polite">
-          <div class="chat-message chat-message-assistant">
-            <div class="chat-bubble">
-              Hi! I'm your curriculum advisor. Tell me your major, the term you're planning,
-              and any courses you've completed. You can also mention preferences like
-              "I want an AI class" or "prefer high-rated professors."
+        <div id="tab-content">
+
+          <div id="tab-chat" class="tab-panel">
+            <div class="panel chat-panel">
+              <div class="panel-header">
+                <span class="panel-title">Advisor chat</span>
+                <span class="panel-badge" id="chat-term-badge">Ready</span>
+              </div>
+
+              <div id="chat-thread" class="chat-thread" aria-live="polite">
+                <div class="chat-message chat-message-assistant">
+                  <div class="chat-bubble">
+                    Hi, Gator! 🐊 Tell me your major, the semester you're planning, and any
+                    courses you've already completed. I'll validate prerequisites against the
+                    SFSU catalog and build your plan.
+                  </div>
+                </div>
+              </div>
+
+              <div class="chat-footer">
+                <div class="chat-chips" id="chat-chips">
+                  <span class="chip">I want an AI elective</span>
+                  <span class="chip">Prefer morning classes</span>
+                  <span class="chip">High-rated professors only</span>
+                  <span class="chip">Light workload</span>
+                </div>
+
+                <form id="chat-form" class="chat-form">
+                  <div class="chat-input-row">
+                    <textarea
+                      id="chat-input"
+                      class="chat-input"
+                      rows="2"
+                      placeholder="e.g. I'm a CS major, planning Fall 2026, completed CSC 101 and CSC 210"
+                      required
+                    ></textarea>
+                    <button type="submit" id="chat-send" class="chat-send" aria-label="Send">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2.5"
+                           stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="chat-form-row">
+                    <div class="chat-tools">
+                      <label class="chat-tool-label">
+                        Max units
+                        <input id="chat-max-units" type="number" min="1" max="21" value="9"
+                               class="chat-tool-input" />
+                      </label>
+                      <button type="button" id="chat-blocked-toggle" class="chat-tool-button">
+                        Blocked times
+                      </button>
+                      <button type="button" id="chat-reset"
+                              class="chat-tool-button chat-tool-button-secondary">
+                        New chat
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                <p id="chat-status" class="chat-status">Ready.</p>
+
+                <details id="chat-blocked-windows" class="chat-blocked-windows">
+                  <summary>Blocked time windows (optional)</summary>
+                  <div class="blocked-windows-builder">
+                    <div class="blocked-windows-inputs">
+                      <select id="blocked-day" class="blocked-day-select">
+                        <option>Monday</option><option>Tuesday</option>
+                        <option>Wednesday</option><option>Thursday</option>
+                        <option>Friday</option><option>Saturday</option>
+                        <option>Sunday</option>
+                      </select>
+                      <input id="blocked-start" type="time" value="09:00" class="blocked-time-input" />
+                      <span class="blocked-separator">&ndash;</span>
+                      <input id="blocked-end"   type="time" value="11:00" class="blocked-time-input" />
+                      <button type="button" id="add-blocked-btn" class="blocked-add-btn">Add</button>
+                    </div>
+                    <div id="blocked-windows-list" class="blocked-windows-list" aria-live="polite"></div>
+                  </div>
+                </details>
+
+                <details class="chat-debug">
+                  <summary>Conversation state (debug)</summary>
+                  <pre id="chat-state-debug" class="chat-state-debug">(empty)</pre>
+                </details>
+              </div>
             </div>
           </div>
+
+          <div id="tab-results" class="tab-panel hidden">
+            <section class="panel" id="results-panel">
+              <div class="panel-header">
+                <span class="panel-title">Recommended courses</span>
+                <span class="panel-badge" id="results-units-badge">0 units</span>
+              </div>
+              <div class="results-body">
+                <div id="progress-container" class="progress-container" style="display:none">
+                  <div class="progress-top">
+                    <span class="progress-lbl">Degree progress</span>
+                    <span class="progress-val" id="progress-text">0 / 0 units</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="progress-fill" class="progress-fill"></div>
+                  </div>
+                </div>
+
+                <div id="recommendations" class="recommendation-list">
+                  <p class="empty-state">No recommendations yet — start a chat.</p>
+                </div>
+
+                <div id="prereq-blocked-section" class="prereq-blocked-section" hidden>
+                  <h3>Excluded by prerequisite validation</h3>
+                  <p class="prereq-blocked-help">
+                    These courses match your requirement groups but you haven't yet completed
+                    their prerequisites. The deterministic prereq-graph validator removed them.
+                  </p>
+                  <ul id="prereq-blocked-list" class="prereq-blocked-list"></ul>
+                </div>
+
+                <h3 style="margin-top:1.5rem;font-size:0.95rem;color:var(--muted);font-family:'Source Sans 3',sans-serif;font-weight:600;">System explanation</h3>
+                <p id="explanation" class="explanation">No explanation yet.</p>
+              </div>
+            </section>
+          </div>
+
+          <div id="tab-schedule" class="tab-panel hidden">
+            <section class="panel">
+              <div class="panel-header">
+                <span class="panel-title">Weekly schedule</span>
+                <span class="panel-badge" id="schedule-badge">—</span>
+              </div>
+              <div style="padding:1rem">
+                <div id="schedule-container" class="schedule-container" style="display:none">
+                  <div id="schedule-grid" class="schedule-grid"></div>
+                </div>
+                <p id="schedule-placeholder" class="empty-state">No schedule to display yet.</p>
+              </div>
+            </section>
+          </div>
+
         </div>
 
-        <form id="chat-form" class="chat-form">
-          <textarea
-            id="chat-input"
-            class="chat-input"
-            rows="2"
-            placeholder="Try: I&rsquo;m a CS major, planning Fall 2026, completed CSC 101 and CSC 210, I want an AI class"
-            required
-          ></textarea>
-          <div class="chat-form-row">
-            <div class="chat-tools">
-              <label class="chat-tool-label">
-                Max units
-                <input id="chat-max-units" type="number" min="1" max="21" value="9" class="chat-tool-input" />
-              </label>
-              <button type="button" id="chat-blocked-toggle" class="chat-tool-button">
-                Blocked times
-              </button>
-              <button type="button" id="chat-reset" class="chat-tool-button chat-tool-button-secondary">
-                New chat
-              </button>
+        <aside class="sidebar">
+
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Session state</span></div>
+            <div class="state-rows">
+              <div class="state-row">
+                <span class="state-key">Major</span>
+                <span class="state-val unset" id="st-major">not set</span>
+              </div>
+              <div class="state-row">
+                <span class="state-key">Term</span>
+                <span class="state-val unset" id="st-term">not set</span>
+              </div>
+              <div class="state-row">
+                <span class="state-key">Completed</span>
+                <span class="state-val unset" id="st-completed">none</span>
+              </div>
+              <div class="state-row">
+                <span class="state-key">Preferences</span>
+                <span class="state-val unset" id="st-prefs">not set</span>
+              </div>
             </div>
-            <button type="submit" id="chat-send" class="chat-send">Send</button>
           </div>
-        </form>
 
-        <p id="chat-status" class="chat-status">Ready.</p>
-
-        <details id="chat-blocked-windows" class="chat-blocked-windows">
-          <summary>Blocked time windows (optional)</summary>
-          <div class="blocked-windows-builder">
-            <div class="blocked-windows-inputs">
-              <select id="blocked-day" class="blocked-day-select">
-                <option value="Monday">Monday</option>
-                <option value="Tuesday">Tuesday</option>
-                <option value="Wednesday">Wednesday</option>
-                <option value="Thursday">Thursday</option>
-                <option value="Friday">Friday</option>
-                <option value="Saturday">Saturday</option>
-                <option value="Sunday">Sunday</option>
-              </select>
-              <input id="blocked-start" type="time" value="09:00" class="blocked-time-input" />
-              <span class="blocked-separator">&ndash;</span>
-              <input id="blocked-end" type="time" value="11:00" class="blocked-time-input" />
-              <button type="button" id="add-blocked-btn" class="blocked-add-btn">Add</button>
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Prereq summary</span></div>
+            <div class="stat-grid">
+              <div class="stat">
+                <div class="stat-num" id="st-eligible">—</div>
+                <div class="stat-label">Eligible</div>
+              </div>
+              <div class="stat">
+                <div class="stat-num gold" id="st-blocked">—</div>
+                <div class="stat-label">Blocked</div>
+              </div>
+              <div class="stat">
+                <div class="stat-num" id="st-units-sel">0</div>
+                <div class="stat-label">Units sel.</div>
+              </div>
+              <div class="stat">
+                <div class="stat-num" id="st-units-req">—</div>
+                <div class="stat-label">Required</div>
+              </div>
             </div>
-            <div id="blocked-windows-list" class="blocked-windows-list" aria-live="polite"></div>
           </div>
-        </details>
 
-        <details class="chat-debug">
-          <summary>Conversation state (debug)</summary>
-          <pre id="chat-state-debug" class="chat-state-debug">(empty)</pre>
-        </details>
-      </section>
-
-      <section class="panel results-panel" id="results-panel" hidden>
-        <div id="progress-container" class="progress-container" style="display: none">
-          <div class="progress-bar">
-            <div id="progress-fill" class="progress-fill"></div>
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Semester cap</span></div>
+            <div class="units-row">
+              <input class="units-input" type="number" id="sidebar-max-units"
+                     value="9" min="1" max="21" />
+              <span class="units-hint">max units / semester</span>
+            </div>
           </div>
-          <p id="progress-text" class="progress-text"></p>
-        </div>
 
-        <h2>Recommended Courses</h2>
-        <div id="recommendations" class="recommendation-list">
-          <p class="empty-state">No recommendations yet.</p>
-        </div>
+        </aside>
 
-        <div id="prereq-blocked-section" class="prereq-blocked-section" hidden>
-          <h3>Excluded by Prerequisite Validation</h3>
-          <p class="prereq-blocked-help">
-            These courses match the requirement groups but the student has not yet completed
-            their prerequisites. The deterministic prerequisite-graph validator removed them
-            so they cannot be recommended.
-          </p>
-          <ul id="prereq-blocked-list" class="prereq-blocked-list"></ul>
-        </div>
-
-        <h2>Schedule Overview</h2>
-        <div id="schedule-container" class="schedule-container" style="display: none">
-          <div id="schedule-grid" class="schedule-grid"></div>
-        </div>
-        <p id="schedule-placeholder" class="empty-state">No schedule to display yet.</p>
-
-        <h3>System Explanation</h3>
-        <p id="explanation" class="explanation">No explanation yet.</p>
-      </section>
+      </div>
     </main>
 
-    <script src="js/api.js?v=20260509-1"></script>
-    <script src="js/app.js?v=20260509-1"></script>
+    <script src="js/api.js?v=20260512-1"></script>
+    <script src="js/app.js?v=20260512-1"></script>
   </body>
 </html>
