@@ -53,6 +53,8 @@ const blockedWindows = [];
 const navBtns  = document.querySelectorAll(".nav-btn[data-tab]");
 const tabPanels= document.querySelectorAll(".tab-panel");
 
+const mainGrid = document.querySelector(".main-grid");
+
 navBtns.forEach(btn => {
   btn.addEventListener("click", () => {
     navBtns.forEach(b  => b.classList.remove("active"));
@@ -60,6 +62,14 @@ navBtns.forEach(btn => {
     btn.classList.add("active");
     const panel = document.getElementById(`tab-${btn.dataset.tab}`);
     if (panel) panel.classList.remove("hidden");
+
+    if (mainGrid) {
+      if (btn.dataset.tab === "chat") {
+        mainGrid.classList.remove("full-width");
+      } else {
+        mainGrid.classList.add("full-width");
+      }
+    }
   });
 });
 
@@ -639,6 +649,7 @@ function renderSchedule(courses = []) {
     grid.appendChild(dayDiv);
   });
 }
+
 function renderProgress(advisor) {
   if (!advisor) { progressContainer.style.display = "none"; return; }
   const sel = advisor.total_units_selected  || 0;
@@ -714,7 +725,7 @@ chatForm.addEventListener("submit", async event => {
       state:   buildOutgoingState(),
       history: conversationHistory.slice(-8),
     };
-
+   
     const _send = (typeof sendChatMessage === "function")
       ? sendChatMessage
       : async (p) => {

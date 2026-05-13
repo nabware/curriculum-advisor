@@ -134,6 +134,7 @@ h1, h2, h3, h4 {
     var(--purple) 100%
   );
 }
+
 .page-shell {
   max-width: 940px;
   margin: 0 auto;
@@ -179,6 +180,14 @@ h1, h2, h3, h4 {
   grid-template-columns: 1fr 290px;
   gap: 1.1rem;
   align-items: start;
+}
+
+.main-grid.full-width {
+  grid-template-columns: 1fr;
+}
+
+.main-grid.full-width .sidebar {
+  display: none;
 }
 
 .sidebar {
@@ -580,6 +589,14 @@ h1, h2, h3, h4 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
+}
+
+.full-width .course-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.full-width .schedule-grid {
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .recommendation-list {
