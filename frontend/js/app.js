@@ -3,8 +3,6 @@
 // Maintains chat history + rolling state, renders message bubbles,
 // drives tab switching, and updates sidebar stats on each advisor response.
 
-const API_BASE_URL = "http://localhost:8000";
-
 const chatThread       = document.getElementById("chat-thread");
 const chatForm         = document.getElementById("chat-form");
 const chatInput        = document.getElementById("chat-input");
@@ -72,8 +70,8 @@ document.querySelectorAll(".chip").forEach(chip => {
     document.querySelector(".nav-btn[data-tab='chat']").click();
   });
 });
-function updateSidebar(advisor) {
 
+function updateSidebar(advisor) {
   setStateEl(stMajor,     conversationState.major,            "not set");
   setStateEl(stTerm,      conversationState.term,             "not set");
   setStateEl(stCompleted,
@@ -641,7 +639,6 @@ function renderSchedule(courses = []) {
     grid.appendChild(dayDiv);
   });
 }
-
 function renderProgress(advisor) {
   if (!advisor) { progressContainer.style.display = "none"; return; }
   const sel = advisor.total_units_selected  || 0;
@@ -717,6 +714,7 @@ chatForm.addEventListener("submit", async event => {
       state:   buildOutgoingState(),
       history: conversationHistory.slice(-8),
     };
+
     const _send = (typeof sendChatMessage === "function")
       ? sendChatMessage
       : async (p) => {
